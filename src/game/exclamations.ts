@@ -76,10 +76,10 @@ const lastIncorrectChar = { value: "" };
 
 export function playCorrectExclamation() {
   const src = pickNoRepeat(CORRECT, correctQueue, lastCorrectChar);
-  if (src) new Audio(asset(src)).play().catch(() => undefined);
+  if (src) new Audio(src).play().catch(() => undefined);
 }
 
 export function playIncorrectExclamation() {
   const src = pickNoRepeat(INCORRECT, incorrectQueue, lastIncorrectChar);
-  if (src) new Audio(asset(src)).play().catch(() => undefined);
+  if (src) new Audio(src).play().catch(() => undefined);
 }
