@@ -1,0 +1,343 @@
+.world-chase {
+  --wc-navy: #1b2a6b;
+  --wc-gold: #fbbf24;
+  --wc-coral: #ff5a5a;
+  --wc-teal: #00bfa5;
+  --wc-pink: #ff4eab;
+  --wc-paper: #fffbf0;
+  --wc-map-water: #bde0fe;
+  --wc-map-land: #d4e9c2;
+  --wc-map-active: #fde68a;
+  --wc-ink: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.world-chase__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #bde0fe 0%, #e0f2fe 40%, #fffbf0 100%);
+  z-index: 0;
+}
+
+.world-chase__content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Map wrapper ── */
+.world-chase__map-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 340px;
+  overflow: hidden;
+}
+
+.world-chase__map-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── HUD stat chips ── */
+.world-chase__hud {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 251, 240, 0.92);
+  border-bottom: 3px solid var(--wc-ink);
+}
+
+.world-chase__stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  border: 3px solid var(--wc-ink);
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  padding: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.world-chase__stat-chip--warning {
+  background: #ffecec;
+}
+
+/* ── Overlay panels (briefing, found, clue-reading, etc.) ── */
+.world-chase__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  padding: 1rem;
+  background: rgba(189, 224, 254, 0.55);
+}
+
+.world-chase__panel {
+  background: var(--wc-paper);
+  border: 3px solid var(--wc-ink);
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  border-radius: 1.75rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.world-chase__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 3px solid var(--wc-ink);
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  padding: 0.2rem 0.9rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: var(--wc-gold);
+  margin-bottom: 0.75rem;
+}
+
+/* ── Clue cards ── */
+.world-chase__clue {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: #fff;
+  border: 3px solid var(--wc-ink);
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  border-radius: 1rem;
+  padding: 0.65rem 0.9rem;
+  margin-top: 0.6rem;
+  opacity: 0;
+  animation: wc-clue-in 0.35s ease forwards;
+}
+
+.world-chase__clue:nth-child(1) { animation-delay: 0.05s; }
+.world-chase__clue:nth-child(2) { animation-delay: 0.2s; }
+.world-chase__clue:nth-child(3) { animation-delay: 0.35s; }
+
+.world-chase__clue-emoji {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.world-chase__clue-text {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+/* ── Fun fact card ── */
+.world-chase__fact {
+  background: #fff9c4;
+  border: 3px solid var(--wc-ink);
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  border-radius: 1rem;
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  animation: wc-clue-in 0.3s ease forwards;
+}
+
+/* ── Map pin choice markers ── */
+.wc-pin__body {
+  transition: fill 0.15s;
+}
+.wc-pin:hover .wc-pin__body {
+  fill: #fbbf24;
+}
+
+/* ── City choice buttons (rendered inside SVG foreignObject) ── */
+.wc-city-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 48px;
+  background: #fff;
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  border-radius: 1rem;
+  font-family: "Baloo 2", "Baloo2", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 0.4rem;
+  transition: transform 0.1s;
+  color: #1a1a1a;
+}
+
+.wc-city-btn:active {
+  transform: translateY(2px);
+}
+
+.wc-city-btn:hover {
+  background: #fde68a;
+}
+
+/* ── Animations ── */
+@keyframes wc-clue-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes wc-pulse-ring {
+  0%   { r: 8;  opacity: 0.85; }
+  100% { r: 22; opacity: 0; }
+}
+
+@keyframes wc-wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-10px); }
+  40%       { transform: translateX(10px); }
+  60%       { transform: translateX(-6px); }
+  80%       { transform: translateX(6px); }
+}
+
+@keyframes wc-dash {
+  from { stroke-dashoffset: 1000; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes wc-pop-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.world-chase__panel--shake {
+  animation: wc-wrong-shake 0.45s ease;
+}
+
+.world-chase__panel--pop {
+  animation: wc-pop-in 0.3s ease;
+}
+
+/* ── Clue card (guessing / wrong-guess) — small floating reference ── */
+.world-chase__clue-strip {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  width: 260px;
+  background: rgba(255, 251, 240, 0.93);
+  border: 2px solid var(--wc-ink);
+  border-bottom-width: 4px;
+  border-right-width: 3px;
+  border-radius: 1rem;
+  padding: 0.5rem 0.65rem;
+  z-index: 20;
+  max-height: 55%;
+  overflow-y: auto;
+  box-shadow: 2px 4px 0 rgba(0,0,0,0.12);
+}
+
+.world-chase__clue-strip .world-chase__clue {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-width: 2px;
+  border-bottom-width: 3px;
+  border-right-width: 2px;
+}
+
+.world-chase__clue-strip .world-chase__clue-emoji {
+  font-size: 1rem;
+}
+
+.world-chase__clue-strip .world-chase__clue-text {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.world-chase__clue-strip-label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--wc-ink);
+  opacity: 0.5;
+  margin-bottom: 0.25rem;
+}
+
+.world-chase__clue-strip-error {
+  background: #ffecec;
+  border: 2px solid var(--wc-ink);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-bottom: 0.35rem;
+}
+
+.world-chase__clue-strip--shake {
+  animation: wc-wrong-shake 0.45s ease;
+}
+
+/* ── Equalizer animation ── */
+.wc-equalizer {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.wc-equalizer__bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 2px;
+  background: #fbbf24;
+  animation: wc-eq-bounce 0.7s ease-in-out infinite alternate;
+}
+
+.wc-equalizer__bar:nth-child(1) { height: 8px; }
+.wc-equalizer__bar:nth-child(2) { height: 14px; }
+.wc-equalizer__bar:nth-child(3) { height: 10px; }
+.wc-equalizer__bar:nth-child(4) { height: 6px; }
+
+@keyframes wc-eq-bounce {
+  from { transform: scaleY(0.3); }
+  to   { transform: scaleY(1); }
+}
+
+/* ── Traveling caption ── */
+.world-chase__travel-caption {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 251, 240, 0.92);
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  border-radius: 9999px;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}

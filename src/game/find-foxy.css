@@ -1,0 +1,1154 @@
+.find-foxy {
+  --ff-navy: #1b2a6b;
+  --ff-sun: #ffd726;
+  --ff-coral: #ff5a5a;
+  --ff-teal: #00bfa5;
+  --ff-pink: #ff6eb4;
+  --ff-purple: #8b5cf6;
+  --ff-orange: #ff8c00;
+  --ff-cream: #fffbf0;
+  --ff-sky: #d6f0ff;
+  --ff-passport-bg: #1a3a1a;
+  --ff-passport-page: #f5f0e0;
+  --ff-passport-ink: #c41e3a;
+  --ff-passport-gold: #d4a017;
+  position: relative;
+  overflow: hidden;
+  color: var(--ff-navy);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.find-foxy__sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background: linear-gradient(180deg, #dff6ff 0%, #cfefff 55%, #fff8e4 100%);
+}
+
+.find-foxy__rainbow {
+  position: absolute;
+  left: 50%;
+  top: -2rem;
+  width: min(42rem, 92vw);
+  height: min(21rem, 46vw);
+  transform: translateX(-50%);
+  opacity: 0.7;
+  filter: blur(0.5px);
+}
+
+.find-foxy__rainbow::before,
+.find-foxy__rainbow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.find-foxy__rainbow::before {
+  background: conic-gradient(
+    from 180deg at 50% 100%,
+    transparent 0deg,
+    rgba(255, 0, 0, 0.16) 10deg,
+    rgba(255, 127, 0, 0.16) 20deg,
+    rgba(255, 255, 0, 0.18) 30deg,
+    rgba(0, 180, 0, 0.16) 40deg,
+    rgba(0, 100, 255, 0.16) 50deg,
+    rgba(148, 0, 211, 0.16) 60deg,
+    transparent 70deg
+  );
+  animation: ff-rainbow-fade 18s ease-in-out infinite;
+}
+
+
+.find-foxy__cloud,
+.find-foxy__cloud::before,
+.find-foxy__cloud::after {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+}
+
+.find-foxy__cloud {
+  position: absolute;
+  width: 7rem;
+  height: 2.2rem;
+  opacity: 0.72;
+  animation: ff-cloud-drift linear infinite;
+}
+
+.find-foxy__cloud::before,
+.find-foxy__cloud::after {
+  content: "";
+  position: absolute;
+}
+
+.find-foxy__cloud::before {
+  width: 3rem;
+  height: 3rem;
+  left: 0.8rem;
+  top: -1.5rem;
+}
+
+.find-foxy__cloud::after {
+  width: 2.2rem;
+  height: 2.2rem;
+  left: 3.6rem;
+  top: -1rem;
+}
+
+/* Wrapper owns the flight path — no transform conflicts with the image flip */
+.find-foxy__plane-wrap {
+  position: absolute;
+  bottom: var(--ff-plane-bottom, 25%);
+  z-index: 0;
+  filter: drop-shadow(0 10px 18px rgba(27, 42, 107, 0.2));
+  pointer-events: none;
+  user-select: none;
+}
+
+.find-foxy__plane-wrap--ltr {
+  left: var(--ff-plane-start, -12rem);
+  animation: ff-plane-flight var(--ff-plane-duration, 42s) linear forwards;
+}
+
+.find-foxy__plane-wrap--rtl {
+  left: calc(100vw + 10rem);
+  animation: ff-plane-flight-rtl var(--ff-plane-duration, 42s) linear forwards;
+}
+
+/* Image only handles the static directional flip — never animated */
+.find-foxy__plane {
+  display: block;
+}
+
+/* LTR planes flip so the nose points right (plane.png faces left by default) */
+.find-foxy__plane--flipped {
+  transform: scaleX(-1);
+}
+
+.find-foxy__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.75rem 0.75rem 1rem;
+  width: min(42rem, 100%);
+  margin-inline: auto;
+}
+
+.find-foxy__header {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.find-foxy__title {
+  display: block;
+  width: min(18rem, 72vw);
+  margin: 0 auto;
+}
+
+.find-foxy__subtitle {
+  display: block;
+  width: min(10rem, 44vw);
+  margin: -0.25rem auto 0;
+}
+
+.find-foxy__tagline {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  color: var(--ff-coral);
+  text-shadow: 2px 2px 0 #fff;
+}
+
+.find-foxy__panel,
+.find-foxy__hud-card,
+.find-foxy__passport-bar,
+.find-foxy__game-card,
+.find-foxy__answer,
+.find-foxy__win,
+.find-foxy__passport-book {
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  box-shadow: 0 12px 30px rgba(27, 42, 107, 0.12);
+}
+
+.find-foxy__panel,
+.find-foxy__game-card,
+.find-foxy__win {
+  border-radius: 1.9rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.find-foxy__panel {
+  padding: 1rem;
+}
+
+.find-foxy__intro {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.find-foxy__casey-wrap,
+.find-foxy__casey-row {
+  display: grid;
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.find-foxy__casey-wrap {
+  grid-template-columns: auto 1fr;
+}
+
+.find-foxy__casey-row {
+  grid-template-columns: auto 1fr;
+}
+
+.find-foxy__casey-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.find-foxy__casey-photo {
+  width: 5.5rem;
+  height: 5.5rem;
+  object-fit: cover;
+  border-radius: 999px;
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  animation: ff-bob 2.4s ease-in-out infinite;
+}
+
+.find-foxy__casey-photo--small {
+  width: 4rem;
+  height: 4rem;
+}
+
+.find-foxy__casey-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ff-pink);
+  text-align: center;
+}
+
+.find-foxy__bubble-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.find-foxy__bubble,
+.find-foxy__bubble-big,
+.find-foxy__bubble-green,
+.find-foxy__bubble-gold,
+.find-foxy__speech {
+  border-radius: 1rem;
+  padding: 0.7rem 0.95rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.find-foxy__bubble,
+.find-foxy__speech {
+  background: #fff0f8;
+  border: 2px solid #ffd6ec;
+}
+
+.find-foxy__speech {
+  border-bottom-left-radius: 0.4rem;
+}
+
+.find-foxy__bubble-big {
+  background: #ffecec;
+  border: 2px solid var(--ff-coral);
+  color: var(--ff-coral);
+  text-align: center;
+  animation: ff-pulse 1.4s ease-in-out infinite;
+}
+
+.find-foxy__bubble-green {
+  background: #e8fff4;
+  border: 2px solid var(--ff-teal);
+  color: #0d6e54;
+}
+
+.find-foxy__bubble-gold {
+  background: #fff8e0;
+  border: 2px solid var(--ff-sun);
+}
+
+.find-foxy__name-block {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  margin-top: 0.5rem;
+}
+
+.find-foxy__eyebrow,
+.find-foxy__section-label,
+.find-foxy__hud-label,
+.find-foxy__passport-label,
+.find-foxy__page-number {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(27, 42, 107, 0.6);
+}
+
+.find-foxy__input {
+  width: min(18rem, 100%);
+  border-radius: 999px;
+  border: 3px solid #e0e0e0;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  color: var(--ff-navy);
+  background: #fff;
+}
+
+.find-foxy__input:focus {
+  outline: none;
+  border-color: var(--ff-teal);
+}
+
+.find-foxy__difficulty-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.find-foxy__difficulty {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: center;
+  border-radius: 1.2rem;
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  padding: 0.95rem 1rem;
+  text-align: left;
+  transition: transform 0.2s ease;
+}
+
+.find-foxy__difficulty:hover {
+  transform: translateY(-3px);
+}
+
+.find-foxy__difficulty[data-tone="beginner"] { background: #e8fff4; }
+.find-foxy__difficulty[data-tone="intermediate"] { background: #fff8e0; }
+.find-foxy__difficulty[data-tone="advanced"] { background: #fff0f8; }
+
+.find-foxy__difficulty-icon {
+  font-size: 1.8rem;
+}
+
+.find-foxy__difficulty-title {
+  font-size: 1.05rem;
+}
+
+.find-foxy__difficulty-copy {
+  font-size: 0.76rem;
+  font-weight: 700;
+  opacity: 0.68;
+}
+
+.find-foxy__hud {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.find-foxy__hud-card,
+.find-foxy__passport-bar {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.find-foxy__hud-card {
+  padding: 0.7rem 0.8rem;
+  text-align: center;
+}
+
+.find-foxy__hud-value {
+  font-size: 1.35rem;
+}
+
+.find-foxy__hud-value--score { color: var(--ff-teal); }
+.find-foxy__hud-value--streak { color: var(--ff-coral); }
+
+.find-foxy__passport-bar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  padding: 0.8rem 0.95rem;
+}
+
+.find-foxy__passport-icon {
+  font-size: 1.7rem;
+}
+
+.find-foxy__passport-count {
+  font-size: 1.1rem;
+}
+
+.find-foxy__passport-count span {
+  color: var(--ff-passport-gold);
+}
+
+.find-foxy__stamp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.22rem;
+  margin-top: 0.35rem;
+}
+
+.find-foxy__stamp-dot {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: #ebebeb;
+  border: 2px dashed #ccc;
+  display: grid;
+  place-items: center;
+  font-size: 0.6rem;
+}
+
+.find-foxy__stamp-dot.is-on {
+  background: var(--ff-passport-gold);
+  border-style: solid;
+  border-color: #8b6914;
+  animation: ff-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.find-foxy__game-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0.9rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.find-foxy__game-card::before,
+.find-foxy__win::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0.35rem;
+  background: linear-gradient(90deg, var(--ff-coral), var(--ff-sun), var(--ff-teal), var(--ff-purple), var(--ff-pink));
+}
+
+.find-foxy__destination {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.48;
+}
+
+.find-foxy__question-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.find-foxy__question-eyebrow {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ff-coral);
+  display: flex;
+  align-items: center;
+}
+
+.find-foxy__speech--question {
+  background: #fff8e0;
+  border-color: var(--ff-sun);
+  border-width: 3px;
+}
+
+.find-foxy__casey-copy {
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.find-foxy__cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  background: #fff8e0;
+  border: 2px solid var(--ff-sun);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.find-foxy__clue-list {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.find-foxy__clue {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  border-radius: 0.9rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--ff-cream);
+  border-left: 4px solid var(--ff-sun);
+  opacity: 0;
+  transform: translateX(-12px);
+  animation: ff-clue-in 0.32s ease forwards;
+}
+
+.find-foxy__clue-emoji {
+  font-size: 1.2rem;
+}
+
+.find-foxy__answers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.find-foxy__answer {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.8rem 0.65rem;
+  text-align: center;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.find-foxy__answer:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--ff-teal);
+  background: #f0fffc;
+}
+
+.find-foxy__answer:disabled {
+  cursor: default;
+}
+
+.find-foxy__answer-flag {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.find-foxy__answer.is-correct {
+  background: #e8fff4;
+  border-color: var(--ff-teal);
+  color: #0d6e54;
+  animation: ff-correct-celebrate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.find-foxy__answer.is-wrong {
+  background: #fff0f0;
+  border-color: var(--ff-coral);
+  color: #b91c1c;
+  animation: ff-shake 0.35s ease;
+}
+
+.find-foxy__try-again-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(26, 42, 107, 0.18);
+  backdrop-filter: blur(2px);
+}
+
+.find-foxy__try-again-oops {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-bottom: 0.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.find-foxy__try-again-btn {
+  position: relative;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 1.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6eb4, #e0198a);
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 7px;
+  border-right-width: 5px;
+  border-radius: 2rem;
+  padding: 0.85rem 3rem;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  transition: transform 0.08s, border-width 0.08s;
+  letter-spacing: 0.01em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.find-foxy__try-again-star {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.75rem;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.find-foxy__try-again-btn:active {
+  transform: translate(2px, 4px);
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
+
+.find-foxy__passport-next,
+.find-foxy__play-again {
+  border-radius: 999px;
+  border: none;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.find-foxy__passport-next {
+  margin-top: 0.8rem;
+  padding: 0.7rem 1.1rem;
+  width: 100%;
+  background: linear-gradient(135deg, var(--ff-teal), #0d9e88);
+}
+
+.find-foxy__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 20, 50, 0.75);
+  backdrop-filter: blur(5px);
+}
+
+.find-foxy__passport-book {
+  width: min(22rem, 94vw);
+  overflow: hidden;
+  border-radius: 0.8rem 0.3rem 0.3rem 0.8rem;
+  background: var(--ff-passport-bg);
+}
+
+.find-foxy__passport-cover {
+  text-align: center;
+  border-bottom: 3px solid var(--ff-passport-gold);
+  padding: 0.8rem 1rem 0.6rem;
+  background: linear-gradient(180deg, #22521a, #1a3a14);
+}
+
+.find-foxy__passport-logo {
+  display: block;
+  width: 5.5rem;
+  margin: 0 auto 0.35rem;
+}
+
+.find-foxy__passport-title,
+.find-foxy__passport-found,
+.find-foxy__win-title {
+  letter-spacing: 0.08em;
+}
+
+.find-foxy__passport-title {
+  font-size: 0.72rem;
+  color: var(--ff-passport-gold);
+  text-transform: uppercase;
+}
+
+.find-foxy__passport-subtitle {
+  font-size: 0.62rem;
+  color: rgba(212, 160, 23, 0.76);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.find-foxy__passport-page {
+  position: relative;
+  min-height: 17rem;
+  background: var(--ff-passport-page);
+  padding: 1rem 1rem 1.1rem;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(180, 160, 100, 0.08) 24px, rgba(180, 160, 100, 0.08) 25px),
+    repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(180, 160, 100, 0.06) 24px, rgba(180, 160, 100, 0.06) 25px);
+}
+
+.find-foxy__passport-header {
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(139, 105, 20, 0.3);
+}
+
+.find-foxy__country-flag {
+  display: block;
+  font-size: 2rem;
+  margin: 0.2rem 0;
+}
+
+.find-foxy__country-name {
+  font-size: 1.2rem;
+  color: #1a3a14;
+}
+
+.find-foxy__stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 9.5rem;
+  height: 9.5rem;
+  margin: 0.9rem auto 0.7rem;
+  border-radius: 999px;
+  border: 5px solid var(--ff-passport-ink);
+  color: var(--ff-passport-ink);
+  background: rgba(196, 30, 58, 0.04);
+  transform: rotate(-8deg);
+  box-shadow: inset 0 0 0 3px rgba(196, 30, 58, 0.2);
+  animation: ff-stamp 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.4);
+  overflow: hidden;
+  padding: 0.5rem;
+}
+
+.find-foxy__stamp-top,
+.find-foxy__stamp-number {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.find-foxy__stamp-emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.find-foxy__passport-found {
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.find-foxy__passport-fact {
+  border-radius: 0.7rem;
+  border: 1px solid rgba(139, 105, 20, 0.25);
+  background: rgba(26, 58, 20, 0.06);
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.find-foxy__win {
+  position: relative;
+  text-align: center;
+  padding: 1.8rem 1.4rem;
+}
+
+.find-foxy__win-emoji {
+  font-size: 3.1rem;
+}
+
+.find-foxy__win-title {
+  font-size: clamp(2rem, 5vw, 2.7rem);
+  color: var(--ff-navy);
+  text-shadow: 3px 3px 0 var(--ff-sun);
+}
+
+.find-foxy__win-copy {
+  opacity: 0.72;
+}
+
+.find-foxy__score-pill {
+  display: inline-grid;
+  gap: 0.15rem;
+  margin-top: 0.8rem;
+  border-radius: 1.2rem;
+  background: linear-gradient(135deg, var(--ff-sun), #ffa500);
+  color: #fff;
+  padding: 0.9rem 1.3rem;
+}
+
+.find-foxy__score-value {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.find-foxy__score-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.find-foxy__play-again {
+  margin-top: 1rem;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, var(--ff-coral), #e02424);
+}
+
+@keyframes ff-rainbow-fade {
+  0%, 100% { opacity: 0.25; }
+  40%, 70% { opacity: 0.9; }
+}
+
+@keyframes ff-cloud-drift {
+  from { transform: translateX(-14vw); }
+  to { transform: translateX(114vw); }
+}
+
+@keyframes ff-plane-flight {
+  0%   { transform: translateX(0)                   translateY(0); }
+  30%  { transform: translateX(33vw)                translateY(-12px); }
+  65%  { transform: translateX(68vw)                translateY(4px); }
+  100% { transform: translateX(calc(100vw + 18rem)) translateY(0); }
+}
+
+@keyframes ff-plane-flight-rtl {
+  0%   { transform: translateX(0)                    translateY(0); }
+  30%  { transform: translateX(-33vw)                translateY(-12px); }
+  65%  { transform: translateX(-68vw)                translateY(4px); }
+  100% { transform: translateX(calc(-100vw - 18rem)) translateY(0); }
+}
+
+@keyframes ff-clue-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ff-pop {
+  0% { transform: scale(0.85); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ff-correct-celebrate {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.75); }
+  25%  { transform: scale(1.10); box-shadow: 0 0 0 8px  rgba(16, 185, 129, 0.45); }
+  55%  { transform: scale(1.06); box-shadow: 0 0 0 18px rgba(16, 185, 129, 0.15); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 24px rgba(16, 185, 129, 0);   }
+}
+
+@keyframes ff-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  60% { transform: translateX(6px); }
+  80% { transform: translateX(-3px); }
+}
+
+@keyframes ff-bob {
+  0%, 100% { transform: translateY(-6px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes ff-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes ff-stamp {
+  0% { transform: rotate(-8deg) scale(1.9); opacity: 0; }
+  65% { transform: rotate(-8deg) scale(0.94); opacity: 1; }
+  100% { transform: rotate(-8deg) scale(1); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .find-foxy__casey-wrap,
+  .find-foxy__casey-row,
+  .find-foxy__passport-bar,
+  .find-foxy__answers {
+    grid-template-columns: 1fr;
+  }
+
+  .find-foxy__hud {
+    grid-template-columns: 1fr;
+  }
+
+  .find-foxy__passport-icon,
+  .find-foxy__casey-stack {
+    justify-self: center;
+  }
+}
+
+/* ── Compact stat row (replaces HUD + passport bar during play) ── */
+
+.find-foxy__stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.find-foxy__stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 900;
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 5px;
+  border-right-width: 4px;
+  white-space: nowrap;
+}
+
+.find-foxy__stat-chip--stamps {
+  background: #fff8e0;
+  color: var(--ff-navy);
+}
+
+.find-foxy__stat-chip--streak {
+  background: #ffecec;
+  color: var(--ff-coral);
+}
+
+.find-foxy__stat-chip--level {
+  background: #e8fff4;
+  color: #0d6e54;
+}
+
+.find-foxy__stat-icon {
+  font-size: 1rem;
+}
+
+.find-foxy__stat-value {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.find-foxy__stat-of {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.find-foxy__stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ── Full passport win screen ── */
+
+.find-foxy__full-passport {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  width: min(56rem, 95vw);
+  max-height: 88vh;
+  border-radius: 0.8rem 0.4rem 0.4rem 0.8rem;
+  overflow: hidden;
+  border: 3px solid #1a1a1a;
+  border-bottom-width: 6px;
+  border-right-width: 5px;
+  box-shadow: 0 24px 60px rgba(10, 20, 50, 0.45);
+}
+
+.find-foxy__full-passport-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.2rem 0.75rem;
+  background: linear-gradient(180deg, #22521a, #1a3a14);
+  border-right: 3px solid var(--ff-passport-gold);
+  text-align: center;
+}
+
+.find-foxy__full-passport-title {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ff-passport-gold);
+  margin-top: 0.4rem;
+}
+
+.find-foxy__full-passport-name {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+  word-break: break-word;
+}
+
+.find-foxy__full-passport-subtitle {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(212, 160, 23, 0.75);
+}
+
+.find-foxy__full-score-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.6rem;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, var(--ff-sun), #ffa500);
+  color: #fff;
+  padding: 0.6rem 0.9rem;
+  min-width: 5rem;
+}
+
+.find-foxy__full-score-val {
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.find-foxy__full-score-lbl {
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.find-foxy__full-passport-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--ff-passport-page);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(180, 160, 100, 0.07) 24px, rgba(180, 160, 100, 0.07) 25px);
+}
+
+.find-foxy__full-pages-header {
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ff-passport-ink);
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(139, 105, 20, 0.3);
+}
+
+.find-foxy__full-stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.find-foxy__full-stamp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.3rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(139, 105, 20, 0.2);
+  background: rgba(26, 58, 20, 0.04);
+  text-align: center;
+  animation: ff-stamp-card-in 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.find-foxy__full-stamp-circle {
+  position: relative;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 999px;
+  border: 3px dashed var(--ff-passport-ink);
+  background: rgba(196, 30, 58, 0.05);
+  display: grid;
+  place-items: center;
+  transform: rotate(-7deg);
+}
+
+.find-foxy__full-stamp-flag {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.find-foxy__full-stamp-fox {
+  position: absolute;
+  bottom: -0.45rem;
+  right: -0.45rem;
+  font-size: 0.85rem;
+  background: var(--ff-passport-page);
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.find-foxy__full-stamp-num {
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: var(--ff-passport-ink);
+  letter-spacing: 0.1em;
+  margin-top: 0.15rem;
+}
+
+.find-foxy__full-stamp-name {
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #1a3a14;
+  line-height: 1.2;
+}
+
+@keyframes ff-stamp-card-in {
+  from { opacity: 0; transform: scale(0.6) rotate(-10deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@media (max-width: 640px) {
+  .find-foxy__full-passport {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    max-height: 92vh;
+  }
+
+  .find-foxy__full-passport-cover {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.75rem;
+    border-right: none;
+    border-bottom: 3px solid var(--ff-passport-gold);
+    gap: 0.5rem 1rem;
+  }
+
+  .find-foxy__full-stamp-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
