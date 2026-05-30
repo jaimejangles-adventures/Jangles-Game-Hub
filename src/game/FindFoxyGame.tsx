@@ -16,6 +16,7 @@ import {
 } from "./find-foxy-data";
 import { useStamps } from "@/hooks/useStamps";
 import "./find-foxy.css";
+import { asset } from "@/lib/asset";
 
 type GamePhase = "setup" | "playing" | "passport" | "win";
 
@@ -284,7 +285,7 @@ export function FindFoxyGame() {
             <div className="find-foxy__intro">
               <div className="find-foxy__casey-wrap">
                 <div className="find-foxy__casey-stack">
-                  <img src="/characters/FOX 3.png" alt="Foxy" style={{ width: "9rem", display: "block" }} />
+                  <img src={asset("/characters/FOX 3.png")} alt="Foxy" style={{ width: "9rem", display: "block" }} />
                 </div>
                 <div className="find-foxy__bubble-stack">
                   <div className="find-foxy__bubble-big">🚨 FOXY IS MISSING!</div>
@@ -348,7 +349,7 @@ export function FindFoxyGame() {
             <div className="find-foxy__question-block">
               <div className="find-foxy__question-eyebrow">
                 Where did Casey send Foxy?
-                <img src="/characters/FOX 3.png" alt="Foxy" style={{ height: "2.2em", verticalAlign: "middle", marginLeft: "0.35em" }} />
+                <img src={asset("/characters/FOX 3.png")} alt="Foxy" style={{ height: "2.2em", verticalAlign: "middle", marginLeft: "0.35em" }} />
               </div>
               <div className="find-foxy__casey-row">
                 <div className="find-foxy__casey-stack">

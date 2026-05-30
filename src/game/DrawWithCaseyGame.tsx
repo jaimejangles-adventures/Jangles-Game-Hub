@@ -5,6 +5,7 @@ import { WORDS, GHOST_PATHS } from '@/game/draw-casey/data';
 import type { Word, PathStroke } from '@/game/draw-casey/data';
 import { useChalkCanvas } from '@/hooks/useChalkCanvas';
 import { cn } from '@/lib/utils';
+import { asset } from "@/lib/asset";
 
 // ── Chalk palette ────────────────────────────────────────────────
 const CHALK_COLORS = [
@@ -294,7 +295,7 @@ function IntroScreen({ onStart }: { onStart: (name: string, traceMode: boolean) 
 
       {/* ── Casey image ── */}
       <motion.img
-        src="/characters/map-casey.png"
+        src={asset("/characters/map-casey.png")}
         alt="Casey Bea Jangles"
         initial={{ scale: 0.88, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -385,7 +386,7 @@ function GameScreen({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <img
-            src="/characters/map-casey.png"
+            src={asset("/characters/map-casey.png")}
             alt=""
             aria-hidden
             className="h-14 w-auto shrink-0"
@@ -617,7 +618,7 @@ function PassScreen({
 
       <div className="flex items-end gap-4">
         <motion.img
-          src="/characters/map-casey.png"
+          src={asset("/characters/map-casey.png")}
           alt="Casey Bea"
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}

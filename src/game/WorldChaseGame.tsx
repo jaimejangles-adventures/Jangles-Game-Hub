@@ -15,6 +15,7 @@ import "@/game/world-chase.css";
 
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
+import { asset } from "@/lib/asset";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -612,7 +613,7 @@ function BriefingPanel({ onStart }: { onStart: () => void }) {
           textAlign: "center",
         }}>
           <img
-            src="/characters/spaceship-jaime-jeff.png"
+            src={asset("/characters/spaceship-jaime-jeff.png")}
             alt="Jaime and Jeff in their rocket"
             style={{
               width: "100%",

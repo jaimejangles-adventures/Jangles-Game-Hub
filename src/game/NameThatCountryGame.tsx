@@ -5,6 +5,7 @@ import { burstCorrect, burstFinale } from "@/game/confetti";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
 import rawData from "@/game/data/fly-the-flag.json";
+import { asset } from "@/lib/asset";
 
 type Country = {
   countryId: string;
@@ -182,7 +183,7 @@ export function NameThatCountryGame() {
               Look carefully and pick the right answer!
             </p>
             <div className="mt-5 flex justify-center">
-              <img src="/characters/spaceship-jaime-jeff.png" alt="Jaime in spaceship" className="h-28 w-auto object-contain" />
+              <img src={asset("/characters/spaceship-jaime-jeff.png")} alt="Jaime in spaceship" className="h-28 w-auto object-contain" />
             </div>
             <button
               onClick={startGame}

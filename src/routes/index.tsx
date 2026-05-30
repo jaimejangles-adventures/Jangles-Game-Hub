@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GAME_MANIFEST, CATEGORY_MANIFEST } from "@/lib/game-manifest";
+import { asset } from "@/lib/asset";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -53,7 +54,7 @@ function Index() {
             style={{ background: "#FFF0F8", borderBottomWidth: 5, borderRightWidth: 4 }}
           >
             <img
-              src="/characters/guitar-jaime-jeff.png"
+              src={asset("/characters/guitar-jaime-jeff.png")}
               alt="Jaime and Jeff"
               className="h-full w-auto max-w-[38%] self-end object-contain"
             />
@@ -75,7 +76,7 @@ function Index() {
             style={{ background: "#F0F8FF", borderBottomWidth: 5, borderRightWidth: 4 }}
           >
             <img
-              src="/characters/map-casey.png"
+              src={asset("/characters/map-casey.png")}
               alt="Casey Bea"
               className="h-full w-auto max-w-[38%] self-end object-contain"
               style={{ mixBlendMode: "multiply" }}

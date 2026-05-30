@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { asset } from "@/lib/asset";
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 function createAudioCtx(): AudioContext | null {
@@ -1788,7 +1789,7 @@ export function FoxerGame() {
   // Load the real Foxy image once
   useEffect(() => {
     const img = new Image();
-    img.src = "/characters/FOX 3.png";
+    img.src = asset("/characters/FOX 3.png");
     img.onload = () => { foxyImgRef.current = img; };
   }, []);
 

@@ -1,3 +1,5 @@
+import { asset } from "@/lib/asset";
+
 export type DiffType =
   | "bird" | "butterfly" | "crab" | "starfish" | "fish"
   | "flower" | "cloud" | "snowflake" | "penguin" | "balloon"
@@ -43,7 +45,7 @@ const S = 0.55; // master scale
 
 export const LEVELS: Level[] = [
   {
-    page: 3, country: "New Orleans, USA", music: "/music/NEW ORLEANS.wav",
+    page: 3, country: "New Orleans, USA", music: asset("/music/NEW ORLEANS.wav"),
     rookieDiffs: [
       { id: "a", type: "music-note", color: "#ffe066", label: "music note",
         positions: [[48, 55], [210, 45], [80, 180]] },
@@ -70,7 +72,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 4, country: "Mexico", music: "/music/MEXICO.wav",
+    page: 4, country: "Mexico", music: asset("/music/MEXICO.wav"),
     rookieDiffs: [
       { id: "a", type: "crab",      color: "#e74c3c", label: "crab",
         positions: [[350, 345], [185, 370], [55, 350]] },
@@ -97,7 +99,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 5, country: "Jamaica", music: "/music/JAMAICA.wav",
+    page: 5, country: "Jamaica", music: asset("/music/JAMAICA.wav"),
     rookieDiffs: [
       { id: "a", type: "crab",     color: "#e74c3c", label: "crab",
         positions: [[55, 310], [300, 355], [175, 375]] },
@@ -124,7 +126,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 6, country: "Barbados", music: "/music/BARBADOS_2.wav",
+    page: 6, country: "Barbados", music: asset("/music/BARBADOS_2.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",     color: "#fff",    label: "bird",
         positions: [[55, 60], [295, 45], [185, 55]] },
@@ -151,7 +153,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 7, country: "Peru", music: "/music/PERU.wav",
+    page: 7, country: "Peru", music: asset("/music/PERU.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#27ae60", label: "bird",
         positions: [[355, 55], [55, 65], [210, 45]] },
@@ -178,7 +180,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 8, country: "Argentina", music: "/music/ARGENTINA DRUMS AND HORNS_1.2.wav",
+    page: 8, country: "Argentina", music: asset("/music/ARGENTINA DRUMS AND HORNS_1.2.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#fff",    label: "bird",
         positions: [[50, 85], [350, 75], [205, 60]] },
@@ -232,7 +234,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 10, country: "United Kingdom", music: "/music/UK.wav",
+    page: 10, country: "United Kingdom", music: asset("/music/UK.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#7f8c8d", label: "pigeon",
         positions: [[235, 60], [55, 65], [355, 55]] },
@@ -259,7 +261,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 11, country: "Spain", music: "/music/SPAIN1.2.wav",
+    page: 11, country: "Spain", music: asset("/music/SPAIN1.2.wav"),
     rookieDiffs: [
       { id: "a", type: "butterfly", color: "#f9ca24", label: "butterfly",
         positions: [[40, 350], [365, 345], [205, 355]] },
@@ -286,7 +288,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 12, country: "France", music: "/music/FRANCE.wav",
+    page: 12, country: "France", music: asset("/music/FRANCE.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#fff",    label: "bird",
         positions: [[350, 75], [55, 70], [205, 60]] },
@@ -313,7 +315,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 13, country: "Italy", music: "/music/ITALY.wav",
+    page: 13, country: "Italy", music: asset("/music/ITALY.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#7f8c8d", label: "bird",
         positions: [[200, 30], [55, 40], [355, 35]] },
@@ -340,7 +342,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 15, country: "Sri Lanka", music: "/music/SRI LANKA_1.1.wav",
+    page: 15, country: "Sri Lanka", music: asset("/music/SRI LANKA_1.1.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#27ae60", label: "bird",
         positions: [[265, 60], [55, 55], [360, 50]] },
@@ -367,7 +369,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 16, country: "Japan", music: "/music/JAPAN.wav",
+    page: 16, country: "Japan", music: asset("/music/JAPAN.wav"),
     rookieDiffs: [
       { id: "a", type: "fish",      color: "#e74c3c", label: "fish in tank",
         positions: [[60, 255], [60, 195], [60, 310]] },
@@ -394,7 +396,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 17, country: "Switzerland", music: "/music/SWITZERLAND.wav",
+    page: 17, country: "Switzerland", music: asset("/music/SWITZERLAND.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#fff",    label: "bird",
         positions: [[375, 80], [35, 75], [210, 65]] },
@@ -421,7 +423,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 18, country: "Kenya", music: "/music/KENYA.wav",
+    page: 18, country: "Kenya", music: asset("/music/KENYA.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#e74c3c", label: "bird",
         positions: [[100, 50], [330, 45], [215, 40]] },
@@ -448,7 +450,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 19, country: "South Africa", music: "/music/SOUTH AFRICA_1.2.wav",
+    page: 19, country: "South Africa", music: asset("/music/SOUTH AFRICA_1.2.wav"),
     rookieDiffs: [
       { id: "a", type: "penguin",   color: "#2c3e50", label: "penguin",
         positions: [[55, 355], [205, 350], [355, 355]] },
@@ -475,7 +477,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 20, country: "Ghana", music: "/music/GHANA.wav",
+    page: 20, country: "Ghana", music: asset("/music/GHANA.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",     color: "#fff",    label: "bird",
         positions: [[200, 80], [55, 75], [355, 70]] },
@@ -502,7 +504,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 21, country: "South Korea", music: "/music/SOUTH KOREA.wav",
+    page: 21, country: "South Korea", music: asset("/music/SOUTH KOREA.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#7f8c8d", label: "bird",
         positions: [[350, 30], [55, 35], [205, 30]] },
@@ -529,7 +531,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 22, country: "Nepal", music: "/music/NEPAL.wav",
+    page: 22, country: "Nepal", music: asset("/music/NEPAL.wav"),
     rookieDiffs: [
       { id: "a", type: "snowflake", color: "#aee6f8", label: "snowflake",
         positions: [[370, 80], [55, 75], [215, 65]] },
@@ -556,7 +558,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 23, country: "Indonesia", music: "/music/INDONESIA.wav",
+    page: 23, country: "Indonesia", music: asset("/music/INDONESIA.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#fff",    label: "bird",
         positions: [[280, 80], [55, 75], [195, 65]] },
@@ -583,7 +585,7 @@ export const LEVELS: Level[] = [
     ],
   },
   {
-    page: 24, country: "Australia", music: "/music/Jamie Jangles_Daniel_Australia.wav",
+    page: 24, country: "Australia", music: asset("/music/Jamie Jangles_Daniel_Australia.wav"),
     rookieDiffs: [
       { id: "a", type: "bird",      color: "#fff",    label: "bird",
         positions: [[370, 60], [55, 55], [215, 50]] },

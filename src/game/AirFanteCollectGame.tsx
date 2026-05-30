@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { asset } from "@/lib/asset";
 
 // ── Country data ───────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -44,7 +45,7 @@ export function AirFanteCollectGame() {
     const link: HTMLLinkElement = existing ?? document.createElement("link");
     link.rel  = "icon";
     link.type = "image/png";
-    link.href = "/characters/air-fante.png";
+    link.href = asset("/characters/air-fante.png");
     if (!existing) document.head.appendChild(link);
     return () => { link.href = prevHref; };
   }, []);
@@ -115,7 +116,7 @@ export function AirFanteCollectGame() {
     const planeImg = new Image();
     let planeReady = false;
     planeImg.onload = () => { planeReady = true; };
-    planeImg.src = "/characters/air-fante-plane.png";
+    planeImg.src = asset("/characters/air-fante-plane.png");
 
     const audio = new Audio();
     audio.loop = true;
@@ -124,7 +125,7 @@ export function AirFanteCollectGame() {
     function loadCountryAudio(c: Country) {
       if (phaseRef.current === "over") return;
       if (!c.audio) { audio.pause(); return; }
-      audio.src = "/" + encodeURI(c.audio);
+      audio.src = asset("/"  + encodeURI(c.audio));
       audio.currentTime = 0;
       audio.play().catch(() => {});
     }
@@ -753,7 +754,7 @@ export function AirFanteCollectGame() {
         }}>
           <div style={{ textAlign: "center", color: "#fff", fontFamily: "'Baloo 2', Arial, sans-serif" }}>
             <img
-              src="/characters/air-fante-plane.png"
+              src={asset("/characters/air-fante-plane.png")}
               style={{ height: "5.5rem", width: "auto", transform: "scaleX(-1)", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" }}
               alt="Air Fante"
             />

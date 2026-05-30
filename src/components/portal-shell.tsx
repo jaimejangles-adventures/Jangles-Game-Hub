@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useState, useRef, useEffect } from "react";
 import { GAME_MANIFEST, CATEGORY_MANIFEST, type GameManifestEntry, type CategoryEntry, type GameCategory } from "@/lib/game-manifest";
 import { cn } from "@/lib/utils";
+import { asset } from "@/lib/asset";
 
 type PortalShellProps = {
   children: ReactNode;
@@ -82,12 +83,12 @@ export function PortalShell({ children }: PortalShellProps) {
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2">
             <img
-              src="/art/title.png"
+              src={asset("/art/title.png")}
               alt="Jaime Jangles"
               className="h-[3.15rem] w-[265px] shrink-0 sm:h-[4.2rem] sm:w-[353px]"
             />
             <img
-              src="/art/world_tour.png"
+              src={asset("/art/world_tour.png")}
               alt="World Tour"
               className="h-[3.6rem] w-[5.6rem] shrink-0 sm:h-[4.7rem] sm:w-[7.2rem]"
             />

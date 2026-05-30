@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { burstCorrect, burstFinale } from '@/game/confetti';
 import { playCorrectExclamation, playIncorrectExclamation } from '@/game/exclamations';
 import { cn } from '@/lib/utils';
+import { asset } from "@/lib/asset";
 
 const ROUNDS = [
   { country: 'USA',          bg: '/count-backgrounds/page-3.png',  music: '/music/NEW ORLEANS.wav',                          obj: { src: '/count-objects/tuba.png',                 label: 'tuba'        } },
@@ -210,7 +211,7 @@ export function CaseyCanCountGame() {
                   style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #1c1917' }} />
               </motion.div>
             </AnimatePresence>
-            <img src="/characters/casey-pointing.png" alt="Casey" className="h-24 w-auto object-contain" />
+            <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-24 w-auto object-contain" />
           </div>
 
           {/* Item grid on the paper */}

@@ -10,6 +10,7 @@ import { burstCorrect, burstFinale } from "./confetti";
 import { useStamps } from "@/hooks/useStamps";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
+import { asset } from "@/lib/asset";
 
 const LOTTIE = {
   sparkle: "https://assets2.lottiefiles.com/packages/lf20_obhph3sh.json",
@@ -356,7 +357,7 @@ export function JanglesGame() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !round) return;
-    a.src = "/" + encodeURI(round.audio);
+    a.src = asset("/"  + encodeURI(round.audio));
     a.load();
     setIsPlaying(false);
   }, [round]);
@@ -678,7 +679,7 @@ function BootScreen({ onStart }: { onStart: () => void }) {
           boxShadow: "inset 0 0 12px rgba(0,0,0,0.1)",
         }}>
           <img
-            src="/art/jangles international orchestra (WHITE BACKGROUND).png.jpg"
+            src={asset("/art/jangles international orchestra (WHITE BACKGROUND).png.jpg")}
             alt="Jangles International Orchestra"
             style={{ width: "90%", height: "90%", objectFit: "contain", display: "block", mixBlendMode: "multiply" }}
           />
@@ -875,7 +876,7 @@ function MusicPassportOverlay({
           borderBottom: "3px solid #d4a017",
         }}>
           <img
-            src="/art/title.png"
+            src={asset("/art/title.png")}
             alt="Jaime Jangles"
             style={{ height: 68, margin: "0 auto 0.1rem", display: "block", objectFit: "contain" }}
           />
@@ -997,7 +998,7 @@ function MusicPassportOverlay({
             ) : (
               <>
                 <span>Correct — Next Stop</span>
-                <img src="/characters/air-fante-plane.png" alt="" style={{ height: 28, width: "auto", transform: "scaleX(-1)" }} />
+                <img src={asset("/characters/air-fante-plane.png")} alt="" style={{ height: 28, width: "auto", transform: "scaleX(-1)" }} />
               </>
             )}
           </button>
@@ -1073,7 +1074,7 @@ function PlayScreen(p: PlayProps) {
               <div className="jjb-stop-badge">STOP {p.roundIndex + 1}</div>
               <div className="jjb-logo-bg">
                 <img
-                  src="/art/jangles-juke-box-title.png"
+                  src={asset("/art/jangles-juke-box-title.png")}
                   alt="Jangles Juke Box"
                   className="jjb-logo"
                 />

@@ -5,6 +5,7 @@ import { burstCorrect, burstFinale } from "@/game/confetti";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
 import rawData from "@/game/data/fly-the-flag.json";
+import { asset } from "@/lib/asset";
 
 type Country = {
   countryId: string;
@@ -376,7 +377,7 @@ export function FlyTheFlagGame() {
             </p>
             <div className="mt-5 flex justify-center">
               <img
-                src="/book-pages/book3/page-36.jpg"
+                src={asset("/book-pages/book3/page-36.jpg")}
                 alt="Casey holding Canadian flag"
                 style={{
                   width: "100%",
