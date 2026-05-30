@@ -3,31 +3,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { burstFinale } from '@/game/confetti';
 import { playCorrectExclamation } from '@/game/exclamations';
 import { cn } from '@/lib/utils';
+import { asset } from '@/lib/asset';
 
 const BOARD_SIZE = 420;
 
 const PAGES = [
-  { flag: '🇺🇸', name: 'U.S.A.',         src: '/puzzle-pages/page-3.png',  music: '/music/NEW ORLEANS.wav' },
-  { flag: '🇲🇽', name: 'Mexico',          src: '/puzzle-pages/page-4.png',  music: '/music/MEXICO.wav' },
-  { flag: '🇯🇲', name: 'Jamaica',         src: '/puzzle-pages/page-5.png',  music: '/music/JAMAICA.wav' },
-  { flag: '🇧🇧', name: 'Barbados',        src: '/puzzle-pages/page-6.png',  music: '/music/BARBADOS_2.wav' },
-  { flag: '🇵🇪', name: 'Peru',            src: '/puzzle-pages/page-7.png',  music: '/music/PERU.wav' },
-  { flag: '🇦🇷', name: 'Argentina',       src: '/puzzle-pages/page-8.png',  music: '/music/ARGENTINA DRUMS AND HORNS_1.2.wav' },
-  { flag: '❄️',  name: 'Antarctica',      src: '/puzzle-pages/page-9.png',  music: null },
-  { flag: '🇬🇧', name: 'United Kingdom',  src: '/puzzle-pages/page-10.png', music: '/music/UK.wav' },
-  { flag: '🇪🇸', name: 'Spain',           src: '/puzzle-pages/page-11.png', music: '/music/SPAIN1.2.wav' },
-  { flag: '🇫🇷', name: 'France',          src: '/puzzle-pages/page-12.png', music: '/music/FRANCE.wav' },
-  { flag: '🇮🇹', name: 'Italy',           src: '/puzzle-pages/page-13.png', music: '/music/ITALY.wav' },
-  { flag: '🇱🇰', name: 'Sri Lanka',       src: '/puzzle-pages/page-15.png', music: '/music/SRI LANKA_1.1.wav' },
-  { flag: '🇯🇵', name: 'Japan',           src: '/puzzle-pages/page-16.png', music: '/music/JAPAN.wav' },
-  { flag: '🇨🇭', name: 'Switzerland',     src: '/puzzle-pages/page-17.png', music: '/music/SWITZERLAND.wav' },
-  { flag: '🇰🇪', name: 'Kenya',           src: '/puzzle-pages/page-18.png', music: '/music/KENYA.wav' },
-  { flag: '🇿🇦', name: 'South Africa',    src: '/puzzle-pages/page-19.png', music: '/music/SOUTH AFRICA_1.2.wav' },
-  { flag: '🇬🇭', name: 'Ghana',           src: '/puzzle-pages/page-20.png', music: '/music/GHANA.wav' },
-  { flag: '🇰🇷', name: 'South Korea',     src: '/puzzle-pages/page-21.png', music: '/music/SOUTH KOREA.wav' },
-  { flag: '🇳🇵', name: 'Nepal',           src: '/puzzle-pages/page-22.png', music: '/music/NEPAL.wav' },
-  { flag: '🇮🇩', name: 'Indonesia',       src: '/puzzle-pages/page-23.png', music: '/music/INDONESIA.wav' },
-  { flag: '🇦🇺', name: 'Australia',       src: '/puzzle-pages/page-24.png', music: '/music/Jamie Jangles_Daniel_Australia.wav' },
+  { flag: '🇺🇸', name: 'U.S.A.',         src: asset('/puzzle-pages/page-3.png'),  music: asset('/music/NEW ORLEANS.wav') },
+  { flag: '🇲🇽', name: 'Mexico',          src: asset('/puzzle-pages/page-4.png'),  music: asset('/music/MEXICO.wav') },
+  { flag: '🇯🇲', name: 'Jamaica',         src: asset('/puzzle-pages/page-5.png'),  music: asset('/music/JAMAICA.wav') },
+  { flag: '🇧🇧', name: 'Barbados',        src: asset('/puzzle-pages/page-6.png'),  music: asset('/music/BARBADOS_2.wav') },
+  { flag: '🇵🇪', name: 'Peru',            src: asset('/puzzle-pages/page-7.png'),  music: asset('/music/PERU.wav') },
+  { flag: '🇦🇷', name: 'Argentina',       src: asset('/puzzle-pages/page-8.png'),  music: asset('/music/ARGENTINA DRUMS AND HORNS_1.2.wav') },
+  { flag: '❄️',  name: 'Antarctica',      src: asset('/puzzle-pages/page-9.png'),  music: null },
+  { flag: '🇬🇧', name: 'United Kingdom',  src: asset('/puzzle-pages/page-10.png'), music: asset('/music/UK.wav') },
+  { flag: '🇪🇸', name: 'Spain',           src: asset('/puzzle-pages/page-11.png'), music: asset('/music/SPAIN1.2.wav') },
+  { flag: '🇫🇷', name: 'France',          src: asset('/puzzle-pages/page-12.png'), music: asset('/music/FRANCE.wav') },
+  { flag: '🇮🇹', name: 'Italy',           src: asset('/puzzle-pages/page-13.png'), music: asset('/music/ITALY.wav') },
+  { flag: '🇱🇰', name: 'Sri Lanka',       src: asset('/puzzle-pages/page-15.png'), music: asset('/music/SRI LANKA_1.1.wav') },
+  { flag: '🇯🇵', name: 'Japan',           src: asset('/puzzle-pages/page-16.png'), music: asset('/music/JAPAN.wav') },
+  { flag: '🇨🇭', name: 'Switzerland',     src: asset('/puzzle-pages/page-17.png'), music: asset('/music/SWITZERLAND.wav') },
+  { flag: '🇰🇪', name: 'Kenya',           src: asset('/puzzle-pages/page-18.png'), music: asset('/music/KENYA.wav') },
+  { flag: '🇿🇦', name: 'South Africa',    src: asset('/puzzle-pages/page-19.png'), music: asset('/music/SOUTH AFRICA_1.2.wav') },
+  { flag: '🇬🇭', name: 'Ghana',           src: asset('/puzzle-pages/page-20.png'), music: asset('/music/GHANA.wav') },
+  { flag: '🇰🇷', name: 'South Korea',     src: asset('/puzzle-pages/page-21.png'), music: asset('/music/SOUTH KOREA.wav') },
+  { flag: '🇳🇵', name: 'Nepal',           src: asset('/puzzle-pages/page-22.png'), music: asset('/music/NEPAL.wav') },
+  { flag: '🇮🇩', name: 'Indonesia',       src: asset('/puzzle-pages/page-23.png'), music: asset('/music/INDONESIA.wav') },
+  { flag: '🇦🇺', name: 'Australia',       src: asset('/puzzle-pages/page-24.png'), music: asset('/music/Jamie Jangles_Daniel_Australia.wav') },
 ];
 
 function randomPageIdx(current: number): number {

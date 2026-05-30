@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { burstFinale } from "@/game/confetti";
 import { cn } from "@/lib/utils";
 import { LEVELS, resolveLevel, type ResolvedDiff, type DiffType } from "./spot-the-difference-data";
+import { asset } from "@/lib/asset";
 
 const HIT_RADIUS_ROOKIE = 30;
 const HIT_RADIUS_MASTER = 16;
@@ -570,7 +571,7 @@ export function SpotTheDifferenceGame() {
     }} />
   );
 
-  const src = `/puzzle-pages/page-${level.page}.png`;
+  const src = asset(`/puzzle-pages/page-${level.page}.png`);
 
   function nextLevel() {
     stopMusic();
