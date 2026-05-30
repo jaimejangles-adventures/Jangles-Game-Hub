@@ -33,9 +33,6 @@ jobs:
         env:
           PAGES_BUILD: "true"
 
-      - name: Add 404 fallback for SPA routing
-        run: cp dist/index.html dist/404.html
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
