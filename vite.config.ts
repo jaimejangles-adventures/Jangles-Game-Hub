@@ -6,9 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// When deploying to GitHub Pages via GitHub Actions, prerender all routes as static HTML.
-// Locally and on Cloudflare, use normal SSR with the server entry.
-const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
+const isGitHubPages = process.env.PAGES_BUILD === "true";
 
 export default defineConfig({
   ...(isGitHubPages && {
@@ -18,12 +16,5 @@ export default defineConfig({
   }),
   tanstackStart: {
     server: { entry: "server" },
-    ...(isGitHubPages && {
-      prerender: {
-        enabled: true,
-        crawlLinks: true,
-        autoSubfolderIndex: true,
-      },
-    }),
   },
 });
