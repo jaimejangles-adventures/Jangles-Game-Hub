@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="100%" height="100%" fill="white"/>
+  <g fill="none" stroke="black" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 400 Q146 376 196 400 Q246 424 296 400 Q346 376 416 400"/>
+    <path d="M136 368 V254 H188 V368"/>
+    <path d="M324 368 V254 H376 V368"/>
+    <path d="M190 368 V224 H322 V368"/>
+    <path d="M130 254 H194"/>
+    <path d="M318 254 H382"/>
+    <path d="M184 224 H328"/>
+    <path d="M130 254 V236 H148 V254"/>
+    <path d="M162 254 V236 H180 V254"/>
+    <path d="M318 254 V236 H336 V254"/>
+    <path d="M350 254 V236 H368 V254"/>
+    <path d="M184 224 V206 H206 V224"/>
+    <path d="M236 224 V206 H258 V224"/>
+    <path d="M288 224 V206 H310 V224"/>
+    <path d="M136 254 L162 214 L188 254"/>
+    <path d="M324 254 L350 214 L376 254"/>
+    <path d="M220 206 L256 154 L292 206"/>
+    <path d="M256 154 V126"/>
+    <path d="M256 126 H286"/>
+    <path d="M220 368 V300 H292 V368"/>
+    <path d="M240 274 H272 V306 H240 Z"/>
+    <path d="M148 290 H172 V318 H148 Z"/>
+    <path d="M340 290 H364 V318 H340 Z"/>
+  </g>
+</svg>
