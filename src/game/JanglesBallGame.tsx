@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { asset } from "@/lib/asset";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -484,7 +485,7 @@ export function JanglesBallGame() {
     pagesRef.current = pickPages();
     pagesRef.current.forEach((pg, i) => {
       const img = new Image();
-      img.src = `/book3-nt/page-${pg}.png`;
+      img.src = asset(`/book3-nt/page-${pg}.png`);
       imagesRef.current[i + 1] = img;
     });
   }, []);
@@ -573,7 +574,7 @@ export function JanglesBallGame() {
         s.score=0; s.lives=INITIAL_LIVES;
         pagesRef.current = pickPages();
         pagesRef.current.forEach((pg,i) => {
-          const img = new Image(); img.src=`/book3-nt/page-${pg}.png`;
+          const img = new Image(); img.src=asset(`/book3-nt/page-${pg}.png`);
           imagesRef.current[i+1] = img;
         });
         startLevel(1);
