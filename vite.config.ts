@@ -16,15 +16,14 @@ export default defineConfig({
       base: "/Jangles-Game-Hub/",
     },
   }),
-  tanstackStart: isGitHubPages
-    ? {
-        prerender: {
-          enabled: true,
-          crawlLinks: true,
-          autoSubfolderIndex: true,
-        },
-      }
-    : {
-        server: { entry: "server" },
+  tanstackStart: {
+    server: { entry: "server" },
+    ...(isGitHubPages && {
+      prerender: {
+        enabled: true,
+        crawlLinks: true,
+        autoSubfolderIndex: true,
       },
+    }),
+  },
 });
