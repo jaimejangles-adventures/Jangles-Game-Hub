@@ -174,9 +174,9 @@ export function CaseyCanAddGame() {
             backgroundSize: '22px 22px',
             borderBottomWidth: 7,
             borderRightWidth: 6,
-            minWidth: 340,
-            maxWidth: '90vw',
-            paddingRight: 130,
+            minWidth: 320,
+            maxWidth: '88vw',
+            paddingRight: 140,
           }}
         >
           {/* Casey character + speech bubble — top right corner inside card */}
@@ -193,7 +193,7 @@ export function CaseyCanAddGame() {
                   style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #1c1917' }} />
               </motion.div>
             </AnimatePresence>
-            <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-24 w-auto object-contain" />
+            <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-32 w-auto object-contain" />
           </div>
 
           {/* Card header */}

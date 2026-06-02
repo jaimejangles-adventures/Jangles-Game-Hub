@@ -48,8 +48,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind";
   title: string;
   eyebrow: string;
   description: string;
@@ -240,6 +240,32 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     accent: "#8B5CF6",
     emoji: "🔍",
     image: asset("/puzzle-pages/page-3.png"),
+    status: "live",
+    category: "puzzles",
+  },
+  {
+    slug: "pacman",
+    href: "/games/pacman",
+    title: "Jangles Pac",
+    eyebrow: "Pac-Man world adventure",
+    description:
+      "Choose Casey, Jaime, Jeff or Fante and chomp through 20 countries! Eat the country's flag for 8 seconds of ghost-eating power.",
+    accent: "#3b82f6",
+    emoji: "👾",
+    image: asset("/characters/casey-logo.png"),
+    status: "live",
+    category: "arcade-adventures",
+  },
+  {
+    slug: "mastermind",
+    href: "/games/mastermind",
+    title: "Crack the Code!",
+    eyebrow: "Secret code puzzle",
+    description:
+      "Jaime has hidden 4 world objects in a secret order — can you crack the code in 8 guesses? Use the colour pegs to narrow it down!",
+    accent: "#7c3aed",
+    emoji: "🔐",
+    image: asset("/objects/fox.svg"),
     status: "live",
     category: "puzzles",
   },

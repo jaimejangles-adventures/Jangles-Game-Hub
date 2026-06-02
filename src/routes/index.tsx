@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
 
       {/* ── Hero + Character asides ── */}
       <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
@@ -96,15 +96,15 @@ function Index() {
         </div>
       </section>
 
-      {/* ── Games organized by category columns ── */}
-      <section className="grid gap-6 lg:grid-cols-3 sm:grid-cols-1">
+      {/* ── Netflix-style category rows ── */}
+      <div className="flex flex-col gap-8">
         {CATEGORY_MANIFEST.map((category) => {
           const games = GAME_MANIFEST.filter((g) => g.category === category.slug);
+          if (games.length === 0) return null;
           return (
-            <div key={category.slug} className="flex flex-col gap-3">
-
-              {/* Category header */}
-              <div className="flex items-center gap-2.5">
+            <section key={category.slug}>
+              {/* Row header */}
+              <div className="mb-3 flex items-center gap-3">
                 <div
                   className="inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-1 text-[0.65rem] font-extrabold uppercase tracking-[0.18em]"
                   style={{
@@ -116,86 +116,93 @@ function Index() {
                   <span>{category.emoji}</span>
                   <span>{category.title}</span>
                 </div>
-                <span className="text-[0.6rem] text-ink/45 font-medium leading-tight">
-                  {category.eyebrow}
-                </span>
+                <span className="text-[0.6rem] text-ink/45 font-medium">{category.eyebrow}</span>
               </div>
 
-              {/* Game cards stacked in this column */}
-              {games.map((game) => (
-                <Link
-                  key={game.slug}
-                  to={game.href}
-                  className="group flex flex-col overflow-hidden rounded-[1.75rem] border-[3px] border-ink transition-transform hover:-translate-y-0.5"
-                  style={{
-                    background: "#fff",
-                    borderBottomWidth: 6,
-                    borderRightWidth: 5,
-                    textDecoration: "none",
-                  }}
-                >
-                  {/* Image banner */}
-                  <div
-                    className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
+              {/* Horizontal scroll row */}
+              <div
+                className="flex gap-3 overflow-x-auto pb-3 pt-2"
+                style={{
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                {games.map((game) => (
+                  <Link
+                    key={game.slug}
+                    to={game.href}
+                    className="group flex shrink-0 flex-col overflow-hidden rounded-[1.75rem] border-[3px] border-ink transition-transform hover:-translate-y-1"
                     style={{
-                      background: game.accent + "33",
-                      height: "5.5rem",
-                      padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
+                      background: "#fff",
+                      borderBottomWidth: 6,
+                      borderRightWidth: 5,
+                      textDecoration: "none",
+                      width: "13rem",
                     }}
                   >
-                    <img
-                      src={game.image}
-                      alt={game.title}
-                      className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
+                    {/* Image banner */}
+                    <div
+                      className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
                       style={{
-                        maxWidth: "100%",
-                        mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
-                        objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
-                        objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
-                        maskImage:
-                          game.slug === "fly-the-flag"
-                            ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                            : game.slug === "world-adventure"
-                            ? "linear-gradient(to right, transparent 0%, black 22%)"
-                            : undefined,
-                        WebkitMaskImage:
-                          game.slug === "fly-the-flag"
-                            ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                            : game.slug === "world-adventure"
-                            ? "linear-gradient(to right, transparent 0%, black 22%)"
-                            : undefined,
+                        background: game.accent + "33",
+                        height: "6rem",
+                        padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
                       }}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex flex-1 flex-col px-3 pt-2 pb-3">
-                    <div className="text-[0.6rem] uppercase tracking-[0.25em] text-ink/50 font-bold">
-                      {game.eyebrow}
-                    </div>
-                    <h2 className="mt-0.5 text-sm font-extrabold leading-tight">{game.title}</h2>
-                    <p className="mt-1 flex-1 text-[0.7rem] text-ink/65 leading-relaxed line-clamp-2">
-                      {game.description}
-                    </p>
-                    <div className="mt-2 flex justify-center">
-                      <span
-                        className="rounded-full border-[3px] border-ink px-5 py-1 text-sm font-extrabold transition-all group-hover:scale-105"
+                    >
+                      <img
+                        src={game.image}
+                        alt={game.title}
+                        className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
                         style={{
-                          background: game.accent,
-                          borderBottomWidth: 5,
-                          borderRightWidth: 4,
+                          maxWidth: "100%",
+                          mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
+                          objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
+                          objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
+                          maskImage:
+                            game.slug === "fly-the-flag"
+                              ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                              : game.slug === "world-adventure"
+                              ? "linear-gradient(to right, transparent 0%, black 22%)"
+                              : undefined,
+                          WebkitMaskImage:
+                            game.slug === "fly-the-flag"
+                              ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                              : game.slug === "world-adventure"
+                              ? "linear-gradient(to right, transparent 0%, black 22%)"
+                              : undefined,
                         }}
-                      >
-                        Play →
-                      </span>
+                      />
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+
+                    {/* Content */}
+                    <div className="flex flex-1 flex-col px-3 pt-2 pb-3">
+                      <div className="text-[0.58rem] uppercase tracking-[0.22em] text-ink/50 font-bold">
+                        {game.eyebrow}
+                      </div>
+                      <h2 className="mt-0.5 text-sm font-extrabold leading-tight">{game.title}</h2>
+                      <p className="mt-1 flex-1 text-[0.68rem] text-ink/65 leading-relaxed line-clamp-2">
+                        {game.description}
+                      </p>
+                      <div className="mt-2.5 flex justify-center">
+                        <span
+                          className="rounded-full border-[3px] border-ink px-5 py-1 text-sm font-extrabold transition-all group-hover:scale-105"
+                          style={{
+                            background: game.accent,
+                            borderBottomWidth: 5,
+                            borderRightWidth: 4,
+                          }}
+                        >
+                          Play →
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
           );
         })}
-      </section>
+      </div>
 
     </div>
   );

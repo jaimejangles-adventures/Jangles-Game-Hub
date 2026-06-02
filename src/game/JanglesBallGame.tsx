@@ -41,7 +41,7 @@ const BRICK_W = 54;
 const BRICK_H = 54;
 const BRICK_COLS = 7;
 const BRICK_GAP = 2;
-const BRICK_TOP = 58;
+const BRICK_TOP = 54;
 const INITIAL_LIVES = 3;
 const GRID_W = BRICK_COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP; // 390
 const GRID_OFFSET_X = Math.round((W - GRID_W) / 2);            // 45
@@ -130,7 +130,7 @@ const LEVEL_GRIDS: Record<number, (0|1|2|3)[][]> = {
   ],
 };
 
-const BALL_SPEEDS: Record<number, number> = { 1:3.17, 2:3.57, 3:3.96, 4:4.41, 5:4.95 };
+const BALL_SPEEDS: Record<number, number> = { 1:5.2, 2:5.9, 3:6.7, 4:7.5, 5:8.4 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -399,7 +399,8 @@ function drawHUD(
   ctx: CanvasRenderingContext2D,
   score: number, lives: number, level: number,
   cleared: number,
-  extendTimer: number, slowTimer: number, laserTimer: number, stickyTimer: number
+  extendTimer: number, slowTimer: number, laserTimer: number, stickyTimer: number,
+  difficulty: "rookie" | "master"
 ) {
   const pal = PALETTES[level-1];
 
@@ -407,6 +408,11 @@ function drawHUD(
   ctx.fillText("SCORE",12,16);
   ctx.font="bold 13px 'Courier New', monospace"; ctx.fillStyle="#fff";
   ctx.fillText(String(score).padStart(6,"0"),12,30);
+  // Difficulty badge
+  ctx.font="bold 8px 'Courier New', monospace";
+  ctx.fillStyle = difficulty === "rookie" ? "#44ff88" : "#00d4ff";
+  ctx.textAlign="left";
+  ctx.fillText(difficulty === "rookie" ? "ROOKIE" : "MASTER", 12, 44);
 
   ctx.font="bold 10px 'Courier New', monospace"; ctx.fillStyle=pal.accent+"aa"; ctx.textAlign="center";
   ctx.fillText(`LEVEL ${level}`,W/2,14);
@@ -463,6 +469,7 @@ export function JanglesBallGame() {
     ball: { x:W/2, y:H-130, vx:3, vy:-3.17, r:BALL_R } as Ball,
     paddle: { x:W/2-40, y:H-52, w:PADDLE_BASE_W, h:PADDLE_H } as Paddle,
     paddleTarget: W/2,
+    mouseY: 0,
     transitionTimer: 0,
     countdownTimer: 0,
     ballLostTimer: 0,
@@ -479,6 +486,7 @@ export function JanglesBallGame() {
     ballStuck: false,
     stuckOffsetX: 0,
     baseSpeed: 3.64,
+    difficulty: "master" as "rookie" | "master",
   });
 
   useEffect(() => {
@@ -501,7 +509,8 @@ export function JanglesBallGame() {
 
   const launchBall = useCallback((lvl: number) => {
     const s = state.current;
-    const base = BALL_SPEEDS[lvl] ?? 5.6;
+    const diffMult = s.difficulty === "rookie" ? 0.4 : 1.0;
+    const base = (BALL_SPEEDS[lvl] ?? 5.6) * diffMult;
     s.baseSpeed = base;
     const speed = s.slowTimer > 0 ? base * 0.55 : base;
     s.ballStuck = false;
@@ -512,7 +521,8 @@ export function JanglesBallGame() {
   const resetBall = useCallback((lvl: number) => {
     const s = state.current;
     placeBallOnPaddle();
-    s.baseSpeed = BALL_SPEEDS[lvl] ?? 5.6;
+    const diffMult = s.difficulty === "rookie" ? 0.4 : 1.0;
+    s.baseSpeed = (BALL_SPEEDS[lvl] ?? 5.6) * diffMult;
   }, [placeBallOnPaddle]);
 
   const startLevel = useCallback((lvl: number) => {
@@ -546,11 +556,13 @@ export function JanglesBallGame() {
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       s.paddleTarget = (e.clientX-rect.left)*(W/rect.width);
+      s.mouseY = (e.clientY-rect.top)*(H/rect.height);
     };
     const onTouchMove = (e: TouchEvent) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       s.paddleTarget = (e.touches[0].clientX-rect.left)*(W/rect.width);
+      s.mouseY = (e.touches[0].clientY-rect.top)*(H/rect.height);
     };
 
     const releaseBall = () => {
@@ -560,8 +572,27 @@ export function JanglesBallGame() {
       }
     };
 
-    const advance = () => {
-      if (s.phase==="title") { startLevel(1); }
+    // Button rects on the title screen (centred at W/2)
+    const MASTER_Y  = H/2 + 60;
+    const ROOKIE_Y  = H/2 + 118;
+
+    const advance = (clickX?: number, clickY?: number) => {
+      if (s.phase==="title") {
+        if (clickX !== undefined && clickY !== undefined) {
+          // Did they click Jangles Master? (top, wide button)
+          if (Math.abs(clickX - W/2) <= 120 && Math.abs(clickY - MASTER_Y) <= 22) {
+            s.difficulty = "master"; startLevel(1); return;
+          }
+          // Did they click Rookie? (smaller button below)
+          if (Math.abs(clickX - W/2) <= 90 && Math.abs(clickY - ROOKIE_Y) <= 19) {
+            s.difficulty = "rookie"; startLevel(1); return;
+          }
+          // Clicked somewhere else — do nothing (force them to choose a button)
+          return;
+        }
+        // Keyboard: keep current difficulty
+        startLevel(1);
+      }
       else if (s.phase==="level-transition") { s.transitionTimer=0; }
       else if (s.phase==="ready" || (s.phase==="playing" && s.ballStuck)) { releaseBall(); }
       else if (s.phase==="ball-lost" && s.ballLostTimer<=0) {
@@ -577,7 +608,8 @@ export function JanglesBallGame() {
           const img = new Image(); img.src=asset(`/book3-nt/page-${pg}.png`);
           imagesRef.current[i+1] = img;
         });
-        startLevel(1);
+        // Return to title so the player can re-select difficulty
+        s.phase = "title";
       }
     };
 
@@ -590,9 +622,16 @@ export function JanglesBallGame() {
       }
     };
 
+    const onClick = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = (e.clientX-rect.left)*(W/rect.width);
+      const cy = (e.clientY-rect.top)*(H/rect.height);
+      advance(cx, cy);
+    };
+
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("touchmove", onTouchMove, { passive:false });
-    canvas.addEventListener("click", advance);
+    canvas.addEventListener("click", onClick);
     window.addEventListener("keydown", onKeyDown);
 
     function tick() {
@@ -613,11 +652,47 @@ export function JanglesBallGame() {
         c.fillText("JANGLES",W/2,H/2-55);
         c.fillStyle="#fff"; c.fillText("BALL",W/2,H/2);
         c.shadowBlur=0;
-        c.font="bold 13px 'Courier New', monospace"; c.fillStyle="#aaa";
-        c.fillText("CLICK OR PRESS SPACE TO START",W/2,H/2+55);
+
+        // difficulty label
         c.font="bold 11px 'Courier New', monospace"; c.fillStyle="#555";
-        c.fillText("SMASH BRICKS TO CLEAR THE PICTURE!",W/2,H/2+78);
-        c.fillText("POWER-UPS: [E]XTEND  [S]LOW  [L]ASER  [M]AGNET",W/2,H/2+100);
+        c.fillText("— SELECT DIFFICULTY —",W/2,H/2+36);
+
+        const masterY = H/2 + 60;
+        const rookieY = H/2 + 118;
+        const mx = s.paddleTarget; const my = s.mouseY;
+        const overMaster = Math.abs(mx-W/2)<=120 && Math.abs(my-masterY)<=22;
+        const overRookie = Math.abs(mx-W/2)<=90  && Math.abs(my-rookieY)<=19;
+
+        // ── JANGLES MASTER — big primary button ──
+        {
+          const bw=240; const bh=44; const bx=W/2-bw/2; const by=masterY-bh/2;
+          c.shadowColor="#00d4ff"; c.shadowBlur= overMaster ? 28 : 14;
+          roundRect(c,bx,by,bw,bh,bh/2);
+          c.fillStyle = overMaster ? "#00d4ff" : "rgba(0,30,50,0.85)"; c.fill();
+          c.strokeStyle="#00d4ff"; c.lineWidth=2.5;
+          roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
+          c.shadowBlur=0;
+          c.font="bold 16px 'Courier New', monospace";
+          c.fillStyle = overMaster ? "#000" : "#00d4ff";
+          c.fillText("JANGLES MASTER ★", W/2, masterY+6);
+        }
+
+        // ── ROOKIE — smaller secondary button ──
+        {
+          const bw=180; const bh=36; const bx=W/2-bw/2; const by=rookieY-bh/2;
+          if (overRookie) { c.shadowColor="#44ff88"; c.shadowBlur=18; }
+          roundRect(c,bx,by,bw,bh,bh/2);
+          c.fillStyle = overRookie ? "#44ff88" : "rgba(0,0,0,0.5)"; c.fill();
+          c.strokeStyle="#44ff88"; c.lineWidth=1.5;
+          roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
+          c.shadowBlur=0;
+          c.font="bold 13px 'Courier New', monospace";
+          c.fillStyle = overRookie ? "#000" : "#44ff88";
+          c.fillText("ROOKIE", W/2, rookieY+5);
+        }
+
+        c.font="bold 10px 'Courier New', monospace"; c.fillStyle="#333";
+        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [M]AGNET",W/2,H/2+162);
         return;
       }
 
@@ -728,7 +803,7 @@ export function JanglesBallGame() {
 
       drawPaddle(c, s.paddle, lvl, s.laserTimer>0, s.stickyTimer>0);
       drawBall(c, s.ball, lvl, s.slowTimer>0, s.ballStuck);
-      drawHUD(c, s.score, s.lives, lvl, getClearedPct(s.bricks), s.extendTimer, s.slowTimer, s.laserTimer, s.stickyTimer);
+      drawHUD(c, s.score, s.lives, lvl, getClearedPct(s.bricks), s.extendTimer, s.slowTimer, s.laserTimer, s.stickyTimer, s.difficulty);
 
       // ── Ready / countdown ──────────────────────────────────────────────────
       if (s.phase==="ready") {
@@ -908,7 +983,7 @@ export function JanglesBallGame() {
       cancelAnimationFrame(s.rafId);
       canvas.removeEventListener("mousemove",onMouseMove);
       canvas.removeEventListener("touchmove",onTouchMove);
-      canvas.removeEventListener("click",advance);
+      canvas.removeEventListener("click",onClick);
       window.removeEventListener("keydown",onKeyDown);
     };
   }, [startLevel, resetBall, launchBall, placeBallOnPaddle, spawnParticles]);
@@ -947,11 +1022,12 @@ function buildState() {
     phase: "title" as GamePhase,
     level: 1, lives: 3, score: 0,
     bricks: [] as Brick[], ball: {} as Ball, paddle: {} as Paddle,
-    paddleTarget: 0, transitionTimer: 0, countdownTimer: 0,
+    paddleTarget: 0, mouseY: 0, transitionTimer: 0, countdownTimer: 0,
     ballLostTimer: 0, clearTimer: 0, rafId: 0,
     particles: [] as { x:number;y:number;vx:number;vy:number;life:number;color:string;r:number; }[],
     powerUps: [] as PowerUp[], laserBolts: [] as LaserBolt[],
     laserFireTimer: 0, extendTimer: 0, slowTimer: 0, laserTimer: 0,
     stickyTimer: 0, ballStuck: false, stuckOffsetX: 0, baseSpeed: 3.64,
+    difficulty: "master" as "rookie" | "master",
   };
 }

@@ -47,7 +47,7 @@ const KEY_PALETTE = [
 ];
 
 type Phase = 'counting' | 'choosing' | 'correct' | 'wrong';
-interface ObjItem { id: string; tapped: boolean; }
+interface ObjItem { id: string; tapped: boolean; countNumber?: number; }
 
 function buildRound(count: number, rdIdx: number) {
   const rd = ROUNDS[rdIdx % ROUNDS.length];
@@ -90,10 +90,16 @@ export function CaseyCanCountGame() {
 
   const handleTap = useCallback((id: string) => {
     if (phase !== 'counting') return;
-    setRound(prev => ({ ...prev, items: prev.items.map(it => it.id === id ? { ...it, tapped: true } : it) }));
+    // If already tapped, just replay its number — no state change
+    const existing = round.items.find(it => it.id === id);
+    if (existing?.tapped && existing.countNumber != null) {
+      speakNumber(existing.countNumber);
+      return;
+    }
     setTapCount(prev => {
       const next = prev + 1;
       speakNumber(next);
+      setRound(r => ({ ...r, items: r.items.map(it => it.id === id ? { ...it, tapped: true, countNumber: next } : it) }));
       if (next === round.count) {
         setCaseyMsg(pick(MSGS.done));
         setTimeout(() => setPhase('choosing'), 500);
@@ -102,7 +108,7 @@ export function CaseyCanCountGame() {
       }
       return next;
     });
-  }, [phase, round.count]);
+  }, [phase, round.count, round.items]);
 
   const handleKey = useCallback((n: number) => {
     if (phase !== 'choosing') return;
@@ -143,7 +149,7 @@ export function CaseyCanCountGame() {
   const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
 
   // Arrange items in centered rows on the paper
-  const cols = round.count <= 4 ? round.count : round.count <= 6 ? 3 : round.count <= 8 ? 4 : 5;
+  const cols = round.count <= 3 ? round.count : round.count <= 6 ? 3 : round.count <= 8 ? 4 : 5;
 
   return (
     <div className="relative flex h-full overflow-hidden select-none">
@@ -186,9 +192,9 @@ export function CaseyCanCountGame() {
             backgroundSize: '22px 22px',
             borderBottomWidth: 7,
             borderRightWidth: 6,
-            minWidth: 300,
-            maxWidth: '54vw',
-            paddingRight: 130,
+            minWidth: 260,
+            maxWidth: '52vw',
+            paddingRight: 140,
           }}
         >
           {/* Card header */}
@@ -211,36 +217,28 @@ export function CaseyCanCountGame() {
                   style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #1c1917' }} />
               </motion.div>
             </AnimatePresence>
-            <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-24 w-auto object-contain" />
+            <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-32 w-auto object-contain" />
           </div>
 
           {/* Item grid on the paper */}
           <div
-            className="flex flex-wrap items-center justify-center gap-3"
-            style={{ maxWidth: cols * 76 }}
+            className="flex flex-wrap items-center justify-center gap-2"
+            style={{ maxWidth: cols * 64 }}
           >
-            {round.items.map((item, i) => (
+            {round.items.map((item) => (
               <motion.button
                 key={item.id}
                 onClick={() => handleTap(item.id)}
-                disabled={item.tapped || phase !== 'counting'}
+                disabled={phase !== 'counting'}
                 whileTap={{ scale: 0.82 }}
                 className={cn(
-                  'relative flex items-center justify-center rounded-2xl border-[3px] border-ink p-1.5 shadow-md transition-colors',
-                  'w-14 h-14',
+                  'relative flex items-center justify-center rounded-xl border-[3px] border-ink p-1 shadow-md transition-colors',
+                  'w-12 h-12',
                   item.tapped ? 'bg-[#bbf7d0] border-[#16a34a]' : 'bg-white/90',
                   phase !== 'counting' && !item.tapped && 'opacity-40',
                 )}
               >
                 <img src={round.obj.src} alt={round.obj.label} className="w-full h-full object-contain" />
-                {item.tapped && (
-                  <motion.div
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-[#16a34a] border-2 border-white flex items-center justify-center text-white text-[10px] font-extrabold"
-                  >
-                    {i + 1}
-                  </motion.div>
-                )}
               </motion.button>
             ))}
           </div>

@@ -1878,10 +1878,11 @@ export function FoxerGame() {
     const foxyH = CELL - 12;
     for (const obs of obstaclesRef.current) {
       if (obs.row !== row) continue;
-      const ox = obs.x + 4;
-      const ow = obs.width * CELL - 8;
-      const oy = obs.row * CELL + 4;
-      const oh = CELL - 8;
+      const inset = obs.width > 1 ? 10 : 5;
+      const ox = obs.x + inset;
+      const ow = obs.width * CELL - inset * 2;
+      const oy = obs.row * CELL + 5;
+      const oh = CELL - 10;
       if (foxyX < ox + ow && foxyX + foxyW > ox && foxyY < oy + oh && foxyY + foxyH > oy) {
         return true;
       }
@@ -2045,10 +2046,11 @@ export function FoxerGame() {
         const foxyH = CELL - 12;
         for (const obs of obstaclesRef.current) {
           if (obs.row !== foxyRef.current.row) continue;
-          const ox = obs.x + 4;
-          const oy = obs.row * CELL + 4;
-          const ow = obs.width * CELL - 8;
-          const oh = CELL - 8;
+          const inset = obs.width > 1 ? 10 : 5;
+          const ox = obs.x + inset;
+          const ow = obs.width * CELL - inset * 2;
+          const oy = obs.row * CELL + 5;
+          const oh = CELL - 10;
           if (foxyX < ox + ow && foxyX + foxyW > ox && foxyY < oy + oh && foxyY + foxyH > oy) {
             handleHit();
             break;

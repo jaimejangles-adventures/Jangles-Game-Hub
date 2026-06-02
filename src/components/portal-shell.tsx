@@ -8,7 +8,7 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
@@ -18,9 +18,10 @@ export function PortalShell({ children }: PortalShellProps) {
   const isFullBleed = FULL_BLEED_ROUTES.includes(pathname);
   const [openCategory, setOpenCategory] = useState<GameCategory | null>(null);
   const [panelLeft, setPanelLeft] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Close when clicking outside the dropdown group
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
@@ -30,6 +31,11 @@ export function PortalShell({ children }: PortalShellProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   function handleCategoryToggle(slug: GameCategory, buttonEl: HTMLButtonElement) {
     if (openCategory === slug) {
@@ -81,21 +87,31 @@ export function PortalShell({ children }: PortalShellProps) {
         <div className="flex h-20 w-full items-center gap-3 pl-1 pr-3 sm:h-28 sm:pl-2 sm:pr-4 lg:pl-3 lg:pr-6">
 
           {/* Logo */}
-          <Link to="/" className="flex shrink-0 items-center gap-2">
+          <Link to="/" className="flex shrink-0 items-center gap-1.5">
             <img
               src={asset("/art/title.png")}
               alt="Jaime Jangles"
-              className="h-[3.15rem] w-[265px] shrink-0 sm:h-[4.2rem] sm:w-[353px]"
+              className="h-[2.2rem] w-[185px] shrink-0 sm:h-[4.2rem] sm:w-[353px]"
             />
             <img
               src={asset("/art/world_tour.png")}
               alt="World Tour"
-              className="h-[3.6rem] w-[5.6rem] shrink-0 sm:h-[4.7rem] sm:w-[7.2rem]"
+              className="h-[2.6rem] w-[4rem] shrink-0 sm:h-[4.7rem] sm:w-[7.2rem]"
             />
           </Link>
 
-          {/* Pills centred in the remaining space between logo and right edge */}
-          <div className="flex flex-1 items-center justify-center pr-3 sm:pr-4 lg:pr-6">
+          {/* Hamburger button — mobile only */}
+          <button
+            className="ml-auto flex sm:hidden items-center justify-center rounded-full border-[3px] border-ink bg-white p-2 text-xl"
+            style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            aria-label="Open menu"
+          >
+            {mobileMenuOpen ? "✕" : "☰"}
+          </button>
+
+          {/* Pills — hidden on mobile, visible on sm+ */}
+          <div className="hidden sm:flex flex-1 items-center justify-center pr-3 sm:pr-4 lg:pr-6">
           <div ref={navRef} className="relative flex items-center gap-2">
             {/* Game Hub pill — always visible so you can return home from any game */}
             <Link
@@ -179,6 +195,52 @@ export function PortalShell({ children }: PortalShellProps) {
           </div>
 
         </div>
+
+        {/* Mobile menu dropdown — sm: hidden */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t-4 border-ink bg-paper px-4 pb-4 pt-2">
+            <Link
+              to="/"
+              className="flex items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 font-extrabold text-ink bg-white"
+              style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+            >
+              🏠 Game Hub
+            </Link>
+            {CATEGORY_MANIFEST.map((category) => {
+              const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
+              return (
+                <div key={category.slug} className="mb-3">
+                  <div className="mb-1.5 px-1 text-[0.65rem] font-extrabold uppercase tracking-[0.18em] text-ink/40">
+                    {category.emoji} {category.title}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {categoryGames.map((game) => (
+                      <Link
+                        key={game.slug}
+                        to={game.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl border-[2px] border-ink/20 px-3 py-2.5 text-sm font-bold transition-colors",
+                          pathname === game.href ? "bg-ink/10 border-ink/40" : "bg-white",
+                        )}
+                      >
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-ink text-base"
+                          style={{ background: game.accent + "44" }}
+                        >
+                          {game.emoji}
+                        </span>
+                        <span>
+                          <span className="block text-ink">{game.title}</span>
+                          <span className="block text-[0.65rem] font-normal text-ink/55">{game.eyebrow}</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {isFullBleed ? (
