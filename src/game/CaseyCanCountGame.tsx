@@ -193,6 +193,7 @@ export function CaseyCanCountGame() {
             borderBottomWidth: 7,
             borderRightWidth: 6,
             minWidth: 260,
+            minHeight: 220,
             maxWidth: '52vw',
             paddingRight: 140,
           }}
@@ -205,18 +206,20 @@ export function CaseyCanCountGame() {
 
           {/* Casey — top right corner of card */}
           <div className="absolute top-3 right-3 flex flex-col items-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={caseyMsg}
-                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="relative mb-1 rounded-2xl border-[3px] border-ink bg-white px-3 py-2 text-center text-xs font-extrabold leading-tight shadow-md"
-                style={{ borderBottomWidth: 4, borderRightWidth: 3, maxWidth: 110 }}
-              >
-                {caseyMsg}
-                <div className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-0 h-0"
-                  style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #1c1917' }} />
-              </motion.div>
-            </AnimatePresence>
+            <div className="relative mb-1" style={{ height: 40, width: 110 }}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={caseyMsg}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="absolute top-0 left-0 right-0 rounded-2xl border-[3px] border-ink bg-white px-3 py-1.5 text-center text-xs font-extrabold leading-tight shadow-md"
+                  style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
+                >
+                  {caseyMsg}
+                  <div className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-0 h-0"
+                    style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #1c1917' }} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
             <img src={asset("/characters/casey-pointing.png")} alt="Casey" className="h-32 w-auto object-contain" />
           </div>
 
@@ -243,14 +246,6 @@ export function CaseyCanCountGame() {
             ))}
           </div>
 
-          {/* Tap progress dots */}
-          {phase === 'counting' && (
-            <div className="flex gap-1.5">
-              {round.items.map((item) => (
-                <div key={item.id} className={cn('h-2 w-2 rounded-full border border-ink/20 transition-colors', item.tapped ? 'bg-indigo-400' : 'bg-ink/10')} />
-              ))}
-            </div>
-          )}
         </motion.div>
 
         {/* Jangles Calc — right side */}

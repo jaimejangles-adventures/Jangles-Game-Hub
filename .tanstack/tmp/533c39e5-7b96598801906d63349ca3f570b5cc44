@@ -24,6 +24,7 @@ import { Route as GamesFindFoxyRouteImport } from './routes/games/find-foxy'
 import { Route as GamesElefanteRouteImport } from './routes/games/elefante'
 import { Route as GamesDrawWithCaseyRouteImport } from './routes/games/draw-with-casey'
 import { Route as GamesCountWithJaimeRouteImport } from './routes/games/count-with-jaime'
+import { Route as GamesCaseyCanSubtractRouteImport } from './routes/games/casey-can-subtract'
 import { Route as GamesCaseyCanCountRouteImport } from './routes/games/casey-can-count'
 import { Route as GamesAirFanteCollectRouteImport } from './routes/games/air-fante-collect'
 
@@ -102,6 +103,11 @@ const GamesCountWithJaimeRoute = GamesCountWithJaimeRouteImport.update({
   path: '/games/count-with-jaime',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesCaseyCanSubtractRoute = GamesCaseyCanSubtractRouteImport.update({
+  id: '/games/casey-can-subtract',
+  path: '/games/casey-can-subtract',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesCaseyCanCountRoute = GamesCaseyCanCountRouteImport.update({
   id: '/games/casey-can-count',
   path: '/games/casey-can-count',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
+  '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
   '/games/elefante': typeof GamesElefanteRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
+  '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
   '/games/elefante': typeof GamesElefanteRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
+  '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
   '/games/elefante': typeof GamesElefanteRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/games/air-fante-collect'
     | '/games/casey-can-count'
+    | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
     | '/games/elefante'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/games/air-fante-collect'
     | '/games/casey-can-count'
+    | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
     | '/games/elefante'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/games/air-fante-collect'
     | '/games/casey-can-count'
+    | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
     | '/games/elefante'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GamesAirFanteCollectRoute: typeof GamesAirFanteCollectRoute
   GamesCaseyCanCountRoute: typeof GamesCaseyCanCountRoute
+  GamesCaseyCanSubtractRoute: typeof GamesCaseyCanSubtractRoute
   GamesCountWithJaimeRoute: typeof GamesCountWithJaimeRoute
   GamesDrawWithCaseyRoute: typeof GamesDrawWithCaseyRoute
   GamesElefanteRoute: typeof GamesElefanteRoute
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCountWithJaimeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/casey-can-subtract': {
+      id: '/games/casey-can-subtract'
+      path: '/games/casey-can-subtract'
+      fullPath: '/games/casey-can-subtract'
+      preLoaderRoute: typeof GamesCaseyCanSubtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/casey-can-count': {
       id: '/games/casey-can-count'
       path: '/games/casey-can-count'
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GamesAirFanteCollectRoute: GamesAirFanteCollectRoute,
   GamesCaseyCanCountRoute: GamesCaseyCanCountRoute,
+  GamesCaseyCanSubtractRoute: GamesCaseyCanSubtractRoute,
   GamesCountWithJaimeRoute: GamesCountWithJaimeRoute,
   GamesDrawWithCaseyRoute: GamesDrawWithCaseyRoute,
   GamesElefanteRoute: GamesElefanteRoute,

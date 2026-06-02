@@ -5,7 +5,6 @@ import {
   Geographies,
   Geography,
   Marker,
-  Line,
   useMapContext,
 } from "react-simple-maps";
 import { burstCorrect, burstFinale } from "@/game/confetti";
@@ -218,18 +217,22 @@ function MapContents({
         }
       </Geographies>
 
-      {/* Dashed gold trail */}
-      {trailPairs.map(([from, to], i) => (
-        <Line
-          key={`trail-${i}`}
-          from={[from.lng, from.lat]}
-          to={[to.lng, to.lat]}
-          stroke="#fbbf24"
-          strokeWidth={2.5}
-          strokeDasharray="8 5"
-          strokeLinecap="round"
-        />
-      ))}
+      {/* Dashed gold trail — drawn in screen space so it matches the plane's path */}
+      {trailPairs.map(([from, to], i) => {
+        const a = project(from.lng, from.lat);
+        const b = project(to.lng, to.lat);
+        return (
+          <line
+            key={`trail-${i}`}
+            x1={a.x} y1={a.y}
+            x2={b.x} y2={b.y}
+            stroke="#fbbf24"
+            strokeWidth={2.5}
+            strokeDasharray="8 5"
+            strokeLinecap="round"
+          />
+        );
+      })}
 
       {/* Visited city markers */}
       {visitedCityIds.slice(0, -1).map((cityId) => {
@@ -272,7 +275,7 @@ function MapContents({
               <circle cx={-2} cy={-24} r={2.5} fill="rgba(255,255,255,0.18)" />
               <text
                 x={10}
-                y={-21}
+                y={-26}
                 dominantBaseline="middle"
                 textAnchor="start"
                 fontSize={9}
@@ -283,14 +286,30 @@ function MapContents({
                 paintOrder="stroke"
                 style={{ fontFamily: "'Baloo 2', system-ui, sans-serif", pointerEvents: "none" }}
               >
-                {choice.cityName.split(",")[0]}
+                {choice.cityName.split(", ")[0]}
+              </text>
+              <text
+                x={10}
+                y={-16}
+                dominantBaseline="middle"
+                textAnchor="start"
+                fontSize={7.5}
+                fontWeight={700}
+                fill="#555"
+                stroke="white"
+                strokeWidth={2.5}
+                paintOrder="stroke"
+                style={{ fontFamily: "'Baloo 2', system-ui, sans-serif", pointerEvents: "none" }}
+              >
+                {choice.cityName.split(", ")[1]}
               </text>
             </g>
           </Marker>
         ))}
 
-      {/* Animated plane */}
+      {/* Animated plane — initial matches animate so it doesn't fly in from (0,0) on mount */}
       <motion.g
+        initial={planeTarget}
         animate={planeTarget}
         transition={{ duration: TRAVEL_MS / 1000, ease: "easeInOut" }}
         onAnimationComplete={phase === "traveling" ? onTravelComplete : undefined}
@@ -329,11 +348,41 @@ export function WorldChaseGame() {
   const [route, setRoute] = useState<City[]>(() => generateRoute());
 
   // ── Computed choices for guessing phase (3 wrong + 1 correct from full pool)
+  // Wrong picks are drawn one-per-continent, preferring continents different from
+  // the correct city, so the four pins always appear spread across the map.
   const choices = useMemo<WrongOption[]>(() => {
     if (stopIndex < 0 || stopIndex >= route.length - 1) return [];
     const nextCity = route[stopIndex + 1];
-    const wrongPool = CITIES.filter((c) => c.cityId !== nextCity.cityId);
-    const wrongPicks = shuffle(wrongPool).slice(0, 3);
+
+    // Group all cities except the correct one by continent
+    const byContinent: Record<string, City[]> = {};
+    for (const c of CITIES) {
+      if (c.cityId === nextCity.cityId) continue;
+      if (!byContinent[c.continent]) byContinent[c.continent] = [];
+      byContinent[c.continent].push(c);
+    }
+
+    // Prefer continents different from the correct city (less likely to be nearby)
+    const otherConts = shuffle(Object.keys(byContinent).filter((k) => k !== nextCity.continent));
+    const sameCont  = Object.keys(byContinent).filter((k) => k === nextCity.continent);
+    const continentOrder = [...otherConts, ...sameCont];
+
+    // Pick one random city from each continent until we have 3
+    const wrongPicks: City[] = [];
+    for (const cont of continentOrder) {
+      if (wrongPicks.length >= 3) break;
+      wrongPicks.push(shuffle(byContinent[cont])[0]);
+    }
+
+    // Safety fallback if somehow we still need more
+    if (wrongPicks.length < 3) {
+      const usedIds = new Set([nextCity.cityId, ...wrongPicks.map((c) => c.cityId)]);
+      for (const c of shuffle(CITIES)) {
+        if (wrongPicks.length >= 3) break;
+        if (!usedIds.has(c.cityId)) wrongPicks.push(c);
+      }
+    }
+
     return shuffle([
       { cityId: nextCity.cityId, cityName: nextCity.cityName, lat: nextCity.lat, lng: nextCity.lng },
       ...wrongPicks.map((c) => ({ cityId: c.cityId, cityName: c.cityName, lat: c.lat, lng: c.lng })),

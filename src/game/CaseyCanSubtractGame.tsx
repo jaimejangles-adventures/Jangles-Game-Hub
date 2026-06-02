@@ -6,7 +6,7 @@ import { playCorrectExclamation, playIncorrectExclamation } from '@/game/exclama
 import { cn } from '@/lib/utils';
 import { asset } from "@/lib/asset";
 
-const COUNT_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const COUNT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
 function speak(text: string, muted: boolean) {
   if (muted || !window.speechSynthesis) return;
@@ -52,7 +52,7 @@ const BUTTON_PALETTE = [
 ];
 
 const MSGS = {
-  intro:   ["Let's add! 🎵", "Can you count them?", "How many in all?", "Add them up!"],
+  intro:   ["Let's subtract! ➖", "How many are left?", "Take some away!", "Count what's left!"],
   correct: ["You got it! 🎉", "Amazing! ⭐", "That's right!", "You're a star! 🌟", "Brilliant! 🎊"],
   wrong:   ["Good try! Keep going!", "Oops! Count again!", "So close! Try again!"],
   celebrate: ["Next one! →", "You're on fire! 🔥", "Let's keep going!"],
@@ -63,9 +63,9 @@ function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length
 function rand(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 function generateRound(excludeIdx?: number) {
-  const a = rand(1, 4);
-  const b = rand(1, 4);
-  const answer = a + b;
+  const a = rand(2, 8);
+  const b = rand(1, a - 1);
+  const answer = a - b;
 
   let rdIdx: number;
   do { rdIdx = Math.floor(Math.random() * ROUNDS.length); } while (rdIdx === excludeIdx && ROUNDS.length > 1);
@@ -73,7 +73,7 @@ function generateRound(excludeIdx?: number) {
 
   const wrongs = new Set<number>();
   while (wrongs.size < 2) {
-    const w = rand(Math.max(1, answer - 3), Math.min(8, answer + 3));
+    const w = rand(Math.max(0, answer - 3), Math.min(8, answer + 3));
     if (w !== answer) wrongs.add(w);
   }
 
@@ -83,7 +83,7 @@ function generateRound(excludeIdx?: number) {
 
 type Phase = 'playing' | 'correct' | 'wrong';
 
-export function CaseyCanAddGame() {
+export function CaseyCanSubtractGame() {
   const [round, setRound] = useState(() => generateRound());
   const [phase, setPhase] = useState<Phase>('playing');
   const [picked, setPicked] = useState<number | null>(null);
@@ -213,7 +213,7 @@ export function CaseyCanAddGame() {
 
           {/* Card header */}
           <div className="flex flex-col items-center gap-1">
-            <span className="text-base font-extrabold tracking-tight" style={{ color: '#1a1a2e' }}>Casey Can Add! ➕</span>
+            <span className="text-base font-extrabold tracking-tight" style={{ color: '#1a1a2e' }}>Casey Can Subtract! ➖</span>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full border border-ink/20 bg-white/60" style={{ color: '#6b7280' }}>{country}</span>
           </div>
 
@@ -223,13 +223,13 @@ export function CaseyCanAddGame() {
 
             <motion.button
               whileTap={aAllTapped ? { scale: 0.85 } : {}}
-              onClick={() => aAllTapped && speak('plus', muted)}
+              onClick={() => aAllTapped && speak('minus', muted)}
               className="flex items-center justify-center w-10 h-10 rounded-full border-[3px] border-ink bg-white font-extrabold text-2xl shadow"
               style={{ borderBottomWidth: 4, borderRightWidth: 3, opacity: aAllTapped ? 1 : 0.35, cursor: aAllTapped ? 'pointer' : 'default' }}>
-              +
+              −
             </motion.button>
 
-            <ObjectGroup key={`b-${round.rdIdx}`} count={b} obj={obj} color="#bbf7d0" muted={muted} />
+            <ObjectGroup key={`b-${round.rdIdx}`} count={b} obj={obj} color="#fca5a5" muted={muted} />
 
             <motion.button
               whileTap={aAllTapped ? { scale: 0.85 } : {}}
@@ -344,7 +344,7 @@ function ObjectGroup({ count, obj, color, muted, onAllTapped }: { count: number;
   function handleClick(idx: number) {
     const item = items[idx];
     if (item.tapped && item.num !== null) {
-      speak(COUNT_WORDS[item.num], muted);
+      speak(COUNT_WORDS[item.num] ?? String(item.num), muted);
       return;
     }
     const nextNum = tappedSoFar + 1;

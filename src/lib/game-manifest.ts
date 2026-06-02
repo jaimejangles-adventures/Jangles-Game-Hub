@@ -7,6 +7,8 @@ export type CategoryEntry = {
   emoji: string;
   eyebrow: string;
   accent: string;
+  headerLogo?: string;
+  headerCharacter?: string;
 };
 
 export const CATEGORY_MANIFEST: CategoryEntry[] = [
@@ -30,6 +32,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
     emoji: "🔢",
     eyebrow: "Numbers, counting & problem solving",
     accent: "#F97316",
+    headerLogo: asset("/characters/casey-can-logo.png"),
+    headerCharacter: asset("/characters/map-casey.png"),
   },
   {
     slug: "music-arts",
@@ -48,8 +52,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract";
   title: string;
   eyebrow: string;
   description: string;
@@ -174,7 +178,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Casey shows you a bunch of objects — tap each one to count it, then pick the right number! Learn one-to-one counting the fun way.",
     accent: "#f97316",
     emoji: "🔢",
-    image: asset("/characters/casey-logo.png"),
+    image: asset("/characters/casey-pointing.png"),
     status: "live",
     category: "math-games",
   },
@@ -213,7 +217,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Casey shows you two groups of objects — count them up and pick the right total! Simple addition made fun with colourful pictures.",
     accent: "#f97316",
     emoji: "➕",
-    image: asset("/characters/casey-logo.png"),
+    image: asset("/characters/casey-pointing.png"),
     status: "live",
     category: "math-games",
   },
@@ -226,7 +230,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "A bold retro Breakout-style arcade game! Smash 5 levels of bricks with a bouncing ball across neon palettes — normal, tough, and indestructible blocks stand in your way.",
     accent: "#00d4ff",
     emoji: "🎮",
-    image: asset("/characters/casey-logo.png"),
+    image: asset("/characters/jangles-ball-thumb.png"),
     status: "live",
     category: "arcade-adventures",
   },
@@ -252,7 +256,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Choose Casey, Jaime, Jeff or Fante and chomp through 20 countries! Eat the country's flag for 8 seconds of ghost-eating power.",
     accent: "#3b82f6",
     emoji: "👾",
-    image: asset("/characters/casey-logo.png"),
+    image: asset("/characters/jangles-pac-thumb.png"),
     status: "live",
     category: "arcade-adventures",
   },
@@ -268,6 +272,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     image: asset("/objects/fox.svg"),
     status: "live",
     category: "puzzles",
+  },
+  {
+    slug: "casey-can-subtract",
+    href: "/games/casey-can-subtract",
+    title: "Casey Can Subtract!",
+    eyebrow: "Subtraction for ages 4–7",
+    description:
+      "Casey shows you two groups of objects — take one away from the other and pick the right answer! Simple subtraction made fun with colourful pictures.",
+    accent: "#f97316",
+    emoji: "➖",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "math-games",
   },
 ];
 

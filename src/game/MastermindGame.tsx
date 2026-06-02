@@ -129,6 +129,7 @@ export function MastermindGame() {
   const addToGuess = useCallback((id: string) => {
     if (gameOver) return;
     setCurrent(prev => {
+      if (prev.includes(id)) return prev; // no duplicates
       const i = prev.findIndex(s => s === null);
       if (i === -1) return prev;
       const next = [...prev]; next[i] = id; return next;
@@ -194,7 +195,7 @@ export function MastermindGame() {
       <div className="flex-1 flex min-h-0 justify-center gap-3 px-2 pb-2">
 
         {/* ── LEFT: guess history ── */}
-        <div className="w-[182px] flex flex-col justify-around shrink-0 py-1">
+        <div className="w-[232px] flex flex-col justify-around shrink-0 py-1">
           {Array.from({ length: maxGuesses }, (_, i) => {
             const row = guesses[i];
             const isActive = i === guesses.length && !gameOver;
@@ -211,9 +212,9 @@ export function MastermindGame() {
                   {slots.map((id, si) => {
                     const obj = id ? OBJECTS.find(o => o.id === id) : null;
                     return (
-                      <div key={si} className={cn('w-7 h-7 rounded-md border-2 flex items-center justify-center shrink-0',
+                      <div key={si} className={cn('w-[42px] h-[42px] rounded-md border-2 flex items-center justify-center shrink-0',
                         obj ? 'bg-white border-[#1e1b4b] shadow-[1px_1px_0_#1e1b4b]' : 'bg-white/12 border-dashed border-white/25')}>
-                        {obj && <img src={obj.src} alt={obj.label} className="w-4 h-4 object-contain" />}
+                        {obj && <img src={obj.src} alt={obj.label} className="w-[30px] h-[30px] object-contain" />}
                       </div>
                     );
                   })}
@@ -261,7 +262,7 @@ export function MastermindGame() {
                   : 'bg-white/10 border-white/20 text-white/30 cursor-not-allowed',
               )}
             >
-              {complete && !gameOver ? '✓ Go!' : '· · ·'}
+              {complete && !gameOver ? '🔒 Lock It In!' : '· · ·'}
             </motion.button>
           </div>
 
@@ -271,14 +272,16 @@ export function MastermindGame() {
             <div className="grid grid-cols-2 gap-[1px]">
               {OBJECTS.map(obj => {
                 const full = current.every(s => s !== null);
+                const alreadyPicked = current.includes(obj.id);
+                const disabled = full || alreadyPicked || gameOver;
                 return (
-                  <motion.button key={obj.id} whileTap={{ scale: 0.86 }}
+                  <motion.button key={obj.id} whileTap={!disabled ? { scale: 0.86 } : undefined}
                     onClick={() => addToGuess(obj.id)}
-                    disabled={full || gameOver}
+                    disabled={disabled}
                     className={cn(
                       'flex flex-col items-center rounded-xl border-[2px] border-[#1e1b4b] bg-white pt-2 pb-1.5 w-[100px]',
                       'shadow-[2px_2px_0_#1e1b4b]',
-                      full || gameOver ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:brightness-95 active:shadow-none active:translate-y-0.5',
+                      disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:brightness-95 active:shadow-none active:translate-y-0.5',
                     )}
                   >
                     <img src={obj.src} alt={obj.label} className="w-16 h-16 object-contain" />

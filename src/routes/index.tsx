@@ -118,6 +118,36 @@ function Index() {
                 </div>
                 <span className="text-[0.6rem] text-ink/45 font-medium">{category.eyebrow}</span>
               </div>
+              {category.headerLogo && (
+                <div
+                  className="mb-3 flex items-center gap-0 overflow-hidden rounded-[2rem] border-[3px] border-ink"
+                  style={{
+                    background: category.accent + "22",
+                    borderBottomWidth: 5,
+                    borderRightWidth: 4,
+                    maxWidth: "28rem",
+                  }}
+                >
+                  {category.headerCharacter && (
+                    <img
+                      src={category.headerCharacter}
+                      alt=""
+                      className="h-20 w-auto self-end object-contain"
+                      style={{ mixBlendMode: "multiply", marginLeft: "0.5rem" }}
+                    />
+                  )}
+                  <div className="flex flex-col justify-center px-4 py-3">
+                    <img
+                      src={category.headerLogo}
+                      alt="Casey Can"
+                      style={{ height: "2.2rem", width: "auto", display: "block" }}
+                    />
+                    <span className="mt-1 text-[0.6rem] text-ink/50 font-bold uppercase tracking-[0.2em]">
+                      {category.eyebrow}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Horizontal scroll row */}
               <div

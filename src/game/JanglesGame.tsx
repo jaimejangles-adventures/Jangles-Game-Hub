@@ -247,6 +247,8 @@ export function JanglesGame() {
   const [wrongPicks, setWrongPicks] = useState<Set<string>>(new Set());
   const [showSparkle, setShowSparkle] = useState(false);
   const [showFlame, setShowFlame] = useState(false);
+  const [collectedCountries, setCollectedCountries] = useState<Fact[]>([]);
+  const [passportModalOpen, setPassportModalOpen] = useState(false);
   const [, addStamps] = useStamps();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -276,6 +278,7 @@ export function JanglesGame() {
     setWrongPicks(new Set());
     setAudioErr(null);
     setHasStartedRound(false);
+    setCollectedCountries([]);
     setPhase("play");
   }, []);
 
@@ -289,6 +292,7 @@ export function JanglesGame() {
     setAnswered(false);
     setMissedThisRound(false);
     setWrongPicks(new Set());
+    setCollectedCountries([]);
   }, []);
 
   const handlePick = useCallback(
@@ -309,6 +313,9 @@ export function JanglesGame() {
           index === currentRound ? (missedThisRound ? "wrong" : "correct") : status,
         ),
       );
+      if (!missedThisRound) {
+        setCollectedCountries((prev) => [...prev, round]);
+      }
       playCorrectExclamation();
       const earnedPoints = missedThisRound ? 0
         : currentTime <= 3 ? 3
@@ -479,6 +486,14 @@ export function JanglesGame() {
             <StopsPanel roundIndex={currentRound} total={rounds.length} roundStatuses={roundStatuses} />
             <StatChip icon="🎫" value={`${score}/${rounds.length}`} bg="#FFF8E0" color="#1a1a1a" />
             {streak > 0 && <StatChip icon="🔥" value={String(streak)} bg="#FFECEC" color="#EF4444" />}
+            <button
+              type="button"
+              onClick={() => setPassportModalOpen(true)}
+              className="rounded-full border-[2px] border-ink px-4 py-1 text-sm font-bold transition-transform active:scale-95 ml-auto"
+              style={{ background: "#1C3054", color: "#FFD700", borderBottomWidth: 4, borderRightWidth: 3, cursor: "pointer" }}
+            >
+              🛂 {collectedCountries.length} stamps
+            </button>
           </div>
         )}
       </header>
@@ -525,6 +540,24 @@ export function JanglesGame() {
       </main>
 
       <audio ref={audioRef} preload="auto" playsInline />
+
+      {/* Passport modal */}
+      {passportModalOpen && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 90,
+            display: "grid", placeItems: "center",
+            padding: "1rem",
+            background: "rgba(10,20,50,0.72)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setPassportModalOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "min(26rem, 94vw)", maxHeight: "85dvh", overflowY: "auto" }}>
+            <MusicPassportCollection countries={collectedCountries} onClose={() => setPassportModalOpen(false)} />
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
@@ -822,6 +855,81 @@ function artistName(src: string): string {
   const filename = (src.split("/").pop() ?? "").replace(/\.(jpg|png|jpeg)$/i, "");
   // e.g. "Juan Manuel Benitez_Argentina" → "Juan Manuel Benitez"
   return filename.replace(/_[^_]+$/, "").replace(/_/g, " ");
+}
+
+// ── Music Passport Collection ──────────────────────────────────────────────────
+
+function MusicPassportCollection({ countries, onClose }: { countries: Fact[]; onClose: () => void }) {
+  return (
+    <div
+      className="w-full rounded-[1.75rem] border-[4px] border-ink"
+      style={{ background: "#1C3054", borderBottomWidth: 7, borderRightWidth: 6, padding: "1.25rem 1.5rem" }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 22 }}>🛂</span>
+          <span className="text-xl font-extrabold" style={{ color: "#FFD700" }}>My Music Passport</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{ background: "transparent", border: "none", color: "#8899AA", fontSize: 22, cursor: "pointer", lineHeight: 1 }}
+          aria-label="Close passport"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="text-xs mb-4" style={{ color: "#8899AA" }}>
+        {countries.length} countr{countries.length !== 1 ? "ies" : "y"} collected on this world tour
+      </div>
+      {countries.length === 0 ? (
+        <div className="text-center py-4 text-sm" style={{ color: "#4a6080" }}>
+          No countries collected yet — guess correctly to earn stamps!
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {countries.map((c, i) => {
+            const rotation = ((i * 7) % 9) - 4;
+            const url = flagCdnUrl(c.flag);
+            return (
+              <div
+                key={`${c.country}-${i}`}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  transform: `rotate(${rotation}deg)`,
+                }}
+              >
+                <div style={{ border: "2px solid #4a6080", borderRadius: 6, overflow: "hidden", padding: 2, background: "#fff" }}>
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={c.country}
+                      style={{ width: 54, height: c.flag === "🇳🇵" ? 42 : 36, objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <div style={{ width: 54, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                      {c.flag}
+                    </div>
+                  )}
+                </div>
+                <div style={{ color: "#99AABB", fontSize: 9, textAlign: "center", maxWidth: 60, lineHeight: 1.2 }}>
+                  {c.country}
+                </div>
+                <div style={{
+                  background: "#FBBF24", border: "1px solid #1a1a1a",
+                  borderRadius: "999px", padding: "1px 5px",
+                  fontSize: 8, fontWeight: 900, color: "#1a1a1a",
+                  textAlign: "center", maxWidth: 64, lineHeight: 1.3,
+                }}>
+                  {c.style}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MusicPassportOverlay({

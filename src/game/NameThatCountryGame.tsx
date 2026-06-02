@@ -28,6 +28,29 @@ const GEO_URL = "/data/world-110m.json";
 const ROUNDS = 10;
 const CHOICES_COUNT = 4;
 
+const COUNTRY_PAGE: Record<string, string> = {
+  "usa":            asset("/book3-nt/page-03.png"),
+  "mexico":         asset("/book3-nt/page-04.png"),
+  "jamaica":        asset("/book3-nt/page-05.png"),
+  "barbados":       asset("/book3-nt/page-06.png"),
+  "peru":           asset("/book3-nt/page-07.png"),
+  "argentina":      asset("/book3-nt/page-08.png"),
+  "united-kingdom": asset("/book3-nt/page-10.png"),
+  "spain":          asset("/book3-nt/page-11.png"),
+  "france":         asset("/book3-nt/page-12.png"),
+  "italy":          asset("/book3-nt/page-13.png"),
+  "sri-lanka":      asset("/book3-nt/page-15.png"),
+  "japan":          asset("/book3-nt/page-16.png"),
+  "switzerland":    asset("/book3-nt/page-17.png"),
+  "kenya":          asset("/book3-nt/page-18.png"),
+  "south-africa":   asset("/book3-nt/page-19.png"),
+  "ghana":          asset("/book3-nt/page-20.png"),
+  "south-korea":    asset("/book3-nt/page-21.png"),
+  "nepal":          asset("/book3-nt/page-22.png"),
+  "indonesia":      asset("/book3-nt/page-23.png"),
+  "australia":      asset("/book3-nt/page-24.png"),
+};
+
 const colorPalette = [
   "#FDE68A", "#A7F3D0", "#C7D2FE", "#FCA5A5",
   "#FBCFE8", "#BBF7D0", "#DDD6FE", "#FED7AA",
@@ -97,6 +120,65 @@ function ScoreRow({ score, total }: { score: number; total: number }) {
   );
 }
 
+// ── Passport ──────────────────────────────────────────────────────────────────
+
+function CountryPassport({ countries }: { countries: Country[] }) {
+  return (
+    <div
+      className="w-full rounded-[1.75rem] border-[4px] border-ink"
+      style={{ background: "#1C3054", borderBottomWidth: 7, borderRightWidth: 6, padding: "1.25rem 1.5rem" }}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span style={{ fontSize: 22 }}>🛂</span>
+        <span className="text-xl font-extrabold" style={{ color: "#FFD700" }}>My World Passport</span>
+      </div>
+      <div className="text-xs mb-4" style={{ color: "#8899AA" }}>
+        {countries.length} countr{countries.length !== 1 ? "ies" : "y"} identified on this world tour
+      </div>
+      {countries.length === 0 ? (
+        <div className="text-center py-4 text-sm" style={{ color: "#4a6080" }}>
+          No stamps yet — start guessing!
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, justifyItems: "center" }}>
+          {countries.map((c, i) => {
+            const rotation = ((i * 7) % 9) - 4;
+            const url = flagCdnUrl(c.flag);
+            return (
+              <div
+                key={c.countryId}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  transform: `rotate(${rotation}deg)`,
+                }}
+              >
+                <div style={{ border: "2px solid #4a6080", borderRadius: 6, overflow: "hidden", padding: 2, background: "#fff" }}>
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={c.country}
+                      style={{ width: 54, height: c.flag === "🇳🇵" ? 42 : 36, objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <div style={{ width: 54, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                      {c.flag}
+                    </div>
+                  )}
+                </div>
+                <div style={{ color: "#99AABB", fontSize: 9, textAlign: "center", maxWidth: 60, lineHeight: 1.2 }}>
+                  {c.country}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function NameThatCountryGame() {
   const [phase, setPhase] = useState<Phase>("start");
   const [queue, setQueue] = useState<Country[]>([]);
@@ -105,6 +187,8 @@ export function NameThatCountryGame() {
   const [score, setScore] = useState(0);
   const [wrongId, setWrongId] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
+  const [earned, setEarned] = useState<Country[]>([]);
+  const [passportModalOpen, setPassportModalOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentCountry = queue[roundIdx] ?? null;
@@ -114,6 +198,7 @@ export function NameThatCountryGame() {
     setQueue(q);
     setRoundIdx(0);
     setScore(0);
+    setEarned([]);
     setPhase("guessing");
     setChoices(buildChoices(q[0]));
     setWrongId(null);
@@ -130,6 +215,7 @@ export function NameThatCountryGame() {
     if (phase !== "guessing" || !currentCountry) return;
     if (chosen.countryId === currentCountry.countryId) {
       setScore((s) => s + 1);
+      setEarned((prev) => [...prev, currentCountry]);
       setPhase("correct");
       playCorrectExclamation();
       burstCorrect();
@@ -204,7 +290,7 @@ export function NameThatCountryGame() {
     const perfect = score === ROUNDS;
     return (
       <div
-        className="mx-auto flex max-w-2xl flex-col gap-4 p-5 overflow-y-auto items-center justify-center"
+        className="mx-auto flex max-w-2xl flex-col gap-4 p-5 overflow-y-auto"
         style={{ flex: "1 1 0", minHeight: 0 }}
       >
         <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full">
@@ -229,13 +315,41 @@ export function NameThatCountryGame() {
             </button>
           </div>
         </motion.div>
+
+        {earned.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <CountryPassport countries={earned} />
+          </motion.div>
+        )}
       </div>
     );
   }
 
   // ── GAME ─────────────────────────────────────────────────────────────────────
 
+  const bgPage = currentCountry ? (COUNTRY_PAGE[currentCountry.countryId] ?? null) : null;
+
   return (
+    <div
+      style={{
+        flex: "1 1 0",
+        minHeight: 0,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        ...(bgPage
+          ? {
+              backgroundImage: `linear-gradient(rgba(20,8,50,0.52), rgba(20,8,50,0.52)), url(${bgPage})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : {}),
+      }}
+    >
     <div
       style={{
         flex: "1 1 0",
@@ -259,7 +373,18 @@ export function NameThatCountryGame() {
           <span className="font-extrabold">Name That Country!</span>
           <span style={{ opacity: 0.7 }}>{roundIdx + 1}/{queue.length}</span>
         </div>
-        <ScoreRow score={score} total={roundIdx} />
+        <div className="flex items-center gap-2">
+          {earned.length > 0 && (
+            <button
+              onClick={() => setPassportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-1"
+              style={{ background: "#1C3054", borderBottomWidth: 4, borderRightWidth: 3, fontSize: 12, color: "#FFD700", fontWeight: 800 }}
+            >
+              🛂 {earned.length}
+            </button>
+          )}
+          <ScoreRow score={score} total={roundIdx} />
+        </div>
       </div>
 
       {/* Map */}
@@ -429,11 +554,56 @@ export function NameThatCountryGame() {
         {phase === "correct" && currentCountry && (
           <CorrectPopup
             country={currentCountry}
+            earned={earned}
             isLast={roundIdx + 1 >= queue.length}
             onNext={nextRound}
           />
         )}
       </AnimatePresence>
+
+      {/* Passport modal */}
+      <AnimatePresence>
+        {passportModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPassportModalOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 60,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.55)",
+              padding: "1rem",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.82, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.88, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: 480 }}
+            >
+              <div className="relative">
+                <CountryPassport countries={earned} />
+                <button
+                  type="button"
+                  onClick={() => setPassportModalOpen(false)}
+                  className="absolute top-3 right-3 rounded-full border-[2px] border-ink px-3 py-0.5 text-sm font-extrabold"
+                  style={{ background: "#FFD700", color: "#1C3054", borderBottomWidth: 3, borderRightWidth: 2 }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
     </div>
   );
 }
@@ -442,14 +612,17 @@ export function NameThatCountryGame() {
 
 function CorrectPopup({
   country,
+  earned,
   isLast,
   onNext,
 }: {
   country: Country;
+  earned: Country[];
   isLast: boolean;
   onNext: () => void;
 }) {
   const flagUrl = flagCdnUrl(country.flag);
+  const [passportOpen, setPassportOpen] = useState(false);
 
   return (
     <motion.div
@@ -582,6 +755,67 @@ function CorrectPopup({
           </div>
         </div>
 
+        {/* Passport stamp button */}
+        <motion.button
+          type="button"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5, type: "spring", stiffness: 300, damping: 20 }}
+          onClick={() => setPassportOpen((p) => !p)}
+          className="flex w-full items-center justify-between gap-2 rounded-2xl border-[2px] border-ink px-4 py-2.5"
+          style={{ background: "#1C3054", borderBottomWidth: 4, borderRightWidth: 3, cursor: "pointer" }}
+        >
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 18 }}>🛂</span>
+            <span className="font-extrabold text-sm" style={{ color: "#FFD700" }}>
+              Stamp added to your passport!
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {flagUrl && (
+              <img
+                src={flagUrl}
+                alt=""
+                style={{
+                  height: 20,
+                  width: "auto",
+                  borderRadius: 3,
+                  border: "1px solid #FFD700",
+                  aspectRatio: "3/2",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+            <span style={{ color: "#FFD700", fontSize: 13, fontWeight: 800 }}>
+              {passportOpen ? "▲" : "▼"}
+            </span>
+          </div>
+        </motion.button>
+
+        {/* Expandable passport */}
+        <AnimatePresence>
+          {passportOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22 }}
+            >
+              <div className="relative">
+                <CountryPassport countries={earned} />
+                <button
+                  type="button"
+                  onClick={() => setPassportOpen(false)}
+                  className="absolute top-3 right-3 rounded-full border-[2px] border-ink px-2.5 py-0.5 text-xs font-extrabold"
+                  style={{ background: "#FFD700", color: "#1C3054", borderBottomWidth: 3, borderRightWidth: 2 }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Next button */}
         <div className="text-center">
           <button
@@ -589,7 +823,7 @@ function CorrectPopup({
             className="rounded-full border-[3px] border-ink px-8 py-3 text-base font-extrabold transition-transform active:scale-95"
             style={{ background: "#3B82F6", borderBottomWidth: 6, borderRightWidth: 5, color: "#fff" }}
           >
-            {isLast ? "See My Score! 🏆" : "Next Country! →"}
+            {isLast ? "See My Passport! 🛂" : "Next Country! →"}
           </button>
         </div>
       </motion.div>

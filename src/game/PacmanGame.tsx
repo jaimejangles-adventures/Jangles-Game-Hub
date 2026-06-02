@@ -225,91 +225,54 @@ function randomDir(ghost: Ghost, maze: number[][]): Dir {
   return valid[Math.floor(Math.random() * valid.length)];
 }
 
+// ─── Casey sprite (loaded once, shared across frames) ──────────────────────
+let caseySpriteImg: HTMLImageElement | null = null;
+let caseySpriteLoaded = false;
+(function loadCaseySprite() {
+  const img = new Image();
+  img.onload = () => { caseySpriteImg = img; caseySpriteLoaded = true; };
+  img.src = asset("/characters/casey-8bit.png");
+})();
+
 // ─── Drawing helpers ───────────────────────────────────────────────────────
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
   px: number, py: number,
-  char: CharDef,
+  _char: CharDef,
   dir: Dir,
-  mouthAngle: number,
+  _mouthAngle: number,
   flash: boolean
 ) {
   if (flash) return;
+
+  if (caseySpriteLoaded && caseySpriteImg) {
+    const size = CELL * 1.6;
+    const drawX = px + CELL / 2 - size / 2;
+    const drawY = py + CELL / 2 - size * 0.65;
+
+    ctx.save();
+    if (dir.dx === 1) {
+      // flip horizontally for right-facing
+      ctx.translate(drawX + size, drawY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(caseySpriteImg, 0, 0, size, size);
+    } else {
+      // default sprite faces left
+      ctx.drawImage(caseySpriteImg, drawX, drawY, size, size);
+    }
+    ctx.restore();
+    return;
+  }
+
+  // Fallback circle if image not loaded yet
   const cx = px + CELL / 2;
   const cy = py + CELL / 2;
   const r = CELL * 0.42;
-
-  // rotation angle based on direction
-  let rot = 0;
-  if (dir.dx === -1) rot = Math.PI;
-  if (dir.dy === -1) rot = -Math.PI / 2;
-  if (dir.dy === 1) rot = Math.PI / 2;
-
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(rot);
-
-  const open = Math.abs(mouthAngle);
-  const startA = open * (Math.PI / 180);
-  const endA = (2 * Math.PI) - open * (Math.PI / 180);
-
-  // body
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.arc(0, 0, r, startA, endA);
-  ctx.closePath();
-  ctx.fillStyle = char.color;
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#f97316";
   ctx.fill();
-
-  // eye
-  ctx.beginPath();
-  ctx.arc(r * 0.3, -r * 0.45, r * 0.12, 0, Math.PI * 2);
-  ctx.fillStyle = char.eyeColor;
-  ctx.fill();
-  // eye shine
-  ctx.beginPath();
-  ctx.arc(r * 0.34, -r * 0.49, r * 0.05, 0, Math.PI * 2);
-  ctx.fillStyle = "#fff";
-  ctx.fill();
-
-  // character-specific detail
-  if (char.id === "fante") {
-    // little trunk
-    ctx.beginPath();
-    ctx.arc(r * 0.5, r * 0.1, r * 0.18, 0, Math.PI * 2);
-    ctx.fillStyle = "#c084fc";
-    ctx.fill();
-  } else if (char.id === "jaime") {
-    // little hat
-    ctx.fillStyle = "#fbbf24";
-    ctx.fillRect(-r * 0.2, -r * 1.0, r * 0.4, r * 0.2);
-    ctx.fillRect(-r * 0.3, -r * 0.85, r * 0.6, r * 0.18);
-  } else if (char.id === "jeff") {
-    // glasses
-    for (const sx of [-0.22, 0.08]) {
-      ctx.beginPath();
-      ctx.arc(r * (sx + 0.14), -r * 0.42, r * 0.13, 0, Math.PI * 2);
-      ctx.strokeStyle = "#86efac";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.moveTo(r * (-0.08), -r * 0.42);
-    ctx.lineTo(r * (0.08), -r * 0.42);
-    ctx.strokeStyle = "#86efac";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  } else {
-    // casey bow
-    ctx.fillStyle = "#fb923c";
-    ctx.beginPath();
-    ctx.ellipse(r * 0.5, -r * 0.75, r * 0.14, r * 0.1, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(r * 0.5, -r * 0.75, r * 0.14, r * 0.1, 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
   ctx.restore();
 }
 

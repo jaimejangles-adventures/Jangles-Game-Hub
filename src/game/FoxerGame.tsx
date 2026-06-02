@@ -99,104 +99,89 @@ function makeLanes(
   }));
 }
 
-// 16 levels — one per country from book pages 3–23 (omitting p14 & p17 dance)
-const LEVELS: LevelDef[] = [
-  // ── L1: USA, New Orleans (p6) ─ Jangles VW vans ───────────────────────────
-  { country:"USA", flag:"🇺🇸", bgTop:"#0d1b3e", bgBottom:"#1a1a4e",
-    safeColor:"#2c3e6b", laneColor:"#1c1c1c", obstacleColor:"#c0392b",
-    obstacleType:"van", speedMult:1,
-    lanes: makeLanes(1.0, 2, 6, "#1c1c1c","#2a2a2a") },
+// ─── Country definitions (visual/theme only — no speed) ──────────────────────
+interface CountryDef {
+  country: string;
+  flag: string;
+  bgTop: string;
+  bgBottom: string;
+  safeColor: string;
+  laneColor: string;
+  obstacleColor: string;
+  obstacleType: LevelDef["obstacleType"];
+  obstacleWidth: number; // tied to the visual size of each obstacle sprite
+  laneC1: string;
+  laneC2: string;
+}
 
-  // ── L2: Mexico, Tulum (p7) ─ Rolling sombreros ────────────────────────────
-  { country:"Mexico", flag:"🇲🇽", bgTop:"#87ceeb", bgBottom:"#f5deb3",
-    safeColor:"#c8e6c9", laneColor:"#d2a679", obstacleColor:"#8b4513",
-    obstacleType:"sombrero", speedMult:1,
-    lanes: makeLanes(1.15, 1, 6, "#d2a679","#c49a6c") },
-
-  // ── L3: Jamaica (p8) ─ Steel drums rolling down the beach ─────────────────
-  { country:"Jamaica", flag:"🇯🇲", bgTop:"#1565c0", bgBottom:"#f5deb3",
-    safeColor:"#2e7d32", laneColor:"#1b5e20", obstacleColor:"#ffd600",
-    obstacleType:"drum", speedMult:1,
-    lanes: makeLanes(1.3, 1, 5, "#1b5e20","#388e3c") },
-
-  // ── L4: Barbados, Oistins (p9) ─ Flying fish leaping across ───────────────
-  { country:"Barbados", flag:"🇧🇧", bgTop:"#0288d1", bgBottom:"#c8a850",
-    safeColor:"#4fc3f7", laneColor:"#0277bd", obstacleColor:"#e53935",
-    obstacleType:"flyingfish", speedMult:1,
-    lanes: makeLanes(1.45, 1, 5, "#0277bd","#0288d1") },
-
-  // ── L5: Peru, Machu Picchu (p10) ─ Llamas trotting the ruins ──────────────
-  { country:"Peru", flag:"🇵🇪", bgTop:"#546e7a", bgBottom:"#6d4c41",
-    safeColor:"#8d6e63", laneColor:"#5d4037", obstacleColor:"#bcaaa4",
-    obstacleType:"llama", speedMult:1,
-    lanes: makeLanes(1.6, 2, 5, "#5d4037","#4e342e") },
-
-  // ── L6: Argentina, Buenos Aires (p11) ─ Soccer balls bouncing ─────────────
-  { country:"Argentina", flag:"🇦🇷", bgTop:"#74b9ff", bgBottom:"#dfe6e9",
-    safeColor:"#a8d8f0", laneColor:"#5c94c8", obstacleColor:"#2c3e50",
-    obstacleType:"soccer", speedMult:1,
-    lanes: makeLanes(1.75, 1, 5, "#5c94c8","#4a83b7") },
-
-  // ── L7: Antarctica (p12) ─ Penguins sliding on ice ────────────────────────
-  { country:"Antarctica", flag:"🐧", bgTop:"#b3e5fc", bgBottom:"#e3f2fd",
-    safeColor:"#e1f5fe", laneColor:"#81d4fa", obstacleColor:"#263238",
-    obstacleType:"penguin", speedMult:1,
-    lanes: makeLanes(1.9, 1, 5, "#81d4fa","#4fc3f7") },
-
-  // ── L8: England, London (p13) ─ Red double-decker buses ───────────────────
-  { country:"England", flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", bgTop:"#b0bec5", bgBottom:"#78909c",
-    safeColor:"#546e7a", laneColor:"#37474f", obstacleColor:"#c62828",
-    obstacleType:"bus", speedMult:1,
-    lanes: makeLanes(2.0, 2, 5, "#37474f","#455a64") },
-
-  // ── L9: France, Paris (p15) ─ Hot air balloons drifting ───────────────────
-  { country:"France", flag:"🇫🇷", bgTop:"#90caf9", bgBottom:"#c8e6c9",
-    safeColor:"#bbdefb", laneColor:"#1565c0", obstacleColor:"#e53935",
-    obstacleType:"balloon", speedMult:1,
-    lanes: makeLanes(2.1, 1, 5, "#1565c0","#1976d2") },
-
-  // ── L10: Italy (p16) ─ Vespas zipping past the Colosseum ──────────────────
-  { country:"Italy", flag:"🇮🇹", bgTop:"#87ceeb", bgBottom:"#e8d5a3",
-    safeColor:"#ffe082", laneColor:"#7b5e30", obstacleColor:"#c62828",
-    obstacleType:"vespa", speedMult:1,
-    lanes: makeLanes(2.2, 2, 4, "#8d6e40","#7b5e30") },
-
-  // ── L11: Sri Lanka (p18) ─ Tuk-tuks weaving through the spice market ──────
-  { country:"Sri Lanka", flag:"🇱🇰", bgTop:"#ce93d8", bgBottom:"#ab47bc",
-    safeColor:"#e1bee7", laneColor:"#6a1b9a", obstacleColor:"#f57f17",
-    obstacleType:"tuktuk", speedMult:1,
-    lanes: makeLanes(2.3, 2, 4, "#6a1b9a","#7b1fa2") },
-
-  // ── L12: Japan, Tokyo (p19) ─ Sushi rolls on the conveyor belt ────────────
-  { country:"Japan", flag:"🇯🇵", bgTop:"#e0f7fa", bgBottom:"#b2ebf2",
-    safeColor:"#80deea", laneColor:"#00838f", obstacleColor:"#263238",
-    obstacleType:"sushi", speedMult:1,
-    lanes: makeLanes(2.4, 1, 4, "#00838f","#006978") },
-
-  // ── L13: Switzerland, Alps (p20) ─ Ski sleds flying down the slope ────────
-  { country:"Switzerland", flag:"🇨🇭", bgTop:"#e3f2fd", bgBottom:"#fff",
-    safeColor:"#e8f5e9", laneColor:"#b0bec5", obstacleColor:"#c62828",
-    obstacleType:"sled", speedMult:1,
-    lanes: makeLanes(2.5, 2, 4, "#b0bec5","#90a4ae") },
-
-  // ── L14: Kenya, Masai Mara (p21) ─ Safari jeeps bouncing the savanna ──────
-  { country:"Kenya", flag:"🇰🇪", bgTop:"#87ceeb", bgBottom:"#c8a850",
-    safeColor:"#7cb342", laneColor:"#a0783a", obstacleColor:"#4e342e",
-    obstacleType:"jeep", speedMult:1,
-    lanes: makeLanes(2.6, 2, 4, "#a0783a","#8d6a30") },
-
-  // ── L15: South Africa, Cape Town (p22) ─ Sailboats rounding the cape ──────
-  { country:"South Africa", flag:"🇿🇦", bgTop:"#87ceeb", bgBottom:"#e8d5a3",
-    safeColor:"#a5d6a7", laneColor:"#0288d1", obstacleColor:"#e53935",
-    obstacleType:"sailboat", speedMult:1,
-    lanes: makeLanes(2.7, 2, 4, "#0277bd","#0288d1") },
-
-  // ── L16: Ghana, Accra (p23) ─ Market baskets tumbling to the beach ─────────
-  { country:"Ghana", flag:"🇬🇭", bgTop:"#ff8f00", bgBottom:"#4caf50",
-    safeColor:"#ffcc02", laneColor:"#2e7d32", obstacleColor:"#e53935",
-    obstacleType:"basket", speedMult:1,
-    lanes: makeLanes(2.8, 1, 3, "#2e7d32","#388e3c") },
+const COUNTRIES: CountryDef[] = [
+  { country:"USA",          flag:"🇺🇸", bgTop:"#0d1b3e", bgBottom:"#1a1a4e", safeColor:"#2c3e6b", laneColor:"#1c1c1c", obstacleColor:"#c0392b", obstacleType:"van",       obstacleWidth:2, laneC1:"#1c1c1c", laneC2:"#2a2a2a" },
+  { country:"Mexico",       flag:"🇲🇽", bgTop:"#87ceeb", bgBottom:"#f5deb3", safeColor:"#c8e6c9", laneColor:"#d2a679", obstacleColor:"#8b4513", obstacleType:"sombrero",  obstacleWidth:1, laneC1:"#d2a679", laneC2:"#c49a6c" },
+  { country:"Jamaica",      flag:"🇯🇲", bgTop:"#1565c0", bgBottom:"#f5deb3", safeColor:"#2e7d32", laneColor:"#1b5e20", obstacleColor:"#ffd600", obstacleType:"drum",      obstacleWidth:1, laneC1:"#1b5e20", laneC2:"#388e3c" },
+  { country:"Barbados",     flag:"🇧🇧", bgTop:"#0288d1", bgBottom:"#c8a850", safeColor:"#4fc3f7", laneColor:"#0277bd", obstacleColor:"#e53935", obstacleType:"flyingfish",obstacleWidth:1, laneC1:"#0277bd", laneC2:"#0288d1" },
+  { country:"Peru",         flag:"🇵🇪", bgTop:"#546e7a", bgBottom:"#6d4c41", safeColor:"#8d6e63", laneColor:"#5d4037", obstacleColor:"#bcaaa4", obstacleType:"llama",     obstacleWidth:2, laneC1:"#5d4037", laneC2:"#4e342e" },
+  { country:"Argentina",    flag:"🇦🇷", bgTop:"#74b9ff", bgBottom:"#dfe6e9", safeColor:"#a8d8f0", laneColor:"#5c94c8", obstacleColor:"#2c3e50", obstacleType:"soccer",    obstacleWidth:1, laneC1:"#5c94c8", laneC2:"#4a83b7" },
+  { country:"Antarctica",   flag:"🐧",  bgTop:"#b3e5fc", bgBottom:"#e3f2fd", safeColor:"#e1f5fe", laneColor:"#81d4fa", obstacleColor:"#263238", obstacleType:"penguin",   obstacleWidth:1, laneC1:"#81d4fa", laneC2:"#4fc3f7" },
+  { country:"England",      flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", bgTop:"#b0bec5", bgBottom:"#78909c", safeColor:"#546e7a", laneColor:"#37474f", obstacleColor:"#c62828", obstacleType:"bus",      obstacleWidth:2, laneC1:"#37474f", laneC2:"#455a64" },
+  { country:"France",       flag:"🇫🇷", bgTop:"#90caf9", bgBottom:"#c8e6c9", safeColor:"#bbdefb", laneColor:"#1565c0", obstacleColor:"#e53935", obstacleType:"balloon",   obstacleWidth:1, laneC1:"#1565c0", laneC2:"#1976d2" },
+  { country:"Italy",        flag:"🇮🇹", bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#ffe082", laneColor:"#7b5e30", obstacleColor:"#c62828", obstacleType:"vespa",     obstacleWidth:2, laneC1:"#8d6e40", laneC2:"#7b5e30" },
+  { country:"Sri Lanka",    flag:"🇱🇰", bgTop:"#ce93d8", bgBottom:"#ab47bc", safeColor:"#e1bee7", laneColor:"#6a1b9a", obstacleColor:"#f57f17", obstacleType:"tuktuk",    obstacleWidth:2, laneC1:"#6a1b9a", laneC2:"#7b1fa2" },
+  { country:"Japan",        flag:"🇯🇵", bgTop:"#e0f7fa", bgBottom:"#b2ebf2", safeColor:"#80deea", laneColor:"#00838f", obstacleColor:"#263238", obstacleType:"sushi",     obstacleWidth:1, laneC1:"#00838f", laneC2:"#006978" },
+  { country:"Switzerland",  flag:"🇨🇭", bgTop:"#e3f2fd", bgBottom:"#fff",    safeColor:"#e8f5e9", laneColor:"#b0bec5", obstacleColor:"#c62828", obstacleType:"sled",      obstacleWidth:2, laneC1:"#b0bec5", laneC2:"#90a4ae" },
+  { country:"Kenya",        flag:"🇰🇪", bgTop:"#87ceeb", bgBottom:"#c8a850", safeColor:"#7cb342", laneColor:"#a0783a", obstacleColor:"#4e342e", obstacleType:"jeep",      obstacleWidth:2, laneC1:"#a0783a", laneC2:"#8d6a30" },
+  { country:"South Africa", flag:"🇿🇦", bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#a5d6a7", laneColor:"#0288d1", obstacleColor:"#e53935", obstacleType:"sailboat",  obstacleWidth:2, laneC1:"#0277bd", laneC2:"#0288d1" },
+  { country:"Ghana",        flag:"🇬🇭", bgTop:"#ff8f00", bgBottom:"#4caf50", safeColor:"#ffcc02", laneColor:"#2e7d32", obstacleColor:"#e53935", obstacleType:"basket",    obstacleWidth:1, laneC1:"#2e7d32", laneC2:"#388e3c" },
 ];
+
+// ─── Difficulty tiers (position 0 = easiest, 15 = hardest) ───────────────────
+// Speed and gap are purely position-based — the country is irrelevant.
+const DIFFICULTY_TIERS = [
+  { speedFactor: 0.85, gap: 8 },  // tier 1  — very easy
+  { speedFactor: 1.0,  gap: 7 },  // tier 2
+  { speedFactor: 1.15, gap: 7 },  // tier 3
+  { speedFactor: 1.3,  gap: 6 },  // tier 4
+  { speedFactor: 1.45, gap: 6 },  // tier 5
+  { speedFactor: 1.6,  gap: 5 },  // tier 6
+  { speedFactor: 1.75, gap: 5 },  // tier 7
+  { speedFactor: 1.9,  gap: 5 },  // tier 8
+  { speedFactor: 2.05, gap: 4 },  // tier 9
+  { speedFactor: 2.2,  gap: 4 },  // tier 10
+  { speedFactor: 2.35, gap: 4 },  // tier 11
+  { speedFactor: 2.5,  gap: 3 },  // tier 12
+  { speedFactor: 2.65, gap: 3 },  // tier 13
+  { speedFactor: 2.8,  gap: 3 },  // tier 14
+  { speedFactor: 2.95, gap: 2 },  // tier 15
+  { speedFactor: 3.1,  gap: 2 },  // tier 16 — hardest
+];
+
+// Combine a country + difficulty tier into a full LevelDef
+function buildLevel(c: CountryDef, tier: { speedFactor: number; gap: number }): LevelDef {
+  return {
+    country: c.country,
+    flag: c.flag,
+    bgTop: c.bgTop,
+    bgBottom: c.bgBottom,
+    safeColor: c.safeColor,
+    laneColor: c.laneColor,
+    obstacleColor: c.obstacleColor,
+    obstacleType: c.obstacleType,
+    speedMult: 1,
+    lanes: makeLanes(tier.speedFactor, c.obstacleWidth, tier.gap, c.laneC1, c.laneC2),
+  };
+}
+
+// Fisher-Yates shuffle
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Build the initial level list (will be re-shuffled on every new game)
+const LEVELS: LevelDef[] = COUNTRIES.map((c, i) => buildLevel(c, DIFFICULTY_TIERS[i]));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type GameState = "start" | "banner" | "playing" | "levelComplete" | "gameOver";
@@ -1777,6 +1762,8 @@ export function FoxerGame() {
   const animFrameRef = useRef<number>(0);
   const invincibleRef = useRef(0); // seconds of invincibility after hit
   const rowsCrossedRef = useRef<Set<number>>(new Set());
+  // Randomized level order for the current game — rebuilt on every new game
+  const shuffledLevelsRef = useRef<LevelDef[]>(LEVELS);
 
   // UI state — only used for overlay screens (start / levelComplete / gameOver)
   // Everything else (score, lives, timer) is drawn directly on canvas via refs
@@ -1800,7 +1787,7 @@ export function FoxerGame() {
   }, []);
 
   const initObstacles = useCallback((levelIdx: number) => {
-    const def = LEVELS[levelIdx];
+    const def = shuffledLevelsRef.current[levelIdx];
     const obs: Obstacle[] = [];
     def.lanes.forEach((lane) => {
       const totalWidth = COLS * CELL;
@@ -1845,6 +1832,11 @@ export function FoxerGame() {
     scoreRef.current = 0;
     setDisplayScore(0);
     setDisplayLives(3);
+    // New random country order every game — difficulty is always tied to position
+    const shuffledCountries = shuffleArray(COUNTRIES);
+    shuffledLevelsRef.current = shuffledCountries.map((c, i) =>
+      buildLevel(c, DIFFICULTY_TIERS[i])
+    );
     startLevel(0);
   }, [startLevel]);
 
@@ -1911,7 +1903,7 @@ export function FoxerGame() {
       }
 
       // Check if new row is a lane that hasn't been crossed
-      const level = LEVELS[levelRef.current];
+      const level = shuffledLevelsRef.current[levelRef.current];
       if (dir === "up" && level.lanes.some((l) => l.row === row)) {
         if (!rowsCrossedRef.current.has(row)) {
           rowsCrossedRef.current.add(row);
@@ -1984,7 +1976,7 @@ export function FoxerGame() {
         return;
       }
 
-      const levelDef = LEVELS[levelRef.current];
+      const levelDef = shuffledLevelsRef.current[levelRef.current];
 
       if (state === "banner") {
         // Draw game bg with banner overlay — transition is handled by setTimeout in startLevel
@@ -2096,7 +2088,7 @@ export function FoxerGame() {
     ctx.fillStyle = "#ffd54f";
     ctx.font = "bold 15px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(`${LEVELS[level].flag} ${LEVELS[level].country}`, 8, 24);
+    ctx.fillText(`${shuffledLevelsRef.current[level].flag} ${shuffledLevelsRef.current[level].country}`, 8, 24);
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.fillText(`SCORE: ${score}`, W / 2, 24);
@@ -2126,7 +2118,7 @@ export function FoxerGame() {
 
   const nextLevel = useCallback(() => {
     const next = levelRef.current + 1;
-    if (next >= LEVELS.length) {
+    if (next >= COUNTRIES.length) {
       // Win!
       if (scoreRef.current > highScoreRef.current) {
         highScoreRef.current = scoreRef.current;
@@ -2188,14 +2180,17 @@ export function FoxerGame() {
           <Overlay>
             <div style={{ fontSize: 36, fontWeight: 900, color: "#69f0ae" }}>LEVEL CLEAR!</div>
             <div style={{ fontSize: 24, color: "#ffd54f", marginTop: 8 }}>
-              {LEVELS[levelRef.current].flag} {LEVELS[levelRef.current].country}
+              {shuffledLevelsRef.current[levelRef.current]?.flag} {shuffledLevelsRef.current[levelRef.current]?.country}
             </div>
-            <div style={{ fontSize: 44, marginTop: 12 }}>
+            <div style={{ fontSize: 18, color: "#80deea", marginTop: 2 }}>
+              Level {levelRef.current + 1} / {COUNTRIES.length}
+            </div>
+            <div style={{ fontSize: 44, marginTop: 8 }}>
               {"★".repeat(levelStars)}
               <span style={{ color: "#444" }}>{"★".repeat(3 - levelStars)}</span>
             </div>
             <div style={{ color: "#fff", fontSize: 20, marginTop: 12 }}>Score: {displayScore}</div>
-            {levelRef.current < LEVELS.length - 1 ? (
+            {levelRef.current < COUNTRIES.length - 1 ? (
               <button onClick={nextLevel} style={btnStyle("#1e88e5")}>
                 NEXT LEVEL →
               </button>

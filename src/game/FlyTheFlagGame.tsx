@@ -236,7 +236,7 @@ function FlagPassport({ countries }: { countries: Country[] }) {
           No flags collected yet!
         </div>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, justifyItems: "center" }}>
           {countries.map((c, i) => {
             const rotation = ((i * 7) % 9) - 4;
             const url = flagCdnUrl(c.flag);
