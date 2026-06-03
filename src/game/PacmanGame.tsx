@@ -30,40 +30,45 @@ function sfxLevelUp(ctx: AudioContext) {
   [523, 659, 784, 1047].forEach((f, i) => playTone(ctx, f, 0.12, "square", 0.15, i * 0.1));
 }
 
-// ─── Levels: page → country/flag ──────────────────────────────────────────
-interface LevelDef { page: string; country: string; flag: string; isoCode: string; }
+// ─── Levels: page → country/flag/music ────────────────────────────────────
+interface LevelDef { page: string; country: string; flag: string; isoCode: string; music: string; }
 const LEVELS: LevelDef[] = [
-  { page: "page-03", country: "USA",          flag: "🇺🇸", isoCode: "us" },
-  { page: "page-04", country: "Mexico",       flag: "🇲🇽", isoCode: "mx" },
-  { page: "page-05", country: "Jamaica",      flag: "🇯🇲", isoCode: "jm" },
-  { page: "page-06", country: "Barbados",     flag: "🇧🇧", isoCode: "bb" },
-  { page: "page-07", country: "Peru",         flag: "🇵🇪", isoCode: "pe" },
-  { page: "page-08", country: "Argentina",    flag: "🇦🇷", isoCode: "ar" },
-  { page: "page-09", country: "Antarctica",   flag: "❄️",  isoCode: "" },
-  { page: "page-10", country: "England",      flag: "🇬🇧", isoCode: "gb" },
-  { page: "page-11", country: "Spain",        flag: "🇪🇸", isoCode: "es" },
-  { page: "page-12", country: "France",       flag: "🇫🇷", isoCode: "fr" },
-  { page: "page-13", country: "Italy",        flag: "🇮🇹", isoCode: "it" },
-  { page: "page-15", country: "Sri Lanka",    flag: "🇱🇰", isoCode: "lk" },
-  { page: "page-16", country: "Japan",        flag: "🇯🇵", isoCode: "jp" },
-  { page: "page-17", country: "Switzerland",  flag: "🇨🇭", isoCode: "ch" },
-  { page: "page-18", country: "Kenya",        flag: "🇰🇪", isoCode: "ke" },
-  { page: "page-19", country: "South Africa", flag: "🇿🇦", isoCode: "za" },
-  { page: "page-20", country: "Ghana",        flag: "🇬🇭", isoCode: "gh" },
-  { page: "page-21", country: "South Korea",  flag: "🇰🇷", isoCode: "kr" },
-  { page: "page-22", country: "Nepal",        flag: "🇳🇵", isoCode: "np" },
-  { page: "page-23", country: "Indonesia",    flag: "🇮🇩", isoCode: "id" },
-  { page: "page-24", country: "Australia",    flag: "🇦🇺", isoCode: "au" },
+  { page: "page-03", country: "USA",          flag: "🇺🇸", isoCode: "us", music: "NEW ORLEANS.wav"                      },
+  { page: "page-04", country: "Mexico",       flag: "🇲🇽", isoCode: "mx", music: "MEXICO.wav"                           },
+  { page: "page-05", country: "Jamaica",      flag: "🇯🇲", isoCode: "jm", music: "JAMAICA.wav"                          },
+  { page: "page-06", country: "Barbados",     flag: "🇧🇧", isoCode: "bb", music: "BARBADOS_2.wav"                       },
+  { page: "page-07", country: "Peru",         flag: "🇵🇪", isoCode: "pe", music: "PERU.wav"                             },
+  { page: "page-08", country: "Argentina",    flag: "🇦🇷", isoCode: "ar", music: "ARGENTINA DRUMS AND HORNS_1.2.wav"    },
+  { page: "page-09", country: "Antarctica",   flag: "❄️",  isoCode: "",   music: "THEME_003_1.1.wav"                    },
+  { page: "page-10", country: "England",      flag: "🇬🇧", isoCode: "gb", music: "ENGLAND.wav"                          },
+  { page: "page-11", country: "Spain",        flag: "🇪🇸", isoCode: "es", music: "SPAIN1.2.wav"                         },
+  { page: "page-12", country: "France",       flag: "🇫🇷", isoCode: "fr", music: "FRANCE.wav"                           },
+  { page: "page-13", country: "Italy",        flag: "🇮🇹", isoCode: "it", music: "ITALY.wav"                            },
+  { page: "page-15", country: "Sri Lanka",    flag: "🇱🇰", isoCode: "lk", music: "SRI LANKA_1.1.wav"                    },
+  { page: "page-16", country: "Japan",        flag: "🇯🇵", isoCode: "jp", music: "JAPAN.wav"                            },
+  { page: "page-17", country: "Switzerland",  flag: "🇨🇭", isoCode: "ch", music: "SWITZERLAND.wav"                      },
+  { page: "page-18", country: "Kenya",        flag: "🇰🇪", isoCode: "ke", music: "KENYA.wav"                            },
+  { page: "page-19", country: "South Africa", flag: "🇿🇦", isoCode: "za", music: "SOUTH AFRICA_1.2.wav"                 },
+  { page: "page-20", country: "Ghana",        flag: "🇬🇭", isoCode: "gh", music: "GHANA.wav"                            },
+  { page: "page-21", country: "South Korea",  flag: "🇰🇷", isoCode: "kr", music: "SOUTH KOREA.wav"                      },
+  { page: "page-22", country: "Nepal",        flag: "🇳🇵", isoCode: "np", music: "NEPAL.wav"                            },
+  { page: "page-23", country: "Indonesia",    flag: "🇮🇩", isoCode: "id", music: "INDONESIA.wav"                        },
+  { page: "page-24", country: "Australia",    flag: "🇦🇺", isoCode: "au", music: "Jamie Jangles_Daniel_Australia.wav"   },
 ];
 
 // ─── Characters ────────────────────────────────────────────────────────────
-export type CharacterId = "casey" | "jaime" | "jeff" | "fante";
-interface CharDef { id: CharacterId; name: string; color: string; accent: string; eyeColor: string; }
+export type CharacterId = "casey" | "jaime" | "jeff";
+interface CharDef {
+  id: CharacterId;
+  name: string;
+  color: string;
+  spriteUrl: string;
+  facesLeft: boolean; // true = base image faces left; false = faces right
+}
 const CHARACTERS: CharDef[] = [
-  { id: "casey", name: "Casey",  color: "#f97316", accent: "#fff",    eyeColor: "#1a1a1a" },
-  { id: "jaime", name: "Jaime",  color: "#3b82f6", accent: "#fbbf24", eyeColor: "#1a1a1a" },
-  { id: "jeff",  name: "Jeff",   color: "#22c55e", accent: "#fff",    eyeColor: "#1a1a1a" },
-  { id: "fante", name: "Fante",  color: "#a855f7", accent: "#fff",    eyeColor: "#1a1a1a" },
+  { id: "casey", name: "Casey", color: "#f97316", spriteUrl: "/characters/casey-8bit.png", facesLeft: true  },
+  { id: "jaime", name: "Jaime", color: "#3b82f6", spriteUrl: "/characters/jaime-8bit.png", facesLeft: true  },
+  { id: "jeff",  name: "Jeff",  color: "#22c55e", spriteUrl: "/characters/jeff-8bit.png",  facesLeft: true  },
 ];
 
 // ─── Maze ──────────────────────────────────────────────────────────────────
@@ -74,34 +79,122 @@ const CELL = 32;
 const W = COLS * CELL;
 const H = ROWS * CELL;
 
-// Classic Pacman-style maze (19×21)
-const BASE_MAZE: number[][] = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,1],
-  [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
-  [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
-  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+// Ghost house rows 7-13 — identical across all layouts
+const GH = [
   [1,1,1,1,0,1,1,1,2,1,2,1,1,1,0,1,1,1,1],
-  // rows 8-12: walls on outer edges — no unintended tunnel corridors
   [1,1,1,1,0,1,2,2,2,2,2,2,2,1,0,1,1,1,1],
   [1,1,1,1,0,1,2,1,1,4,1,1,2,1,0,1,1,1,1],
   [1,1,1,1,0,1,2,1,4,4,4,1,2,1,0,1,1,1,1],
   [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
   [1,1,1,1,0,1,2,2,2,2,2,2,2,1,0,1,1,1,1],
   [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
-  [1,3,0,1,0,0,0,0,0,2,0,0,0,0,0,1,0,3,1],
-  [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
-  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
-  [1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+const R14 = [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1];
+
+const MAZE_LAYOUTS: number[][][] = [
+  // 0 — Classic
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,1],
+    [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+    [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    ...GH,
+    R14,
+    [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+    [1,3,0,1,0,0,0,0,0,2,0,0,0,0,0,1,0,3,1],
+    [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // 1 — Wide Open
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,1],
+    [1,0,1,1,0,0,1,0,0,1,0,0,1,0,0,1,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,0,0,1,0,0,1,0,1,0,1,0,0,1,0,0,0,1],
+    [1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    ...GH,
+    R14,
+    [1,0,1,1,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1],
+    [1,3,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,3,1],
+    [1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,0,1,0,1],
+    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+    [1,0,1,1,0,0,1,0,0,1,0,0,1,0,0,1,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // 2 — Grid
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,3,1],
+    [1,0,0,0,1,0,1,1,0,0,0,1,1,0,1,0,0,0,1],
+    [1,1,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1],
+    [1,0,0,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,1],
+    [1,0,1,1,0,0,0,1,0,1,0,1,0,0,0,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    ...GH,
+    R14,
+    [1,0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,0,1],
+    [1,3,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,3,1],
+    [1,1,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,1,1],
+    [1,0,0,1,0,1,0,0,0,0,0,0,0,1,0,1,0,0,1],
+    [1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,0,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // 3 — Channels
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
+    [1,0,1,0,1,1,0,1,0,1,0,1,0,1,1,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,0,0,1,1,0,1,0,0,0,1,0,1,1,0,0,0,1],
+    [1,1,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    ...GH,
+    R14,
+    [1,1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,1,1],
+    [1,3,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,3,1],
+    [1,0,0,1,0,1,0,0,0,1,0,0,0,1,0,1,0,0,1],
+    [1,0,1,0,0,1,0,1,0,0,0,1,0,1,0,0,1,0,1],
+    [1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // 4 — Complex
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,3,1],
+    [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
+    [1,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0,1],
+    [1,1,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,1],
+    [1,0,0,0,1,0,1,1,0,0,0,1,1,0,1,0,0,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    ...GH,
+    R14,
+    [1,0,1,0,1,0,1,0,0,1,0,0,1,0,1,0,1,0,1],
+    [1,3,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,3,1],
+    [1,1,0,1,0,1,0,1,0,0,0,1,0,1,0,1,0,1,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+    [1,0,1,1,0,0,0,1,0,1,0,1,0,0,0,1,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
 ];
 
-function makeMaze(): number[][] {
-  return BASE_MAZE.map(row => [...row]);
+interface MazeStyle { wallColor: string; wallHighlight: string; dotColor: string; }
+const MAZE_STYLES: MazeStyle[] = [
+  { wallColor: "#1e40af", wallHighlight: "#3b82f6", dotColor: "#fef9c3" }, // blue
+  { wallColor: "#4c1d95", wallHighlight: "#7c3aed", dotColor: "#f0abfc" }, // purple
+  { wallColor: "#14532d", wallHighlight: "#16a34a", dotColor: "#bbf7d0" }, // green
+  { wallColor: "#7f1d1d", wallHighlight: "#ef4444", dotColor: "#fecaca" }, // red
+  { wallColor: "#134e4a", wallHighlight: "#14b8a6", dotColor: "#99f6e4" }, // teal
+];
+
+function makeMaze(layoutIdx: number): number[][] {
+  return MAZE_LAYOUTS[layoutIdx].map(row => [...row]);
 }
 
 function countDots(maze: number[][]): number {
@@ -225,53 +318,69 @@ function randomDir(ghost: Ghost, maze: number[][]): Dir {
   return valid[Math.floor(Math.random() * valid.length)];
 }
 
-// ─── Casey sprite (loaded once, shared across frames) ──────────────────────
-let caseySpriteImg: HTMLImageElement | null = null;
-let caseySpriteLoaded = false;
-(function loadCaseySprite() {
-  const img = new Image();
-  img.onload = () => { caseySpriteImg = img; caseySpriteLoaded = true; };
-  img.src = asset("/characters/casey-8bit.png");
+// ─── Sprite cache (loaded once per character) ──────────────────────────────
+const spriteCache = new Map<CharacterId, HTMLImageElement>();
+let spritesLoaded = false;
+let spritesLoadedCount = 0;
+
+(function preloadSprites() {
+  for (const char of CHARACTERS) {
+    const img = new Image();
+    img.onload = () => {
+      spriteCache.set(char.id, img);
+      spritesLoadedCount++;
+      if (spritesLoadedCount === CHARACTERS.length) spritesLoaded = true;
+    };
+    img.src = asset(char.spriteUrl);
+  }
 })();
+
+// Expose for the select screen (re-check after load)
+function getSpriteImg(id: CharacterId): HTMLImageElement | null {
+  return spriteCache.get(id) ?? null;
+}
 
 // ─── Drawing helpers ───────────────────────────────────────────────────────
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
   px: number, py: number,
-  _char: CharDef,
+  char: CharDef,
   dir: Dir,
   _mouthAngle: number,
   flash: boolean
 ) {
   if (flash) return;
 
-  if (caseySpriteLoaded && caseySpriteImg) {
+  const img = getSpriteImg(char.id);
+  if (img) {
     const size = CELL * 1.6;
     const drawX = px + CELL / 2 - size / 2;
     const drawY = py + CELL / 2 - size * 0.65;
 
+    // Flip if the movement direction is opposite to the sprite's natural facing
+    const shouldFlip = char.facesLeft ? dir.dx === 1 : dir.dx === -1;
+
     ctx.save();
-    if (dir.dx === 1) {
-      // flip horizontally for right-facing
+    ctx.imageSmoothingEnabled = false;
+    if (shouldFlip) {
       ctx.translate(drawX + size, drawY);
       ctx.scale(-1, 1);
-      ctx.drawImage(caseySpriteImg, 0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
     } else {
-      // default sprite faces left
-      ctx.drawImage(caseySpriteImg, drawX, drawY, size, size);
+      ctx.drawImage(img, drawX, drawY, size, size);
     }
     ctx.restore();
     return;
   }
 
-  // Fallback circle if image not loaded yet
+  // Fallback circle while sprites are loading
   const cx = px + CELL / 2;
   const cy = py + CELL / 2;
   const r = CELL * 0.42;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = "#f97316";
+  ctx.fillStyle = char.color;
   ctx.fill();
   ctx.restore();
 }
@@ -430,9 +539,8 @@ function drawGhost(ctx: CanvasRenderingContext2D, px: number, py: number, ghost:
 // (set each frame before calling drawGhost)
 let powerTimerRef_draw = 8;
 
-function drawMaze(ctx: CanvasRenderingContext2D, maze: number[][], tick: number, flag: string, powerActive: boolean, powerTimer: number) {
-  const wallColor = "#1e40af";
-  const wallHighlight = "#3b82f6";
+function drawMaze(ctx: CanvasRenderingContext2D, maze: number[][], tick: number, flag: string, powerActive: boolean, powerTimer: number, style: MazeStyle) {
+  const { wallColor, wallHighlight, dotColor } = style;
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -451,7 +559,7 @@ function drawMaze(ctx: CanvasRenderingContext2D, maze: number[][], tick: number,
         // dot
         ctx.beginPath();
         ctx.arc(px + CELL / 2, py + CELL / 2, 3, 0, Math.PI * 2);
-        ctx.fillStyle = "#fef9c3";
+        ctx.fillStyle = dotColor;
         ctx.fill();
       } else if (v === 3) {
         // power flag
@@ -503,7 +611,7 @@ export function PacmanGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const [phase, setPhase] = useState<Phase>("select");
-  const [selectedChar, setSelectedChar] = useState<CharDef>(CHARACTERS[2]); // Jeff default
+  const [selectedChar, setSelectedChar] = useState<CharDef>(CHARACTERS[0]); // Casey default
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [levelIndex, setLevelIndex] = useState(0);
@@ -512,7 +620,8 @@ export function PacmanGame() {
   });
 
   const phaseRef       = useRef<Phase>("select");
-  const mazeRef        = useRef<number[][]>(makeMaze());
+  const mazeRef        = useRef<number[][]>(makeMaze(0));
+  const mazeStyleRef   = useRef<MazeStyle>(MAZE_STYLES[0]);
   const playerRef      = useRef<PlayerState>({ col:PLAYER_SPAWN_COL, row:PLAYER_SPAWN_ROW, px:PLAYER_SPAWN_COL*CELL, py:PLAYER_SPAWN_ROW*CELL, dir:LEFT, nextDir:LEFT, mouthAngle:0, mouthDir:1, dead:false, deadTimer:0, flash:false, flashTimer:0 });
   const ghostsRef      = useRef<Ghost[]>(makeGhosts());
   const scoreRef       = useRef(0);
@@ -524,15 +633,28 @@ export function PacmanGame() {
   const powerTimerRef  = useRef(0);
   const tickRef        = useRef(0);
   const lastTimeRef    = useRef(0);
-  const charRef        = useRef<CharDef>(CHARACTERS[2]);
+  const charRef        = useRef<CharDef>(CHARACTERS[0]);
   const bgImgRef       = useRef<HTMLImageElement | null>(null);
   const bgLoadedRef    = useRef(false);
   const bgUrlRef       = useRef("");
   const animRef        = useRef<number>(0);
   const ghostEatCount  = useRef(0);
+  const powerMusicRef  = useRef<HTMLAudioElement | null>(null);
+
+  const stopPowerMusic = useCallback(() => {
+    if (powerMusicRef.current) {
+      powerMusicRef.current.pause();
+      powerMusicRef.current.src = "";
+      powerMusicRef.current = null;
+    }
+  }, []);
 
   const initLevel = useCallback((lvlIdx: number) => {
-    const maze = makeMaze();
+    stopPowerMusic();
+    const layoutIdx = Math.floor(Math.random() * MAZE_LAYOUTS.length);
+    const styleIdx  = Math.floor(Math.random() * MAZE_STYLES.length);
+    mazeStyleRef.current = MAZE_STYLES[styleIdx];
+    const maze = makeMaze(layoutIdx);
     mazeRef.current = maze;
     dotsLeftRef.current = countDots(maze);
     playerRef.current = { col:PLAYER_SPAWN_COL, row:PLAYER_SPAWN_ROW, px:PLAYER_SPAWN_COL*CELL, py:PLAYER_SPAWN_ROW*CELL, dir:LEFT, nextDir:LEFT, mouthAngle:0, mouthDir:1, dead:false, deadTimer:0, flash:false, flashTimer:0 };
@@ -579,6 +701,24 @@ export function PacmanGame() {
         case "ArrowLeft":  case "a": case "A": p.nextDir = LEFT;  e.preventDefault(); break;
         case "ArrowRight": case "d": case "D": p.nextDir = RIGHT; e.preventDefault(); break;
       }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  // Arrow keys to cycle characters on the select screen
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (phaseRef.current !== "select") return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      setSelectedChar(prev => {
+        const idx = CHARACTERS.findIndex(c => c.id === prev.id);
+        const next = e.key === "ArrowRight"
+          ? (idx + 1) % CHARACTERS.length
+          : (idx - 1 + CHARACTERS.length) % CHARACTERS.length;
+        return CHARACTERS[next];
+      });
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -710,11 +850,38 @@ export function PacmanGame() {
         maze[pr][pc] = 2;
         scoreRef.current += 50;
         dotsLeftRef.current--;
-        powerRef.current = true;
-        powerTimerRef.current = 8;
         ghostEatCount.current = 0;
         ghosts.forEach(g => { if (!g.eaten) g.frightened = true; });
-        if (audio) sfxPower(audio);
+
+        // Stop any existing power music
+        stopPowerMusic();
+
+        // Play this country's music — power lasts exactly as long as the track
+        const musicEl = new Audio(asset(`/music/${lvl.music}`));
+        musicEl.volume = 0.85;
+        powerMusicRef.current = musicEl;
+
+        musicEl.addEventListener("loadedmetadata", () => {
+          // Set power timer to full song duration; ghosts flash in last 3 sec
+          powerTimerRef.current = musicEl.duration;
+          powerRef.current = true;
+        }, { once: true });
+
+        musicEl.addEventListener("ended", () => {
+          powerRef.current = false;
+          powerMusicRef.current = null;
+          ghosts.forEach(g => { g.frightened = false; });
+          ghostEatCount.current = 0;
+        }, { once: true });
+
+        // Fallback: if metadata doesn't load quickly, start power immediately
+        powerRef.current = true;
+        powerTimerRef.current = 30; // generous fallback, song end will cut it off
+        musicEl.play().catch(() => {
+          // Autoplay blocked — fall back to synth + 8s timer
+          powerTimerRef.current = 8;
+          if (audio) sfxPower(audio);
+        });
       }
 
       setScore(scoreRef.current);
@@ -833,7 +1000,9 @@ export function PacmanGame() {
             setScore(scoreRef.current);
             if (audio) sfxGhostEat(audio);
           } else {
-            // player dies — go invisible for 5 seconds then respawn at centre
+            // player dies — stop music, go invisible for 5 seconds then respawn
+            stopPowerMusic();
+            powerRef.current = false;
             if (audio) sfxDie(audio);
             livesRef.current--;
             setLives(livesRef.current);
@@ -852,22 +1021,22 @@ export function PacmanGame() {
       }
 
       // ─── Draw ────────────────────────────────────────────────────────────
-      ctx.clearRect(0, 0, W, H);
+      // Always fill solid dark background first — prevents transparent-canvas
+      // pixels from bleeding white through the container
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, W, H);
 
-      // background image
+      // background image overlay
       if (bgLoadedRef.current && bgImgRef.current) {
         ctx.save();
         ctx.globalAlpha = 0.35;
         ctx.drawImage(bgImgRef.current, 0, 0, W, H);
         ctx.restore();
-      } else {
-        ctx.fillStyle = "#0f172a";
-        ctx.fillRect(0, 0, W, H);
       }
 
       // expose power timer to drawGhost for flash-when-expiring logic
       powerTimerRef_draw = powerTimerRef.current;
-      drawMaze(ctx, maze, tickRef.current, lvl.flag, powerRef.current, powerTimerRef.current);
+      drawMaze(ctx, maze, tickRef.current, lvl.flag, powerRef.current, powerTimerRef.current, mazeStyleRef.current);
 
       // ghosts
       for (const g of ghosts) {
@@ -886,7 +1055,7 @@ export function PacmanGame() {
     if (!audioRef.current) audioRef.current = createAudioCtx();
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, [phase, initLevel, highScore]);
+  }, [phase, initLevel, highScore, stopPowerMusic]);
 
   // ─── Canvas scale — fit everything in one viewport ───────────────────────
   const [canvasScale, setCanvasScale] = useState(1);
@@ -915,7 +1084,7 @@ export function PacmanGame() {
   if (phase === "select") {
     return (
       <div className="flex flex-col items-center justify-center bg-gray-950 text-white p-4 overflow-hidden" style={{ height: "100dvh" }}>
-        <div className="mb-6 text-center">
+        <div className="mb-4 text-center">
           <div className="text-5xl mb-2">🕹️</div>
           <h1 className="text-4xl font-black tracking-wider" style={{ fontFamily: "monospace", textShadow: "0 0 20px #3b82f6" }}>
             JANGLES PAC
@@ -923,25 +1092,44 @@ export function PacmanGame() {
           <p className="text-gray-400 mt-1 text-sm">Travel the world, eat the flags!</p>
         </div>
 
-        <p className="text-yellow-400 font-bold mb-4 tracking-widest text-sm">CHOOSE YOUR CHARACTER</p>
+        <p className="text-yellow-400 font-bold mb-4 tracking-widest text-xs">CHOOSE YOUR CHARACTER</p>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {CHARACTERS.map(char => (
-            <button
-              key={char.id}
-              onClick={() => setSelectedChar(char)}
-              className="relative px-6 py-4 rounded-xl border-2 transition-all duration-150 font-bold text-lg"
-              style={{
-                borderColor: selectedChar.id === char.id ? char.color : "#374151",
-                background: selectedChar.id === char.id ? `${char.color}22` : "#111827",
-                color: char.color,
-                boxShadow: selectedChar.id === char.id ? `0 0 20px ${char.color}55` : "none",
-              }}
-            >
-              <CharPreview char={char} />
-              <div className="mt-2">{char.name}</div>
-            </button>
-          ))}
+        {/* Character picker — sprite images only, no boxes */}
+        <div className="flex items-end justify-center gap-8 mb-6">
+          {CHARACTERS.map(char => {
+            const img = getSpriteImg(char.id);
+            const isSelected = selectedChar.id === char.id;
+            return (
+              <button
+                key={char.id}
+                onClick={() => setSelectedChar(char)}
+                className="flex flex-col items-center gap-1 transition-all"
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              >
+                {img ? (
+                  <img
+                    src={img.src}
+                    alt={char.name}
+                    style={{
+                      height: isSelected ? 130 : 100,
+                      imageRendering: "pixelated",
+                      opacity: isSelected ? 1 : 0.55,
+                      transition: "all 0.15s ease",
+                      filter: isSelected ? `drop-shadow(0 0 8px ${char.color})` : "none",
+                    }}
+                  />
+                ) : (
+                  <div style={{ height: isSelected ? 130 : 100, width: 80, background: char.color + "33", borderRadius: 8 }} />
+                )}
+                <span
+                  className="text-xs font-bold tracking-widest uppercase"
+                  style={{ color: isSelected ? char.color : "#6b7280", transition: "color 0.15s" }}
+                >
+                  {char.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <button
@@ -972,7 +1160,7 @@ export function PacmanGame() {
         <p className="text-2xl font-mono text-yellow-400 mb-1">SCORE: {score}</p>
         <p className="text-sm font-mono text-gray-400 mb-8">HIGH SCORE: {highScore}</p>
         <div className="flex gap-4">
-          <button onClick={() => { phaseRef.current = "select"; setPhase("select"); }}
+          <button onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
             className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500">
             Menu
           </button>
@@ -992,7 +1180,7 @@ export function PacmanGame() {
         <h2 className="text-4xl font-black font-mono text-yellow-400 mb-2">YOU WIN!</h2>
         <p className="text-lg font-mono text-gray-300 mb-1">Traveled all {LEVELS.length} countries!</p>
         <p className="text-2xl font-mono text-yellow-400 mb-8">SCORE: {score}</p>
-        <button onClick={() => { phaseRef.current = "select"; setPhase("select"); }}
+        <button onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
           className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500">
           Play Again
         </button>
@@ -1010,8 +1198,17 @@ export function PacmanGame() {
       {/* ── HUD ── */}
       <div className="flex items-center justify-between w-full px-3 shrink-0"
            style={{ height: 36 }}>
-        <div className="font-mono text-yellow-400 text-xs font-bold">
-          SCORE: <span className="text-white">{score}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+            className="font-mono text-xs font-bold text-gray-500 hover:text-white transition-colors"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
+          >
+            ✕ QUIT
+          </button>
+          <div className="font-mono text-yellow-400 text-xs font-bold">
+            SCORE: <span className="text-white">{score}</span>
+          </div>
         </div>
         <div className="flex items-center gap-1 font-mono text-xs font-bold">
           <span className="text-gray-400">{lvl.country}</span>
@@ -1030,9 +1227,9 @@ export function PacmanGame() {
            style={{
              width: scaledW + 6,
              height: scaledH + 6,
-             border: "3px solid #1e40af",
+             border: `3px solid ${mazeStyleRef.current.wallColor}`,
              borderRadius: 8,
-             boxShadow: "0 0 24px #1e40af88",
+             boxShadow: `0 0 24px ${mazeStyleRef.current.wallColor}88`,
              overflow: "hidden",
            }}>
         <canvas
@@ -1059,7 +1256,7 @@ export function PacmanGame() {
 
       {/* ── Hint ── */}
       <div className="shrink-0 text-xs text-gray-500 font-mono text-center" style={{ height: 22, lineHeight: "22px" }}>
-        Eat {lvl.flag} → 8 sec power-up!
+        Eat {lvl.flag} → power-up + {lvl.country} music!
       </div>
 
       {/* ── D-pad ── */}
@@ -1089,21 +1286,4 @@ function DBtn({ label, onClick }: { label: string; onClick: () => void }) {
       {label}
     </button>
   );
-}
-
-function CharPreview({ char }: { char: CharDef }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    ctx.clearRect(0, 0, 64, 64);
-    const fakePlayer: PlayerState = {
-      col:0, row:0, px:0, py:0, dir:RIGHT,
-      nextDir:RIGHT, mouthAngle:25, mouthDir:1,
-      dead:false, deadTimer:0, flash:false, flashTimer:0,
-    };
-    drawPlayer(ctx, 0, 0, char, fakePlayer.dir, fakePlayer.mouthAngle, false);
-  }, [char]);
-  return <canvas ref={canvasRef} width={CELL} height={CELL} style={{ imageRendering: "pixelated", margin: "0 auto", display: "block" }} />;
 }

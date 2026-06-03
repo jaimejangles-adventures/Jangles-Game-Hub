@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useState, useRef, useEffect } from "react";
 import { GAME_MANIFEST, CATEGORY_MANIFEST, type GameManifestEntry, type CategoryEntry, type GameCategory } from "@/lib/game-manifest";
 import { cn } from "@/lib/utils";
@@ -8,17 +8,19 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
+  const navigate = useNavigate();
 
   const isFullBleed = FULL_BLEED_ROUTES.includes(pathname);
   const [openCategory, setOpenCategory] = useState<GameCategory | null>(null);
   const [panelLeft, setPanelLeft] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showEscapePrompt, setShowEscapePrompt] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
@@ -31,6 +33,21 @@ export function PortalShell({ children }: PortalShellProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Escape key → prompt to go back to Game Hub (only when not already on home)
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (pathname === "/") return;
+      if (showEscapePrompt) {
+        setShowEscapePrompt(false);
+      } else {
+        setShowEscapePrompt(true);
+      }
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [pathname, showEscapePrompt]);
 
   // Close mobile menu on navigation
   useEffect(() => {
@@ -248,6 +265,63 @@ export function PortalShell({ children }: PortalShellProps) {
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8">{children}</div>
+        </div>
+      )}
+
+      {/* Escape → Game Hub prompt */}
+      {showEscapePrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShowEscapePrompt(false)}
+        >
+          <div
+            className="relative flex flex-col items-center gap-5 rounded-[2rem] border-[3px] border-ink px-8 py-7"
+            style={{
+              background: "#fffbf0",
+              borderBottomWidth: 7,
+              borderRightWidth: 6,
+              maxWidth: "22rem",
+              width: "90vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Badge */}
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+              style={{ background: "#FBBF24", borderBottomWidth: 4, borderRightWidth: 3 }}
+            >
+              🏠 Leaving game
+            </div>
+
+            <p className="text-center text-base font-extrabold leading-snug text-ink">
+              Head back to<br />Game Hub?
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowEscapePrompt(false);
+                  navigate({ to: "/" });
+                }}
+                className="rounded-full border-[3px] border-ink px-6 py-2 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Yes, let's go!
+              </button>
+              <button
+                onClick={() => setShowEscapePrompt(false)}
+                className="rounded-full border-[3px] border-ink px-6 py-2 text-sm font-extrabold text-ink transition-transform hover:-translate-y-0.5"
+                style={{ background: "#fff", borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Keep playing
+              </button>
+            </div>
+
+            <p className="text-[0.6rem] font-medium text-ink/35 tracking-wide">
+              Press Esc again to dismiss
+            </p>
+          </div>
         </div>
       )}
     </div>

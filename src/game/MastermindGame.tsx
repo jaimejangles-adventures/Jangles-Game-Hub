@@ -21,6 +21,21 @@ const BG_PAGES = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].map(
   n => asset(`/book3-nt/page-${String(n).padStart(2,'0')}.png`)
 );
 
+const WIN_EXCLAMATIONS = [
+  'You cracked it!',
+  'Amazing work!',
+  'You\'re a genius!',
+  'Incredible!',
+  'Brilliant!',
+  'Outstanding!',
+  'You nailed it!',
+  'Super sleuth!',
+  'Spectacular!',
+  'Unstoppable!',
+  'You\'re on fire!',
+  'Way to go!',
+];
+
 const CODE_LENGTH = 4;
 type Difficulty = 'rookie' | 'master';
 type GamePhase = 'select' | 'playing';
@@ -111,6 +126,7 @@ export function MastermindGame() {
   const [current, setCurrent] = useState<(string | null)[]>([null, null, null, null]);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
+  const [winMessage, setWinMessage] = useState('');
 
   const maxGuesses = DIFFICULTY[difficulty].guesses;
   const showCountry = DIFFICULTY[difficulty].showCountry;
@@ -118,12 +134,12 @@ export function MastermindGame() {
 
   const startGame = useCallback((d: Difficulty) => {
     setDifficulty(d); setSecret(generateSecret()); setGuesses([]);
-    setCurrent([null,null,null,null]); setGameOver(false); setWon(false); setPhase('playing');
+    setCurrent([null,null,null,null]); setGameOver(false); setWon(false); setWinMessage(''); setPhase('playing');
   }, []);
 
   const resetGame = useCallback(() => {
     setSecret(generateSecret()); setGuesses([]);
-    setCurrent([null,null,null,null]); setGameOver(false); setWon(false);
+    setCurrent([null,null,null,null]); setGameOver(false); setWon(false); setWinMessage('');
   }, []);
 
   const addToGuess = useCallback((id: string) => {
@@ -147,7 +163,11 @@ export function MastermindGame() {
     const { black, white } = calcFeedback(guess, secret);
     const next = [...guesses, { objects: guess, black, white }];
     setGuesses(next); setCurrent([null,null,null,null]);
-    if (black === CODE_LENGTH) { setGameOver(true); setWon(true); burstFinale(); }
+    if (black === CODE_LENGTH) {
+      setGameOver(true); setWon(true);
+      setWinMessage(WIN_EXCLAMATIONS[Math.floor(Math.random() * WIN_EXCLAMATIONS.length)]);
+      burstFinale();
+    }
     else if (next.length >= maxGuesses) { setGameOver(true); }
   }, [gameOver, current, guesses, secret, maxGuesses]);
 
@@ -302,7 +322,10 @@ export function MastermindGame() {
             className="mx-2 mb-2 rounded-xl border-[2px] border-[#1e1b4b] bg-white px-3 py-2 shadow-[3px_4px_0_#1e1b4b] shrink-0 flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               {won
-                ? <p className="text-sm font-extrabold text-green-600">🎉 Cracked in {guesses.length}!</p>
+                ? <div>
+                    <p className="text-base font-extrabold text-green-600">🎉 {winMessage}</p>
+                    <p className="text-xs font-bold text-green-500">Cracked in {guesses.length}!</p>
+                  </div>
                 : <div>
                     <p className="text-[10px] font-extrabold text-pink-600 mb-1">The secret was:</p>
                     <div className="flex gap-1">

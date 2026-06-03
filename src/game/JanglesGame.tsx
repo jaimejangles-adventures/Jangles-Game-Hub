@@ -658,8 +658,8 @@ function BootScreen({ onStart }: { onStart: () => void }) {
 
   return (
     <section
-      className="flex flex-col items-center justify-center gap-4 px-4 py-2 text-center"
-      style={{ height: "calc(100dvh - 156px)", overflow: "hidden", marginTop: "-58px" }}
+      className="flex flex-col items-center justify-center gap-4 px-6 py-6 text-center"
+      style={{ height: "calc(100dvh - 156px)", overflow: "hidden" }}
     >
       {/* Vinyl record — draggable, scratches on interaction */}
       <motion.div

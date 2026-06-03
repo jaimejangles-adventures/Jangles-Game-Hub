@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { burstCorrect, burstFinale } from "@/game/confetti";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
-import { CountdownBar, WRONG_MS } from "./WrongFeedback";
+import { WRONG_MS } from "./WrongFeedback";
 import rawData from "@/game/data/fly-the-flag.json";
 import { asset } from "@/lib/asset";
 
@@ -534,11 +534,10 @@ export function FlyTheFlagGame() {
                 onClick={() => handleChoice(c)}
                 disabled={phase !== "guessing"}
                 whileTap={{ scale: 0.94 }}
-                animate={isWrong ? { x: [-6, 6, -5, 5, 0], backgroundColor: "#FEE2E2" } : { x: 0 }}
-                transition={isWrong ? { duration: 0.35 } : {}}
+                animate={{ x: 0 }}
                 className="rounded-2xl border-[3px] border-ink py-4 px-3 text-base font-extrabold leading-tight"
                 style={{
-                  background: isWrong ? "#FEE2E2" : "#fff",
+                  background: "#fff",
                   borderBottomWidth: 5,
                   borderRightWidth: 4,
                   cursor: phase === "guessing" ? "pointer" : "default",
@@ -551,14 +550,6 @@ export function FlyTheFlagGame() {
           })}
         </div>
 
-        {/* Wrong feedback bar */}
-        <AnimatePresence>
-          {phase === "wrong" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CountdownBar ms={WRONG_MS} color="#EF4444" />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Correct popup */}

@@ -117,6 +117,13 @@ export function FindFoxyGame() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [cueText, setCueText] = useState<string | null>(null);
   const [cueStack, setCueStack] = useState<string[]>([]);
+  const planeXRef = useRef(5);
+  const planeYRef = useRef(20);
+  const planeVelXRef = useRef(0.05);
+  const planeVelYRef = useRef(0);
+  const planeElRef = useRef<HTMLDivElement | null>(null);
+  const keysRef = useRef({ left: false, right: false, up: false, down: false });
+  const rafRef = useRef<number | null>(null);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
   const countryMusicRef = useRef<HTMLAudioElement | null>(null);
 
@@ -152,13 +159,6 @@ export function FindFoxyGame() {
   }, [phase, locked, revealedClueCount, currentLevel]);
 
   useEffect(() => {
-    if (phase === "setup") {
-      if (bgMusicRef.current) {
-        bgMusicRef.current.pause();
-        bgMusicRef.current.currentTime = 0;
-      }
-      return;
-    }
     if (phase === "passport") {
       bgMusicRef.current?.pause();
       return;
@@ -174,6 +174,64 @@ export function FindFoxyGame() {
       bgMusicRef.current?.pause();
     };
   }, [phase]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent, down: boolean) {
+      if (e.key === "ArrowLeft")  { keysRef.current.left  = down; if (down) e.preventDefault(); }
+      if (e.key === "ArrowRight") { keysRef.current.right = down; if (down) e.preventDefault(); }
+      if (e.key === "ArrowUp")    { keysRef.current.up    = down; if (down) e.preventDefault(); }
+      if (e.key === "ArrowDown")  { keysRef.current.down  = down; if (down) e.preventDefault(); }
+    }
+    const onDown = (e: KeyboardEvent) => onKey(e, true);
+    const onUp   = (e: KeyboardEvent) => onKey(e, false);
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup",   onUp);
+
+    const MIN_SPEED = 0.05;
+
+    function tick() {
+      const { left, right, up, down } = keysRef.current;
+      const accel = 0.026;
+      const friction = 0.96;
+      const maxSpeed = 0.189;
+
+      if (right)      planeVelXRef.current = Math.min(planeVelXRef.current + accel, maxSpeed);
+      else if (left)  planeVelXRef.current = Math.max(planeVelXRef.current - accel, -maxSpeed);
+      else            planeVelXRef.current *= friction;
+
+      // Always keep moving forward — enforce minimum speed in current direction
+      if (planeVelXRef.current >= 0 && planeVelXRef.current < MIN_SPEED)  planeVelXRef.current = MIN_SPEED;
+      if (planeVelXRef.current < 0  && planeVelXRef.current > -MIN_SPEED) planeVelXRef.current = -MIN_SPEED;
+
+      if (up)         planeVelYRef.current = Math.min(planeVelYRef.current + accel, maxSpeed);
+      else if (down)  planeVelYRef.current = Math.max(planeVelYRef.current - accel, -maxSpeed);
+      else            planeVelYRef.current *= friction;
+
+      planeXRef.current += planeVelXRef.current;
+      // Wrap off-screen left/right
+      if (planeXRef.current > 105)  planeXRef.current = -15;
+      if (planeXRef.current < -15)  planeXRef.current = 105;
+
+      planeYRef.current = Math.max(4, Math.min(72, planeYRef.current + planeVelYRef.current));
+
+      const el = planeElRef.current;
+      if (el) {
+        const img = el.querySelector("img") as HTMLImageElement | null;
+        if (planeVelXRef.current > 0.05 && img) img.style.transform = "scaleX(-1)";
+        else if (planeVelXRef.current < -0.05 && img) img.style.transform = "scaleX(1)";
+        el.style.left = `${planeXRef.current}%`;
+        el.style.bottom = `${planeYRef.current}%`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup",   onUp);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const completion = useMemo(
     () => Array.from({ length: TOTAL_STOPS }, (_, index) => index < stamps),
@@ -260,8 +318,29 @@ export function FindFoxyGame() {
 
   return (
     <section className="find-foxy">
-      <div className="find-foxy__sky">
+      <div
+        className="find-foxy__sky"
+        onPointerDown={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          if (e.clientX < rect.left + rect.width / 2) keysRef.current.left = true;
+          else keysRef.current.right = true;
+        }}
+        onPointerUp={() => { keysRef.current.left = false; keysRef.current.right = false; }}
+        onPointerLeave={() => { keysRef.current.left = false; keysRef.current.right = false; }}
+        style={{ cursor: "ew-resize" }}
+      >
         <div className="find-foxy__rainbow" />
+        <div
+          ref={planeElRef}
+          className="find-foxy__plane-wrap"
+          style={{ bottom: "20%", left: "5%", position: "absolute", zIndex: 0, pointerEvents: "none", userSelect: "none", filter: "drop-shadow(0 10px 18px rgba(27,42,107,0.2))" }}
+        >
+          <img
+            src={asset("/characters/air-fante-plane.png")}
+            alt=""
+            style={{ width: "13rem", display: "block", transform: "scaleX(-1)" }}
+          />
+        </div>
         {CLOUDS.map((cloud, index) => (
           <div
             key={index}
