@@ -52,8 +52,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide";
   title: string;
   eyebrow: string;
   description: string;
@@ -282,6 +282,32 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Casey shows you two groups of objects — take one away from the other and pick the right answer! Simple subtraction made fun with colourful pictures.",
     accent: "#f97316",
     emoji: "➖",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "math-games",
+  },
+  {
+    slug: "casey-can-multiply",
+    href: "/games/casey-can-multiply",
+    title: "Casey Can Multiply!",
+    eyebrow: "Multiplication for ages 5–8",
+    description:
+      "Casey shows you two groups of objects — count them together and pick the right product! Times tables made fun with colourful pictures.",
+    accent: "#f97316",
+    emoji: "✖️",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "math-games",
+  },
+  {
+    slug: "casey-can-divide",
+    href: "/games/casey-can-divide",
+    title: "Casey Can Divide!",
+    eyebrow: "Division for ages 5–8",
+    description:
+      "Casey shows you a group of objects — split them equally and pick the right answer! Division made fun with colourful pictures.",
+    accent: "#f97316",
+    emoji: "➗",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
     category: "math-games",
