@@ -84,6 +84,7 @@ export function ElefanteGame() {
     let cfgMinSpawn        = 40;
     let cfgSpawnDecayScore = 5;
     let cfgInvincible      = 90;
+    let cfgDotRadius       = 26;
 
     const keys: Record<string, boolean> = {};
     let score          = 0;
@@ -102,8 +103,9 @@ export function ElefanteGame() {
 
     const COUNTRY_DURATION_MS = 10_000;
 
-    const player = { x: 120, y: GH / 2, vy: 0, vx: 0 };
-    const obstacles: { x: number; y: number; r: number }[] = [];
+    const player = { x: 5, y: GH / 2, vy: 0, vx: 0 };
+    const obstacles: { x: number; y: number; r: number; flag: string; accent: string }[] = [];
+    const hearts: { x: number; baseY: number; r: number; bobOffset: number }[] = [];
 
     const clouds: { x: number; y: number; s: number }[] = [];
     const NUM_CLOUDS = 5;
@@ -143,6 +145,7 @@ export function ElefanteGame() {
       cfgMinSpawn        = isRookie ? 65  : 28;
       cfgSpawnDecayScore = isRookie ? 8   : 4;
       cfgInvincible      = isRookie ? 120 : 55;
+      cfgDotRadius       = 26;
 
       score          = 0;
       lives          = cfgMaxLives;
@@ -153,11 +156,12 @@ export function ElefanteGame() {
       countryFlash   = 0;
       gameStartTime  = 0;
       elapsedMs      = 0;
-      player.x  = 120;
+      player.x  = 5;
       player.y  = GH / 2;
       player.vy = 0;
       player.vx = 0;
       obstacles.length = 0;
+      hearts.length = 0;
       invincible = 0;
       groundHugFrames = 0;
       topHugFrames = 0;
@@ -505,6 +509,7 @@ export function ElefanteGame() {
       if (player.y < topBound + playH * 0.18) topHugFrames++;
       else topHugFrames = 0;
 
+      const cc = COUNTRIES[countryIdx];
       const baseInterval = Math.max(cfgMinSpawn, cfgBaseSpawn - Math.floor(score / cfgSpawnDecayScore) * 3);
       const spawnInterval = topHugFrames > 20 ? Math.max(cfgMinSpawn, Math.floor(baseInterval / 2)) : baseInterval;
       if (frame % spawnInterval === 0) {
@@ -514,10 +519,31 @@ export function ElefanteGame() {
         } else {
           spawnY = topBound + 20 + Math.random() * (botBound - topBound - 20);
         }
-        obstacles.push({ x: GW + 20, y: spawnY, r: 14 });
+        obstacles.push({ x: GW + 20, y: spawnY, r: cfgDotRadius, flag: cc.flag, accent: cc.accent });
+      }
+
+      // Spawn a heart roughly every 1800 frames (≈30 seconds at 60fps)
+      if (frame > 120 && frame % 1800 === 0) {
+        const spawnY = topBound + 30 + Math.random() * (botBound - topBound - 60);
+        hearts.push({ x: GW + 20, baseY: spawnY, r: 18, bobOffset: Math.random() * Math.PI * 2 });
       }
 
       if (invincible > 0) invincible--;
+
+      for (let i = hearts.length - 1; i >= 0; i--) {
+        const h = hearts[i];
+        h.x -= speed * 0.9;
+        if (h.x < -h.r * 2) { hearts.splice(i, 1); continue; }
+        const hy = h.baseY + Math.sin(frame * 0.07 + h.bobOffset) * 5;
+        const px = player.x + PLANE_W * 0.5;
+        const py = player.y + PLANE_H * 0.5;
+        const dist = Math.hypot(px - h.x, py - hy);
+        if (dist < h.r + Math.min(PLANE_W, PLANE_H) * 0.28) {
+          hearts.splice(i, 1);
+          if (lives < cfgMaxLives) lives++;
+        }
+      }
+
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const ob = obstacles[i];
         ob.x -= speed * 1.4;
@@ -581,11 +607,60 @@ export function ElefanteGame() {
 
       for (const ob of obstacles) {
         ctx.save();
+        ctx.shadowColor = ob.accent;
+        ctx.shadowBlur  = 8;
         ctx.beginPath();
         ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff2244";
-        ctx.shadowColor = "rgba(255,0,0,0.5)";
-        ctx.shadowBlur = 10;
+        ctx.fillStyle = "rgba(255,255,255,0.78)";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2);
+        ctx.strokeStyle = ob.accent;
+        ctx.lineWidth   = 2.5;
+        ctx.stroke();
+
+        ctx.font         = `${Math.round(ob.r * 1.45)}px Arial`;
+        ctx.textAlign    = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ob.flag, ob.x, ob.y + 1);
+
+        const shine = ctx.createRadialGradient(
+          ob.x - ob.r * 0.32, ob.y - ob.r * 0.35, 1,
+          ob.x - ob.r * 0.1,  ob.y - ob.r * 0.1,  ob.r * 0.7,
+        );
+        shine.addColorStop(0, "rgba(255,255,255,0.18)");
+        shine.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = shine;
+        ctx.beginPath();
+        ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (const h of hearts) {
+        ctx.save();
+        ctx.shadowColor = "rgba(255,80,120,0.7)";
+        ctx.shadowBlur  = 14;
+        const s = h.r * 0.9;
+        const cx = h.x, cy = h.baseY + Math.sin(frame * 0.07 + h.bobOffset) * 5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + s * 0.35);
+        ctx.bezierCurveTo(cx, cy, cx - s, cy, cx - s, cy + s * 0.35);
+        ctx.bezierCurveTo(cx - s, cy + s * 0.75, cx, cy + s, cx, cy + s * 1.15);
+        ctx.bezierCurveTo(cx, cy + s, cx + s, cy + s * 0.75, cx + s, cy + s * 0.35);
+        ctx.bezierCurveTo(cx + s, cy, cx, cy, cx, cy + s * 0.35);
+        ctx.closePath();
+        ctx.fillStyle = "#ff3377";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255,180,210,0.8)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath();
+        ctx.ellipse(cx - s * 0.28, cy + s * 0.18, s * 0.2, s * 0.13, -0.6, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GAME_MANIFEST, CATEGORY_MANIFEST } from "@/lib/game-manifest";
 import { asset } from "@/lib/asset";
+import { HallOfFame } from "@/components/leaderboard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -95,6 +96,9 @@ function Index() {
           </aside>
         </div>
       </section>
+
+      {/* ── Hall of Fame ── */}
+      <HallOfFame />
 
       {/* ── Netflix-style category rows ── */}
       <div className="flex flex-col gap-8">

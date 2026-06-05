@@ -52,8 +52,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game";
   title: string;
   eyebrow: string;
   description: string;
@@ -300,6 +300,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     category: "math-games",
   },
   {
+    slug: "jangles-kong",
+    href: "/games/jangles-kong",
+    title: "Jangles Kong",
+    eyebrow: "Climb, jump & dodge",
+    description:
+      "Casey must reach Jeff at the top! Dodge Pac-Ghosts rolling down the platforms, climb ladders, and collect hats in this retro Donkey Kong-style arcade game.",
+    accent: "#cc0000",
+    emoji: "🦍",
+    image: asset("/characters/jeff-8bit.png"),
+    status: "live",
+    category: "arcade-adventures",
+  },
+  {
     slug: "casey-can-divide",
     href: "/games/casey-can-divide",
     title: "Casey Can Divide!",
@@ -311,6 +324,45 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     image: asset("/characters/casey-pointing.png"),
     status: "live",
     category: "math-games",
+  },
+  {
+    slug: "casey-can-spell",
+    href: "/games/casey-can-spell",
+    title: "Casey Can Spell!",
+    eyebrow: "Spelling for ages 4–7",
+    description:
+      "Casey shows you a picture — tap the right letters in order to spell the word! Letter tiles plus sneaky decoys keep you on your toes.",
+    accent: "#f97316",
+    emoji: "🔤",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "music-arts",
+  },
+  {
+    slug: "match-game",
+    href: "/games/match-game",
+    title: "Match Mania!",
+    eyebrow: "Flip & find pairs",
+    description:
+      "Flip cards to find matching pairs of Jangles objects! Pick Rookie for a quick 5×4 challenge or Master for a monster 10×10 grid.",
+    accent: "#8B5CF6",
+    emoji: "🃏",
+    image: asset("/objects/fox.svg"),
+    status: "live",
+    category: "puzzles",
+  },
+  {
+    slug: "foxy-word-scramble",
+    href: "/games/foxy-word-scramble",
+    title: "Foxy's Word Scramble!",
+    eyebrow: "Unscramble for ages 5–8",
+    description:
+      "Foxy has jumbled all the letters! Tap them into the right order to unscramble the word before the next one arrives.",
+    accent: "#ef6c00",
+    emoji: "🦊",
+    image: asset("/characters/FOX 3.png"),
+    status: "live",
+    category: "puzzles",
   },
 ];
 

@@ -3,25 +3,36 @@ import { type ReactNode, useState, useRef, useEffect } from "react";
 import { GAME_MANIFEST, CATEGORY_MANIFEST, type GameManifestEntry, type CategoryEntry, type GameCategory } from "@/lib/game-manifest";
 import { cn } from "@/lib/utils";
 import { asset } from "@/lib/asset";
+import { isMuted, setMuted } from "@/lib/sound";
+import { useAuth } from "@/lib/auth-context";
+import { flagEmoji } from "@/lib/countries";
 
 type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
   const navigate = useNavigate();
+  const { user, profile, openAuthModal, signOut } = useAuth();
 
   const isFullBleed = FULL_BLEED_ROUTES.includes(pathname);
   const [openCategory, setOpenCategory] = useState<GameCategory | null>(null);
   const [panelLeft, setPanelLeft] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEscapePrompt, setShowEscapePrompt] = useState(false);
+  const [muted, setMutedState] = useState(isMuted);
   const navRef = useRef<HTMLDivElement>(null);
+
+  function toggleMute() {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+  }
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -117,15 +128,25 @@ export function PortalShell({ children }: PortalShellProps) {
             />
           </Link>
 
-          {/* Hamburger button — mobile only */}
-          <button
-            className="ml-auto flex sm:hidden items-center justify-center rounded-full border-[3px] border-ink bg-white p-2 text-xl"
-            style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
-            onClick={() => setMobileMenuOpen((o) => !o)}
-            aria-label="Open menu"
-          >
-            {mobileMenuOpen ? "✕" : "☰"}
-          </button>
+          {/* Mute + Hamburger — mobile only */}
+          <div className="ml-auto flex sm:hidden items-center gap-2">
+            <button
+              className="flex items-center justify-center rounded-full border-[3px] border-ink bg-white p-2 text-xl"
+              style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute sound" : "Mute sound"}
+            >
+              {muted ? "🔇" : "🔊"}
+            </button>
+            <button
+              className="flex items-center justify-center rounded-full border-[3px] border-ink bg-white p-2 text-xl"
+              style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              aria-label="Open menu"
+            >
+              {mobileMenuOpen ? "✕" : "☰"}
+            </button>
+          </div>
 
           {/* Pills — hidden on mobile, visible on sm+ */}
           <div className="hidden sm:flex flex-1 items-center justify-center pr-3 sm:pr-4 lg:pr-6">
@@ -211,6 +232,52 @@ export function PortalShell({ children }: PortalShellProps) {
           </div>
           </div>
 
+          {/* Mute + Auth — desktop only */}
+          <div className="hidden sm:flex ml-auto items-center gap-2 shrink-0">
+            <button
+              className="flex items-center justify-center rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 gap-1.5"
+              style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute sound" : "Mute sound"}
+            >
+              <span>{muted ? "🔇" : "🔊"}</span>
+              <span>{muted ? "Muted" : "Sound"}</span>
+            </button>
+            {user && profile ? (
+              <div className="relative group">
+                <button
+                  className="flex items-center gap-1.5 rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
+                  style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  <span>{flagEmoji(profile.country_code)}</span>
+                  <span>{profile.username}</span>
+                  <span style={{ fontSize: "0.55rem", opacity: 0.6 }}>▼</span>
+                </button>
+                <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 min-w-[10rem] rounded-[1.25rem] border-[3px] border-ink bg-paper shadow-xl overflow-hidden"
+                  style={{ borderBottomWidth: 6, borderRightWidth: 5 }}>
+                  <div className="px-3 py-2 border-b border-ink/10 text-[0.6rem] text-ink/50 font-bold uppercase tracking-widest">
+                    Signed in
+                  </div>
+                  <button
+                    onClick={signOut}
+                    className="w-full text-left px-3 py-2.5 text-sm font-bold text-ink hover:bg-ink/5 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => openAuthModal('sign-in')}
+                className="flex items-center gap-1.5 rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                <span>🏆</span>
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+
         </div>
 
         {/* Mobile menu dropdown — sm: hidden */}
@@ -223,6 +290,25 @@ export function PortalShell({ children }: PortalShellProps) {
             >
               🏠 Game Hub
             </Link>
+            {user && profile ? (
+              <div className="flex items-center justify-between rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-white"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}>
+                <span className="font-extrabold text-ink flex items-center gap-1.5">
+                  {flagEmoji(profile.country_code)} {profile.username}
+                </span>
+                <button onClick={signOut} className="text-xs font-bold text-ink/50 hover:text-ink">
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { openAuthModal('sign-in'); setMobileMenuOpen(false); }}
+                className="flex w-full items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 font-extrabold text-white"
+                style={{ background: '#22C55E', borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                🏆 Sign In / Join Leaderboard
+              </button>
+            )}
             {CATEGORY_MANIFEST.map((category) => {
               const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
               return (

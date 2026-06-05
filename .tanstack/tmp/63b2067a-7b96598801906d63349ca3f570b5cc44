@@ -16,11 +16,9 @@ import { Route as GamesSlidingPuzzleRouteImport } from './routes/games/sliding-p
 import { Route as GamesPacmanRouteImport } from './routes/games/pacman'
 import { Route as GamesNameThatCountryRouteImport } from './routes/games/name-that-country'
 import { Route as GamesMusicMatchRouteImport } from './routes/games/music-match'
-import { Route as GamesMatchGameRouteImport } from './routes/games/match-game'
 import { Route as GamesMastermindRouteImport } from './routes/games/mastermind'
 import { Route as GamesJanglesKongRouteImport } from './routes/games/jangles-kong'
 import { Route as GamesJanglesBallRouteImport } from './routes/games/jangles-ball'
-import { Route as GamesFoxyWordScrambleRouteImport } from './routes/games/foxy-word-scramble'
 import { Route as GamesFoxerRouteImport } from './routes/games/foxer'
 import { Route as GamesFlyTheFlagRouteImport } from './routes/games/fly-the-flag'
 import { Route as GamesFindFoxyRouteImport } from './routes/games/find-foxy'
@@ -28,7 +26,6 @@ import { Route as GamesElefanteRouteImport } from './routes/games/elefante'
 import { Route as GamesDrawWithCaseyRouteImport } from './routes/games/draw-with-casey'
 import { Route as GamesCountWithJaimeRouteImport } from './routes/games/count-with-jaime'
 import { Route as GamesCaseyCanSubtractRouteImport } from './routes/games/casey-can-subtract'
-import { Route as GamesCaseyCanSpellRouteImport } from './routes/games/casey-can-spell'
 import { Route as GamesCaseyCanMultiplyRouteImport } from './routes/games/casey-can-multiply'
 import { Route as GamesCaseyCanDivideRouteImport } from './routes/games/casey-can-divide'
 import { Route as GamesCaseyCanCountRouteImport } from './routes/games/casey-can-count'
@@ -69,11 +66,6 @@ const GamesMusicMatchRoute = GamesMusicMatchRouteImport.update({
   path: '/games/music-match',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GamesMatchGameRoute = GamesMatchGameRouteImport.update({
-  id: '/games/match-game',
-  path: '/games/match-game',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GamesMastermindRoute = GamesMastermindRouteImport.update({
   id: '/games/mastermind',
   path: '/games/mastermind',
@@ -87,11 +79,6 @@ const GamesJanglesKongRoute = GamesJanglesKongRouteImport.update({
 const GamesJanglesBallRoute = GamesJanglesBallRouteImport.update({
   id: '/games/jangles-ball',
   path: '/games/jangles-ball',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GamesFoxyWordScrambleRoute = GamesFoxyWordScrambleRouteImport.update({
-  id: '/games/foxy-word-scramble',
-  path: '/games/foxy-word-scramble',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesFoxerRoute = GamesFoxerRouteImport.update({
@@ -129,11 +116,6 @@ const GamesCaseyCanSubtractRoute = GamesCaseyCanSubtractRouteImport.update({
   path: '/games/casey-can-subtract',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GamesCaseyCanSpellRoute = GamesCaseyCanSpellRouteImport.update({
-  id: '/games/casey-can-spell',
-  path: '/games/casey-can-spell',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GamesCaseyCanMultiplyRoute = GamesCaseyCanMultiplyRouteImport.update({
   id: '/games/casey-can-multiply',
   path: '/games/casey-can-multiply',
@@ -161,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
-  '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
@@ -169,11 +150,9 @@ export interface FileRoutesByFullPath {
   '/games/find-foxy': typeof GamesFindFoxyRoute
   '/games/fly-the-flag': typeof GamesFlyTheFlagRoute
   '/games/foxer': typeof GamesFoxerRoute
-  '/games/foxy-word-scramble': typeof GamesFoxyWordScrambleRoute
   '/games/jangles-ball': typeof GamesJanglesBallRoute
   '/games/jangles-kong': typeof GamesJanglesKongRoute
   '/games/mastermind': typeof GamesMastermindRoute
-  '/games/match-game': typeof GamesMatchGameRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -187,7 +166,6 @@ export interface FileRoutesByTo {
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
-  '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
@@ -195,11 +173,9 @@ export interface FileRoutesByTo {
   '/games/find-foxy': typeof GamesFindFoxyRoute
   '/games/fly-the-flag': typeof GamesFlyTheFlagRoute
   '/games/foxer': typeof GamesFoxerRoute
-  '/games/foxy-word-scramble': typeof GamesFoxyWordScrambleRoute
   '/games/jangles-ball': typeof GamesJanglesBallRoute
   '/games/jangles-kong': typeof GamesJanglesKongRoute
   '/games/mastermind': typeof GamesMastermindRoute
-  '/games/match-game': typeof GamesMatchGameRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -214,7 +190,6 @@ export interface FileRoutesById {
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
-  '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
   '/games/count-with-jaime': typeof GamesCountWithJaimeRoute
   '/games/draw-with-casey': typeof GamesDrawWithCaseyRoute
@@ -222,11 +197,9 @@ export interface FileRoutesById {
   '/games/find-foxy': typeof GamesFindFoxyRoute
   '/games/fly-the-flag': typeof GamesFlyTheFlagRoute
   '/games/foxer': typeof GamesFoxerRoute
-  '/games/foxy-word-scramble': typeof GamesFoxyWordScrambleRoute
   '/games/jangles-ball': typeof GamesJanglesBallRoute
   '/games/jangles-kong': typeof GamesJanglesKongRoute
   '/games/mastermind': typeof GamesMastermindRoute
-  '/games/match-game': typeof GamesMatchGameRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -242,7 +215,6 @@ export interface FileRouteTypes {
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
-    | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
@@ -250,11 +222,9 @@ export interface FileRouteTypes {
     | '/games/find-foxy'
     | '/games/fly-the-flag'
     | '/games/foxer'
-    | '/games/foxy-word-scramble'
     | '/games/jangles-ball'
     | '/games/jangles-kong'
     | '/games/mastermind'
-    | '/games/match-game'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -268,7 +238,6 @@ export interface FileRouteTypes {
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
-    | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
@@ -276,11 +245,9 @@ export interface FileRouteTypes {
     | '/games/find-foxy'
     | '/games/fly-the-flag'
     | '/games/foxer'
-    | '/games/foxy-word-scramble'
     | '/games/jangles-ball'
     | '/games/jangles-kong'
     | '/games/mastermind'
-    | '/games/match-game'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -294,7 +261,6 @@ export interface FileRouteTypes {
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
-    | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
     | '/games/count-with-jaime'
     | '/games/draw-with-casey'
@@ -302,11 +268,9 @@ export interface FileRouteTypes {
     | '/games/find-foxy'
     | '/games/fly-the-flag'
     | '/games/foxer'
-    | '/games/foxy-word-scramble'
     | '/games/jangles-ball'
     | '/games/jangles-kong'
     | '/games/mastermind'
-    | '/games/match-game'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -321,7 +285,6 @@ export interface RootRouteChildren {
   GamesCaseyCanCountRoute: typeof GamesCaseyCanCountRoute
   GamesCaseyCanDivideRoute: typeof GamesCaseyCanDivideRoute
   GamesCaseyCanMultiplyRoute: typeof GamesCaseyCanMultiplyRoute
-  GamesCaseyCanSpellRoute: typeof GamesCaseyCanSpellRoute
   GamesCaseyCanSubtractRoute: typeof GamesCaseyCanSubtractRoute
   GamesCountWithJaimeRoute: typeof GamesCountWithJaimeRoute
   GamesDrawWithCaseyRoute: typeof GamesDrawWithCaseyRoute
@@ -329,11 +292,9 @@ export interface RootRouteChildren {
   GamesFindFoxyRoute: typeof GamesFindFoxyRoute
   GamesFlyTheFlagRoute: typeof GamesFlyTheFlagRoute
   GamesFoxerRoute: typeof GamesFoxerRoute
-  GamesFoxyWordScrambleRoute: typeof GamesFoxyWordScrambleRoute
   GamesJanglesBallRoute: typeof GamesJanglesBallRoute
   GamesJanglesKongRoute: typeof GamesJanglesKongRoute
   GamesMastermindRoute: typeof GamesMastermindRoute
-  GamesMatchGameRoute: typeof GamesMatchGameRoute
   GamesMusicMatchRoute: typeof GamesMusicMatchRoute
   GamesNameThatCountryRoute: typeof GamesNameThatCountryRoute
   GamesPacmanRoute: typeof GamesPacmanRoute
@@ -393,13 +354,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesMusicMatchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/games/match-game': {
-      id: '/games/match-game'
-      path: '/games/match-game'
-      fullPath: '/games/match-game'
-      preLoaderRoute: typeof GamesMatchGameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/games/mastermind': {
       id: '/games/mastermind'
       path: '/games/mastermind'
@@ -419,13 +373,6 @@ declare module '@tanstack/react-router' {
       path: '/games/jangles-ball'
       fullPath: '/games/jangles-ball'
       preLoaderRoute: typeof GamesJanglesBallRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/games/foxy-word-scramble': {
-      id: '/games/foxy-word-scramble'
-      path: '/games/foxy-word-scramble'
-      fullPath: '/games/foxy-word-scramble'
-      preLoaderRoute: typeof GamesFoxyWordScrambleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/foxer': {
@@ -477,13 +424,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCaseyCanSubtractRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/games/casey-can-spell': {
-      id: '/games/casey-can-spell'
-      path: '/games/casey-can-spell'
-      fullPath: '/games/casey-can-spell'
-      preLoaderRoute: typeof GamesCaseyCanSpellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/games/casey-can-multiply': {
       id: '/games/casey-can-multiply'
       path: '/games/casey-can-multiply'
@@ -521,7 +461,6 @@ const rootRouteChildren: RootRouteChildren = {
   GamesCaseyCanCountRoute: GamesCaseyCanCountRoute,
   GamesCaseyCanDivideRoute: GamesCaseyCanDivideRoute,
   GamesCaseyCanMultiplyRoute: GamesCaseyCanMultiplyRoute,
-  GamesCaseyCanSpellRoute: GamesCaseyCanSpellRoute,
   GamesCaseyCanSubtractRoute: GamesCaseyCanSubtractRoute,
   GamesCountWithJaimeRoute: GamesCountWithJaimeRoute,
   GamesDrawWithCaseyRoute: GamesDrawWithCaseyRoute,
@@ -529,11 +468,9 @@ const rootRouteChildren: RootRouteChildren = {
   GamesFindFoxyRoute: GamesFindFoxyRoute,
   GamesFlyTheFlagRoute: GamesFlyTheFlagRoute,
   GamesFoxerRoute: GamesFoxerRoute,
-  GamesFoxyWordScrambleRoute: GamesFoxyWordScrambleRoute,
   GamesJanglesBallRoute: GamesJanglesBallRoute,
   GamesJanglesKongRoute: GamesJanglesKongRoute,
   GamesMastermindRoute: GamesMastermindRoute,
-  GamesMatchGameRoute: GamesMatchGameRoute,
   GamesMusicMatchRoute: GamesMusicMatchRoute,
   GamesNameThatCountryRoute: GamesNameThatCountryRoute,
   GamesPacmanRoute: GamesPacmanRoute,

@@ -1,0 +1,115 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { User } from '@supabase/supabase-js';
+import { isSupabaseConfigured, supabase, type Profile } from './supabase';
+import { AuthModal } from '@/components/auth-modal';
+
+type AuthContextType = {
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
+  openAuthModal: (mode?: 'sign-in' | 'sign-up') => void;
+  signOut: () => void;
+};
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  profile: null,
+  loading: false,
+  openAuthModal: () => {},
+  signOut: () => {},
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, username, country_code')
+    .eq('id', userId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const profileCache = useRef<Record<string, Profile>>({});
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        const p = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        if (p) profileCache.current[u.id] = p;
+        setProfile(p);
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        const p = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        if (p) profileCache.current[u.id] = p;
+        setProfile(p);
+      } else {
+        setProfile(null);
+      }
+      if (event === 'SIGNED_IN') setModalOpen(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const openAuthModal = useCallback((mode: 'sign-in' | 'sign-up' = 'sign-in') => {
+    setModalMode(mode);
+    setModalOpen(true);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+  }, []);
+
+  const handleProfileCreated = useCallback((p: Profile) => {
+    profileCache.current[p.id] = p;
+    setProfile(p);
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, profile, loading, openAuthModal, signOut }}>
+      {children}
+      {isSupabaseConfigured && (
+        <AuthModal
+          open={modalOpen}
+          mode={modalMode}
+          onClose={() => setModalOpen(false)}
+          onModeChange={setModalMode}
+          onProfileCreated={handleProfileCreated}
+        />
+      )}
+    </AuthContext.Provider>
+  );
+}

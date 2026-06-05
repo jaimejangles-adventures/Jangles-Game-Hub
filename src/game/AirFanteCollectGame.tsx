@@ -99,7 +99,7 @@ export function AirFanteCollectGame() {
     let advanceFlash = 0;
     let rafId        = 0;
 
-    const player = { x: 40, y: GH / 2, vy: 0, vx: 0 };
+    const player = { x: 5, y: GH / 2, vy: 0, vx: 0 };
     const dots: { x: number; y: number; r: number; flag: string; accent: string; collected: boolean; popAlpha: number; popOffY: number }[] = [];
 
     const clouds: { x: number; y: number; s: number }[] = [];
@@ -151,7 +151,7 @@ export function AirFanteCollectGame() {
       countryIdx   = 0;
       countryFlash = 0;
       advanceFlash = 0;
-      player.x  = 40;
+      player.x  = 5;
       player.y  = GH / 2;
       player.vy = 0;
       player.vx = 0;

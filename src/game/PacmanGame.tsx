@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { asset } from "@/lib/asset";
+import { useAuth } from "@/lib/auth-context";
+import { useScore } from "@/hooks/use-score";
+import { Leaderboard } from "@/components/leaderboard";
 
 // ─── Audio ─────────────────────────────────────────────────────────────────
 function createAudioCtx(): AudioContext | null {
@@ -195,6 +198,16 @@ const MAZE_STYLES: MazeStyle[] = [
 
 function makeMaze(layoutIdx: number): number[][] {
   return MAZE_LAYOUTS[layoutIdx].map(row => [...row]);
+}
+
+// Fisher-Yates shuffle — returns a new array
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function countDots(maze: number[][]): number {
@@ -615,9 +628,18 @@ export function PacmanGame() {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [levelIndex, setLevelIndex] = useState(0);
+  const [mazeStyle, setMazeStyle] = useState<MazeStyle>(MAZE_STYLES[0]);
+  // Countries shuffled fresh each game — same round number always means same difficulty, random country
+  const [shuffledLevels, setShuffledLevels] = useState<LevelDef[]>([...LEVELS]);
+  const shuffledLevelsRef = useRef<LevelDef[]>([...LEVELS]);
   const [highScore, setHighScore] = useState(() => {
     try { return parseInt(localStorage.getItem("pacman-hs") || "0"); } catch { return 0; }
   });
+
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore("pacman");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
 
   const phaseRef       = useRef<Phase>("select");
   const mazeRef        = useRef<number[][]>(makeMaze(0));
@@ -651,9 +673,11 @@ export function PacmanGame() {
 
   const initLevel = useCallback((lvlIdx: number) => {
     stopPowerMusic();
-    const layoutIdx = Math.floor(Math.random() * MAZE_LAYOUTS.length);
+    // Maze layout steps up each round: Classic → Wide Open → Grid → Channels → Complex → repeats
+    const layoutIdx = roundRef.current % MAZE_LAYOUTS.length;
     const styleIdx  = Math.floor(Math.random() * MAZE_STYLES.length);
     mazeStyleRef.current = MAZE_STYLES[styleIdx];
+    setMazeStyle(MAZE_STYLES[styleIdx]);
     const maze = makeMaze(layoutIdx);
     mazeRef.current = maze;
     dotsLeftRef.current = countDots(maze);
@@ -663,8 +687,8 @@ export function PacmanGame() {
     powerTimerRef.current = 0;
     ghostEatCount.current = 0;
 
-    // Load background
-    const lvl = LEVELS[lvlIdx] ?? LEVELS[0];
+    // Load background using shuffled country order
+    const lvl = shuffledLevelsRef.current[lvlIdx] ?? shuffledLevelsRef.current[0] ?? LEVELS[0];
     const url = asset(`/book3-nt/${lvl.page}.png`);
     if (url !== bgUrlRef.current) {
       bgLoadedRef.current = false;
@@ -673,20 +697,22 @@ export function PacmanGame() {
       img.onload = () => { bgImgRef.current = img; bgLoadedRef.current = true; };
       img.src = url;
     }
-  }, []);
+  }, [setMazeStyle]);
 
   const startGame = useCallback((char: CharDef) => {
     charRef.current = char;
     scoreRef.current = 0;
     livesRef.current = 3;
     roundRef.current = 0;
-    // Start on a random country each game
-    const startIdx = Math.floor(Math.random() * LEVELS.length);
-    levelRef.current = startIdx;
+    // Shuffle countries fresh every game — level 1 is always maze layout 0, but random country
+    const newOrder = shuffle(LEVELS);
+    shuffledLevelsRef.current = newOrder;
+    setShuffledLevels(newOrder);
+    levelRef.current = 0;
     setScore(0);
     setLives(3);
-    setLevelIndex(startIdx);
-    initLevel(startIdx);
+    setLevelIndex(0);
+    initLevel(0);
     phaseRef.current = "playing";
     setPhase("playing");
   }, [initLevel]);
@@ -758,7 +784,7 @@ export function PacmanGame() {
       const p     = playerRef.current;
       const ghosts = ghostsRef.current;
       const lvlIdx = levelRef.current;
-      const lvl   = LEVELS[lvlIdx] ?? LEVELS[0];
+      const lvl   = shuffledLevelsRef.current[lvlIdx] ?? shuffledLevelsRef.current[0] ?? LEVELS[0];
       const audio = audioRef.current;
 
       // ── Power timer ──
@@ -892,6 +918,7 @@ export function PacmanGame() {
         roundRef.current++;
         // Win after completing all 21 countries
         if (roundRef.current >= LEVELS.length) {
+          saveScoreRef.current(scoreRef.current);
           phaseRef.current = "win";
           setPhase("win");
           return;
@@ -1010,6 +1037,7 @@ export function PacmanGame() {
               const hs = Math.max(highScore, scoreRef.current);
               setHighScore(hs);
               try { localStorage.setItem("pacman-hs", String(hs)); } catch {}
+              saveScoreRef.current(scoreRef.current);
               phaseRef.current = "gameOver";
               setPhase("gameOver");
               return;
@@ -1079,7 +1107,7 @@ export function PacmanGame() {
   const dpad = (dir: Dir) => { playerRef.current.nextDir = dir; };
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  const lvl = LEVELS[levelIndex] ?? LEVELS[0];
+  const lvl = shuffledLevels[levelIndex] ?? shuffledLevels[0] ?? LEVELS[0];
 
   if (phase === "select") {
     return (
@@ -1152,38 +1180,60 @@ export function PacmanGame() {
     );
   }
 
-  if (phase === "gameOver") {
+  if (phase === "gameOver" || phase === "win") {
+    const isWin = phase === "win";
     return (
-      <div className="flex flex-col items-center justify-center bg-gray-950 text-white p-4 overflow-hidden" style={{ height: "100dvh" }}>
-        <div className="text-6xl mb-4">💀</div>
-        <h2 className="text-4xl font-black font-mono text-red-500 mb-2">GAME OVER</h2>
-        <p className="text-2xl font-mono text-yellow-400 mb-1">SCORE: {score}</p>
-        <p className="text-sm font-mono text-gray-400 mb-8">HIGH SCORE: {highScore}</p>
-        <div className="flex gap-4">
-          <button onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
-            className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500">
-            Menu
-          </button>
-          <button onClick={() => startGame(charRef.current)}
-            className="px-8 py-3 bg-green-600 rounded-xl font-bold text-lg hover:bg-green-500">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+      <div className="flex flex-col items-center bg-gray-950 text-white overflow-y-auto" style={{ height: "100dvh" }}>
+        <div className="w-full max-w-sm px-4 py-6 flex flex-col items-center gap-4">
+          <div className="text-6xl">{isWin ? "🏆" : "💀"}</div>
+          <h2 className={`text-4xl font-black font-mono ${isWin ? "text-yellow-400" : "text-red-500"}`}>
+            {isWin ? "YOU WIN!" : "GAME OVER"}
+          </h2>
+          {isWin && <p className="text-sm font-mono text-gray-300">Traveled all {LEVELS.length} countries!</p>}
+          <p className="text-2xl font-mono text-yellow-400">SCORE: {score}</p>
+          <p className="text-sm font-mono text-gray-400">HIGH SCORE: {highScore}</p>
 
-  if (phase === "win") {
-    return (
-      <div className="flex flex-col items-center justify-center bg-gray-950 text-white p-4 overflow-hidden" style={{ height: "100dvh" }}>
-        <div className="text-6xl mb-4">🏆</div>
-        <h2 className="text-4xl font-black font-mono text-yellow-400 mb-2">YOU WIN!</h2>
-        <p className="text-lg font-mono text-gray-300 mb-1">Traveled all {LEVELS.length} countries!</p>
-        <p className="text-2xl font-mono text-yellow-400 mb-8">SCORE: {score}</p>
-        <button onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
-          className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500">
-          Play Again
-        </button>
+          {/* Score saved indicator */}
+          {user ? (
+            <p className="text-xs font-mono text-green-400">
+              {saving ? "Saving score…" : saved ? "✓ Score saved to leaderboard" : ""}
+            </p>
+          ) : (
+            <button
+              onClick={() => openAuthModal("sign-up")}
+              className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300"
+            >
+              🏆 Sign in to save your score
+            </button>
+          )}
+
+          {/* Mini leaderboard */}
+          <div className="w-full">
+            <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-2">Top Scores — Jangles Pac</p>
+            <Leaderboard gameSlug="pacman" limit={5} theme="dark" />
+          </div>
+
+          <div className="flex gap-4 mt-2">
+            <button
+              onClick={() => { resetScore(); stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+              className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500"
+            >
+              Menu
+            </button>
+            {!isWin && (
+              <button onClick={() => { resetScore(); startGame(charRef.current); }}
+                className="px-8 py-3 bg-green-600 rounded-xl font-bold text-lg hover:bg-green-500">
+                Retry
+              </button>
+            )}
+            {isWin && (
+              <button onClick={() => { resetScore(); stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+                className="px-8 py-3 bg-green-600 rounded-xl font-bold text-lg hover:bg-green-500">
+                Play Again
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -1227,9 +1277,9 @@ export function PacmanGame() {
            style={{
              width: scaledW + 6,
              height: scaledH + 6,
-             border: `3px solid ${mazeStyleRef.current.wallColor}`,
+             border: `3px solid ${mazeStyle.wallColor}`,
              borderRadius: 8,
-             boxShadow: `0 0 24px ${mazeStyleRef.current.wallColor}88`,
+             boxShadow: `0 0 24px ${mazeStyle.wallColor}88`,
              overflow: "hidden",
            }}>
         <canvas
@@ -1248,7 +1298,7 @@ export function PacmanGame() {
             <div className="text-4xl mb-1">{lvl.flag}</div>
             <div className="text-xl font-black font-mono text-yellow-400">LEVEL CLEAR!</div>
             <div className="text-gray-300 mt-1 font-mono text-xs">
-              Next: {LEVELS[(levelIndex + 1) % LEVELS.length]?.country}
+              Next: {shuffledLevels[(levelIndex + 1) % shuffledLevels.length]?.country}
             </div>
           </div>
         )}
