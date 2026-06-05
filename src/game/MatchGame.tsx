@@ -3,24 +3,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { burstFinale } from '@/game/confetti';
 import { asset } from '@/lib/asset';
 
+// Real coloured book illustrations from /count-objects/
 const ALL_OBJECTS = [
-  { id: 'elephant',   label: 'Elephant',   src: asset('/objects/elephant.svg') },
-  { id: 'fish',       label: 'Fish',        src: asset('/objects/fish.svg') },
-  { id: 'fox',        label: 'Fox',         src: asset('/objects/fox.svg') },
-  { id: 'kangaroo',   label: 'Kangaroo',    src: asset('/objects/kangaroo.svg') },
-  { id: 'octopus',    label: 'Octopus',     src: asset('/objects/octopus.svg') },
-  { id: 'penguin',    label: 'Penguin',     src: asset('/objects/penguin.svg') },
-  { id: 'sandcastle', label: 'Sandcastle',  src: asset('/objects/sandcastle.svg') },
-  { id: 'sombrero',   label: 'Sombrero',    src: asset('/objects/sombrero.svg') },
-  { id: 'trombone',   label: 'Trombone',    src: asset('/objects/trombone.svg') },
-  { id: 'ukulele',    label: 'Ukulele',     src: asset('/objects/ukulele.svg') },
+  { id: 'elephant',     label: 'Elephant',     src: asset('/count-objects/elephant.png') },
+  { id: 'penguin',      label: 'Penguin',       src: asset('/count-objects/south-africa-penguin.png') },
+  { id: 'octopus',      label: 'Octopus',       src: asset('/count-objects/octapus.png') },
+  { id: 'flying-fish',  label: 'Flying Fish',   src: asset('/count-objects/flying-fish.png') },
+  { id: 'trombone',     label: 'Trombone',      src: asset('/count-objects/trombone.png') },
+  { id: 'sombrero',     label: 'Sombrero',      src: asset('/count-objects/mexico-hat.png') },
+  { id: 'steel-drum',   label: 'Steel Drum',    src: asset('/count-objects/jamaica-steel-drum.png') },
+  { id: 'eiffel',       label: 'Eiffel Tower',  src: asset('/count-objects/france-eiffel.png') },
+  { id: 'pan-flute',    label: 'Pan Flute',     src: asset('/count-objects/peru-pan-flute.png') },
+  { id: 'pizza',        label: 'Pizza',         src: asset('/count-objects/pizza.png') },
+  { id: 'sitar',        label: 'Sitar',         src: asset('/count-objects/sri-lanka-sittar.png') },
+  { id: 'skis',         label: 'Skis',          src: asset('/count-objects/swiss-skiis.png') },
+  { id: 'korea-mask',   label: 'Korean Mask',   src: asset('/count-objects/korea-mask.png') },
+  { id: 'tomato',       label: 'Tomato',        src: asset('/count-objects/spain-tomato.png') },
+  { id: 'jewellery',    label: 'Jewellery',     src: asset('/count-objects/ghana-jewlery.png') },
+  { id: 'tuba',         label: 'Tuba',          src: asset('/count-objects/tuba.png') },
+  { id: 'compass',      label: 'Compass',       src: asset('/count-objects/compass.png') },
+  { id: 'spyglass',     label: 'Spyglass',      src: asset('/count-objects/spy-glass.png') },
+  { id: 'tennis',       label: 'Tennis',        src: asset('/count-objects/tennis.png') },
+  { id: 'beefeater',    label: 'Beefeater',     src: asset('/count-objects/british-guy.png') },
 ];
 
 type Difficulty = 'rookie' | 'master';
 
 const DIFFICULTY_CONFIG = {
   rookie: { cols: 5, rows: 4, pairsPerObject: 1, label: 'Rookie', emoji: '⭐', color: '#22c55e', desc: '5×4 grid · 10 pairs' },
-  master: { cols: 10, rows: 10, pairsPerObject: 5, label: 'Master', emoji: '🔥', color: '#ef4444', desc: '10×10 grid · 50 pairs' },
+  master: { cols: 10, rows: 10, pairsPerObject: 2, label: 'Master', emoji: '🔥', color: '#ef4444', desc: '10×10 grid · 50 pairs' },
 };
 
 type Card = {
@@ -32,24 +43,42 @@ type Card = {
   matched: boolean;
 };
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function buildDeck(difficulty: Difficulty): Card[] {
-  const cfg = DIFFICULTY_CONFIG[difficulty];
-  const totalCards = cfg.cols * cfg.rows;
-  const totalPairs = totalCards / 2;
-  const objects = ALL_OBJECTS;
+  const pairs: Array<{ obj: typeof ALL_OBJECTS[0]; pairIdx: number }> = [];
+
+  if (difficulty === 'rookie') {
+    // Pick 10 random objects, 1 pair each = 20 cards
+    const chosen = shuffle(ALL_OBJECTS).slice(0, 10);
+    for (const obj of chosen) pairs.push({ obj, pairIdx: 0 });
+  } else {
+    // 20 objects × 2 pairs = 40, then 10 random objects get a 3rd pair = 50 pairs total
+    for (const obj of ALL_OBJECTS) {
+      pairs.push({ obj, pairIdx: 0 });
+      pairs.push({ obj, pairIdx: 1 });
+    }
+    const extra = shuffle(ALL_OBJECTS).slice(0, 10);
+    for (const obj of extra) pairs.push({ obj, pairIdx: 2 });
+  }
 
   const cards: Card[] = [];
-  for (let p = 0; p < cfg.pairsPerObject; p++) {
-    for (const obj of objects) {
-      cards.push({ uid: `${obj.id}-${p}-a`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
-      cards.push({ uid: `${obj.id}-${p}-b`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
-    }
+  for (const { obj, pairIdx } of pairs) {
+    // uid must be unique per card; objectId is just obj.id so any two cards
+    // showing the same image always count as a match regardless of which
+    // "copy" of the pair they belong to.
+    cards.push({ uid: `${obj.id}-${pairIdx}-a`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
+    cards.push({ uid: `${obj.id}-${pairIdx}-b`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
   }
-  for (let i = cards.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [cards[i], cards[j]] = [cards[j], cards[i]];
-  }
-  return cards;
+
+  return shuffle(cards);
 }
 
 function formatTime(s: number) {
@@ -69,7 +98,7 @@ export function MatchGame() {
   const [blocking, setBlocking] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const totalPairs = difficulty === 'rookie' ? 10 : 50;
+  const totalPairs = (DIFFICULTY_CONFIG[difficulty].cols * DIFFICULTY_CONFIG[difficulty].rows) / 2;
 
   function startGame(diff: Difficulty) {
     setDifficulty(diff);
@@ -182,7 +211,7 @@ export function MatchGame() {
         </div>
 
         <p className="text-center text-xs text-ink/40 max-w-xs">
-          Master mode has 5 copies of each object — find all 5 pairs of every image to win!
+          Master mode: 100 cards, 50 pairs — how fast can you clear the whole board?
         </p>
       </div>
     );
@@ -312,7 +341,7 @@ function CardTile({ card, size, onClick }: CardTileProps) {
           <img
             src={card.src}
             alt={card.label}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
       </motion.div>

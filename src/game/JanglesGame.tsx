@@ -1044,9 +1044,9 @@ function MusicPassportOverlay({
                   >
                     <div style={{ overflow: "hidden", borderRadius: "0.45rem" }}>
                       <img
-                        src={"/" + src}
+                        src={asset("/" + src)}
                         alt={artistName(src)}
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/art/styleimage_a.png"; }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = asset("/art/styleimage_a.png"); }}
                         style={{
                           width: "100%",
                           height: "auto",
@@ -1419,16 +1419,16 @@ function FactsView({ onResetGame }: { onResetGame: () => void }) {
           >
             <div className="relative h-40 bg-paper overflow-hidden">
               <img
-                src={"/" + item.image}
+                src={asset("/" + item.image)}
                 alt={`Artist from ${item.country}`}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/art/styleimage_a.png"; }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = asset("/art/styleimage_a.png"); }}
                 className="h-full w-full object-cover"
               />
               {item.image2 && (
                 <img
-                  src={"/" + item.image2}
+                  src={asset("/" + item.image2)}
                   alt={`Artist from ${item.country}`}
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/art/styleimage_a.png"; }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = asset("/art/styleimage_a.png"); }}
                   style={{
                     position: "absolute", bottom: 6, right: 6,
                     width: "38%", height: "auto",
