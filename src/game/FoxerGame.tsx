@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { asset } from "@/lib/asset";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 function createAudioCtx(): AudioContext | null {
@@ -1760,6 +1762,7 @@ export function FoxerGame() {
   const bounceRef = useRef(0);
   const lastTimeRef = useRef<number | null>(null);
   const animFrameRef = useRef<number>(0);
+
   const invincibleRef = useRef(0); // seconds of invincibility after hit
   const rowsCrossedRef = useRef<Set<number>>(new Set());
   // Randomized level order for the current game — rebuilt on every new game
@@ -1772,6 +1775,17 @@ export function FoxerGame() {
   const [displayLives, setDisplayLives] = useState(3);
   const [displayHighScore, setDisplayHighScore] = useState(0);
   const [levelStars, setLevelStars] = useState(3);
+
+  const { user } = useAuth();
+  const { saveScore } = useScore("foxer");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
+  useEffect(() => {
+    if (gameState === "gameOver" && user) {
+      saveScoreRef.current(scoreRef.current);
+    }
+  }, [gameState, user]);
 
   // Load the real Foxy image once
   useEffect(() => {

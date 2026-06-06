@@ -243,20 +243,20 @@ export function PortalShell({ children }: PortalShellProps) {
               <span>{muted ? "🔇" : "🔊"}</span>
               <span>{muted ? "Muted" : "Sound"}</span>
             </button>
-            {user && profile ? (
+            {user ? (
               <div className="relative group">
                 <button
                   className="flex items-center gap-1.5 rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
                   style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
                 >
-                  <span>{flagEmoji(profile.country_code)}</span>
-                  <span>{profile.username}</span>
+                  {profile && <span>{flagEmoji(profile.country_code)}</span>}
+                  <span>{profile ? profile.username : '👤 Me'}</span>
                   <span style={{ fontSize: "0.55rem", opacity: 0.6 }}>▼</span>
                 </button>
                 <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 min-w-[10rem] rounded-[1.25rem] border-[3px] border-ink bg-paper shadow-xl overflow-hidden"
                   style={{ borderBottomWidth: 6, borderRightWidth: 5 }}>
                   <div className="px-3 py-2 border-b border-ink/10 text-[0.6rem] text-ink/50 font-bold uppercase tracking-widest">
-                    Signed in
+                    {user.email}
                   </div>
                   <button
                     onClick={signOut}
@@ -290,11 +290,11 @@ export function PortalShell({ children }: PortalShellProps) {
             >
               🏠 Game Hub
             </Link>
-            {user && profile ? (
+            {user ? (
               <div className="flex items-center justify-between rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-white"
                 style={{ borderBottomWidth: 5, borderRightWidth: 4 }}>
                 <span className="font-extrabold text-ink flex items-center gap-1.5">
-                  {flagEmoji(profile.country_code)} {profile.username}
+                  {profile ? `${flagEmoji(profile.country_code)} ${profile.username}` : `👤 ${user.email}`}
                 </span>
                 <button onClick={signOut} className="text-xs font-bold text-ink/50 hover:text-ink">
                   Sign Out

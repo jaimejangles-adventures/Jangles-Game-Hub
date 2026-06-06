@@ -28,26 +28,45 @@ export function Leaderboard({ gameSlug, limit = 10, theme = 'light' }: Props) {
       return;
     }
     setLoading(true);
-    supabase
-      .from('scores')
-      .select('score, updated_at, profiles(username, country_code)')
-      .eq('game_slug', gameSlug)
-      .order('score', { ascending: false })
-      .limit(limit)
-      .then(({ data }) => {
-        const rows = (data ?? []) as unknown as ScoreRow[];
-        setEntries(
-          rows
-            .filter((r) => r.profiles)
-            .map((r, i) => ({
-              rank: i + 1,
-              username: r.profiles!.username,
-              country_code: r.profiles!.country_code,
-              score: r.score,
-            })),
-        );
+
+    (async () => {
+      // Step 1: fetch top scores for this game
+      const { data: scoreData } = await supabase
+        .from('scores')
+        .select('score, user_id')
+        .eq('game_slug', gameSlug)
+        .order('score', { ascending: false })
+        .limit(limit);
+
+      if (!scoreData?.length) {
+        setEntries([]);
         setLoading(false);
-      });
+        return;
+      }
+
+      // Step 2: fetch profiles for those users
+      const userIds = scoreData.map((s: { user_id: string }) => s.user_id);
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, username, country_code')
+        .in('id', userIds);
+
+      // Step 3: join them in JS
+      const profileMap: Record<string, { username: string; country_code: string }> =
+        Object.fromEntries((profileData ?? []).map((p: { id: string; username: string; country_code: string }) => [p.id, p]));
+
+      setEntries(
+        scoreData
+          .filter((s: { user_id: string }) => profileMap[s.user_id])
+          .map((s: { score: number; user_id: string }, i: number) => ({
+            rank: i + 1,
+            username: profileMap[s.user_id].username,
+            country_code: profileMap[s.user_id].country_code,
+            score: s.score,
+          })),
+      );
+      setLoading(false);
+    })();
   }, [gameSlug, limit]);
 
   const isDark = theme === 'dark';

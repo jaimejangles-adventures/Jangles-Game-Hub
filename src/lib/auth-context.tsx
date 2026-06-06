@@ -10,6 +10,7 @@ import {
 import type { User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase, type Profile } from './supabase';
 import { AuthModal } from '@/components/auth-modal';
+import { CompleteProfileModal } from '@/components/auth-modal';
 
 type AuthContextType = {
   user: User | null;
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const [needsProfile, setNeedsProfile] = useState(false);
   const profileCache = useRef<Record<string, Profile>>({});
 
   useEffect(() => {
@@ -58,9 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        const p = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        if (!p) p = await tryPendingProfile(u.id);
         if (p) profileCache.current[u.id] = p;
         setProfile(p);
+        if (!p) setNeedsProfile(true);
       }
       setLoading(false);
     });
@@ -69,11 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        const p = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+        if (!p) p = await tryPendingProfile(u.id);
         if (p) profileCache.current[u.id] = p;
         setProfile(p);
+        if (!p) setNeedsProfile(true);
       } else {
         setProfile(null);
+        setNeedsProfile(false);
       }
       if (event === 'SIGNED_IN') setModalOpen(false);
     });
@@ -91,25 +98,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setNeedsProfile(false);
   }, []);
 
   const handleProfileCreated = useCallback((p: Profile) => {
     profileCache.current[p.id] = p;
     setProfile(p);
+    setNeedsProfile(false);
   }, []);
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, openAuthModal, signOut }}>
       {children}
       {isSupabaseConfigured && (
-        <AuthModal
-          open={modalOpen}
-          mode={modalMode}
-          onClose={() => setModalOpen(false)}
-          onModeChange={setModalMode}
-          onProfileCreated={handleProfileCreated}
-        />
+        <>
+          <AuthModal
+            open={modalOpen}
+            mode={modalMode}
+            onClose={() => setModalOpen(false)}
+            onModeChange={setModalMode}
+            onProfileCreated={handleProfileCreated}
+          />
+          {needsProfile && user && (
+            <CompleteProfileModal
+              userId={user.id}
+              onProfileCreated={handleProfileCreated}
+            />
+          )}
+        </>
       )}
     </AuthContext.Provider>
   );
+}
+
+async function tryPendingProfile(userId: string): Promise<Profile | null> {
+  try {
+    const pending = localStorage.getItem('pending_profile');
+    if (!pending) return null;
+    const { username, country_code } = JSON.parse(pending);
+    const { error } = await supabase.from('profiles').insert({ id: userId, username, country_code });
+    if (!error) {
+      localStorage.removeItem('pending_profile');
+      return { id: userId, username, country_code };
+    }
+  } catch { /* silent */ }
+  return null;
 }

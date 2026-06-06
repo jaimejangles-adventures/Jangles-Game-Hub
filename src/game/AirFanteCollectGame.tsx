@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { asset } from "@/lib/asset";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
 
 // ── Country data ───────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -59,6 +61,17 @@ export function AirFanteCollectGame() {
   const [finalScore,  setFinalScore]  = useState(0);
   const [gameWon,     setGameWon]     = useState(false);
   const [hoveredCard, setHoveredCard] = useState<Difficulty | null>(null);
+
+  const { user } = useAuth();
+  const { saveScore } = useScore("air-fante-collect");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
+  useEffect(() => {
+    if (phase === "over" && user) {
+      saveScoreRef.current(finalScore);
+    }
+  }, [phase, user, finalScore]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
