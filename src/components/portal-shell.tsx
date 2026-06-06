@@ -11,7 +11,7 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
@@ -244,28 +244,7 @@ export function PortalShell({ children }: PortalShellProps) {
               <span>{muted ? "Muted" : "Sound"}</span>
             </button>
             {user ? (
-              <div className="relative group">
-                <button
-                  className="flex items-center gap-1.5 rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
-                  style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
-                >
-                  {profile && <span>{flagEmoji(profile.country_code)}</span>}
-                  <span>{profile ? profile.username : '👤 Me'}</span>
-                  <span style={{ fontSize: "0.55rem", opacity: 0.6 }}>▼</span>
-                </button>
-                <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 min-w-[10rem] rounded-[1.25rem] border-[3px] border-ink bg-paper shadow-xl overflow-hidden"
-                  style={{ borderBottomWidth: 6, borderRightWidth: 5 }}>
-                  <div className="px-3 py-2 border-b border-ink/10 text-[0.6rem] text-ink/50 font-bold uppercase tracking-widest">
-                    {user.email}
-                  </div>
-                  <button
-                    onClick={signOut}
-                    className="w-full text-left px-3 py-2.5 text-sm font-bold text-ink hover:bg-ink/5 transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
+              <UserMenu user={user} profile={profile} flagEmoji={flagEmoji} signOut={signOut} />
             ) : (
               <button
                 onClick={() => openAuthModal('sign-in')}
@@ -442,5 +421,58 @@ function CategoryButton({
       <span>{category.title}</span>
       <span style={{ fontSize: "0.55rem", opacity: 0.65 }}>▼</span>
     </button>
+  );
+}
+
+function UserMenu({
+  user,
+  profile,
+  flagEmoji: flag,
+  signOut,
+}: {
+  user: { email?: string };
+  profile: { country_code: string; username: string } | null;
+  flagEmoji: (code: string) => string;
+  signOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
+        style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+      >
+        {profile && <span>{flag(profile.country_code)}</span>}
+        <span>{profile ? profile.username : "👤 Me"}</span>
+        <span style={{ fontSize: "0.55rem", opacity: 0.6 }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-[1.25rem] border-[3px] border-ink bg-paper shadow-xl overflow-hidden"
+          style={{ borderBottomWidth: 6, borderRightWidth: 5 }}
+        >
+          <div className="px-3 py-2 border-b border-ink/10 text-[0.6rem] text-ink/50 font-bold uppercase tracking-widest truncate">
+            {user.email?.includes("@play.jaimejangles.com") ? "No email set" : user.email}
+          </div>
+          <button
+            onClick={() => { setOpen(false); signOut(); }}
+            className="w-full text-left px-3 py-2.5 text-sm font-bold text-ink hover:bg-ink/5 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
