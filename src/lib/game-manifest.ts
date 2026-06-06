@@ -1,4 +1,4 @@
-export type GameCategory = "geography-quest" | "music-arts" | "arcade-adventures" | "math-games" | "puzzles";
+export type GameCategory = "geography-quest" | "music-arts" | "arcade-adventures" | "math-games" | "puzzles" | "learning";
 import { asset } from "@/lib/asset";
 
 export type CategoryEntry = {
@@ -49,11 +49,18 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
     eyebrow: "Brain teasers & logic challenges",
     accent: "#8B5CF6",
   },
+  {
+    slug: "learning",
+    title: "Learning Games",
+    emoji: "📚",
+    eyebrow: "Skills, typing & real-world learning",
+    accent: "#48DBFB",
+  },
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey";
   title: string;
   eyebrow: string;
   description: string;
@@ -363,6 +370,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     image: asset("/characters/FOX 3.png"),
     status: "live",
     category: "puzzles",
+  },
+  {
+    slug: "type-with-casey",
+    href: "/games/type-with-casey",
+    title: "Type with Casey!",
+    eyebrow: "Learn proper typing — ages 5+",
+    description:
+      "Casey teaches you the right way to type! Color-coded keys show which finger to use, and a hand diagram keeps you on track. Start on the home row and work up to the full keyboard!",
+    accent: "#48DBFB",
+    emoji: "⌨️",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "learning",
   },
 ];
 
