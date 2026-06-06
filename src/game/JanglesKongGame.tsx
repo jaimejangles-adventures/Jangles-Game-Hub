@@ -53,10 +53,10 @@ function shuffleLevels(): number[] {
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const W = 480, H = 560;
-const GRAVITY    = 0.30;
-const JUMP_V     = -6;
-const MOVE_SPEED = 2.2;
-const CLIMB_SPD  = 1.8;
+const GRAVITY    = 0.42;
+const JUMP_V     = -8;
+const MOVE_SPEED = 3.5;
+const CLIMB_SPD  = 2.8;
 const MAX_FALL   = 9;
 const PLAYER_W   = 32, PLAYER_H = 40;
 const COMPASS_R  = 10;
