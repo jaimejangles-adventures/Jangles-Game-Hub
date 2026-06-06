@@ -68,34 +68,54 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
 
     try {
       if (mode === 'sign-in') {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        // Accept username OR email — detect by presence of @
+        let authEmail: string;
+        if (email.includes('@')) {
+          authEmail = email.trim();
+        } else {
+          // Treat input as a username — look up their hidden auth email
+          const { data } = await supabase
+            .from('profiles')
+            .select('auth_email')
+            .eq('username', email.trim())
+            .maybeSingle();
+          if (!data?.auth_email) throw new Error('Username not found. Try your email instead.');
+          authEmail = data.auth_email;
+        }
+        const { error: err } = await supabase.auth.signInWithPassword({ email: authEmail, password });
         if (err) throw err;
       } else {
+        // Sign up
         if (username.trim().length < 2) throw new Error('Username must be at least 2 characters.');
         if (username.trim().length > 20) throw new Error('Username must be 20 characters or less.');
-        if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) throw new Error('Username can only contain letters, numbers, and underscores.');
+        if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) throw new Error('Username can only have letters, numbers and underscores.');
 
-        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        // Generate a hidden email if parent email not provided
+        const cleanName = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const randomId = Math.random().toString(36).slice(2, 8);
+        const authEmail = email.trim() || `${cleanName}_${randomId}@play.jaimejangles.com`;
+
+        const { data, error: err } = await supabase.auth.signUp({ email: authEmail, password });
         if (err) throw err;
 
         const userId = data.user?.id;
         if (!userId) throw new Error('Sign up failed — please try again.');
 
-        // Store pending profile in localStorage so we can create it after email confirmation
+        // Save pending profile to localStorage (used after email confirmation if needed)
         localStorage.setItem('pending_profile', JSON.stringify({
           username: username.trim(),
           country_code: countryCode,
+          auth_email: authEmail,
         }));
 
-        // Try to insert profile immediately (works if email confirmation is off)
+        // Try to insert profile immediately
         const { error: profileErr } = await supabase.from('profiles').insert({
           id: userId,
           username: username.trim(),
           country_code: countryCode,
+          auth_email: authEmail,
         });
 
-        // If insert succeeded, call callback; if it failed (email not confirmed yet), that's ok —
-        // the pending_profile in localStorage will be used on first sign-in
         if (!profileErr) {
           onProfileCreated({ id: userId, username: username.trim(), country_code: countryCode });
         }
@@ -248,21 +268,37 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
             </>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">
-              Email
-            </label>
-            <input
-              ref={mode === 'sign-in' ? firstInputRef : undefined}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none focus:border-[3px]"
-              style={{ background: '#fff', borderBottomWidth: 4 }}
-            />
-          </div>
+          {mode === 'sign-in' ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">
+                Username or Email
+              </label>
+              <input
+                ref={firstInputRef}
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="YourName or you@example.com"
+                required
+                className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none focus:border-[3px]"
+                style={{ background: '#fff', borderBottomWidth: 4 }}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">
+                Parent's Email <span className="normal-case font-normal opacity-60">— optional, for account recovery</span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="parent@example.com (optional)"
+                className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none focus:border-[3px]"
+                style={{ background: '#fff', borderBottomWidth: 4 }}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">

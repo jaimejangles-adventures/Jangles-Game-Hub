@@ -135,8 +135,13 @@ async function tryPendingProfile(userId: string): Promise<Profile | null> {
   try {
     const pending = localStorage.getItem('pending_profile');
     if (!pending) return null;
-    const { username, country_code } = JSON.parse(pending);
-    const { error } = await supabase.from('profiles').insert({ id: userId, username, country_code });
+    const { username, country_code, auth_email } = JSON.parse(pending);
+    const { error } = await supabase.from('profiles').insert({
+      id: userId,
+      username,
+      country_code,
+      ...(auth_email ? { auth_email } : {}),
+    });
     if (!error) {
       localStorage.removeItem('pending_profile');
       return { id: userId, username, country_code };
