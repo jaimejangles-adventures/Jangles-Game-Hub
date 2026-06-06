@@ -12,6 +12,8 @@ type Props = {
   onProfileCreated: (p: Profile) => void;
 };
 
+type Screen = 'auth' | 'forgot' | 'forgot-sent';
+
 export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,14 +22,31 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [screen, setScreen] = useState<Screen>('auth');
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setError('');
+      setScreen('auth');
       setTimeout(() => firstInputRef.current?.focus(), 80);
     }
   }, [open, mode]);
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email);
+      if (err) throw err;
+      setScreen('forgot-sent');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   async function detectCountry() {
     setDetecting(true);
@@ -109,6 +128,39 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
         >
           ✕
         </button>
+
+        {/* Forgot password screen */}
+        {screen === 'forgot' && (
+          <div className="flex flex-col gap-4">
+            <div className="text-center">
+              <h2 className="text-xl font-extrabold text-ink">Reset password</h2>
+              <p className="mt-1 text-xs text-ink/55">Enter your email and we'll send a reset link.</p>
+            </div>
+            <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+                className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none"
+                style={{ background: '#fff', borderBottomWidth: 4 }} />
+              {error && <p className="rounded-xl border-[2px] border-red-300 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{error}</p>}
+              <button type="submit" disabled={submitting}
+                className="rounded-full border-[3px] border-ink py-2.5 text-sm font-extrabold text-white disabled:opacity-60"
+                style={{ background: '#22C55E', borderBottomWidth: 5, borderRightWidth: 4 }}>
+                {submitting ? '…' : 'Send reset link'}
+              </button>
+              <button type="button" onClick={() => setScreen('auth')} className="text-xs text-ink/50 hover:text-ink font-bold">← Back to sign in</button>
+            </form>
+          </div>
+        )}
+
+        {screen === 'forgot-sent' && (
+          <div className="flex flex-col items-center gap-4 text-center py-4">
+            <div className="text-5xl">📬</div>
+            <h2 className="text-xl font-extrabold text-ink">Check your email!</h2>
+            <p className="text-xs text-ink/55">We sent a password reset link to <strong>{email}</strong></p>
+            <button onClick={() => setScreen('auth')} className="text-xs font-bold text-ink/50 hover:text-ink">← Back to sign in</button>
+          </div>
+        )}
+
+        {screen !== 'auth' ? null : <>
 
         {/* Header */}
         <div className="mb-5 text-center">
@@ -257,6 +309,16 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
             {mode === 'sign-in' ? 'Sign up free' : 'Sign in'}
           </button>
         </p>
+
+        {mode === 'sign-in' && (
+          <p className="mt-1 text-center text-[0.65rem] text-ink/40">
+            <button onClick={() => { setScreen('forgot'); setError(''); }} className="hover:text-ink/70 underline">
+              Forgot password?
+            </button>
+          </p>
+        )}
+
+        </> }
       </div>
     </div>
   );

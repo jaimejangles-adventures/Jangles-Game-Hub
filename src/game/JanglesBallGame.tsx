@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { asset } from "@/lib/asset";
+import { useAuth } from "@/lib/auth-context";
+import { useScore } from "@/hooks/use-score";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -130,7 +132,7 @@ const LEVEL_GRIDS: Record<number, (0|1|2|3)[][]> = {
   ],
 };
 
-const BALL_SPEEDS: Record<number, number> = { 1:2.08, 2:2.36, 3:2.68, 4:3.0, 5:3.36 };
+const BALL_SPEEDS: Record<number, number> = { 1:5.2, 2:5.9, 3:6.7, 4:7.5, 5:8.4 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -460,6 +462,12 @@ export function JanglesBallGame() {
   const imagesRef = useRef<Record<number, HTMLImageElement>>({});
   const pagesRef = useRef<string[]>(pickPages());
 
+  const { user } = useAuth();
+  const { saveScore } = useScore("jangles-ball");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+  const scoreSavedRef = useRef(false);
+
   const state = useRef({
     phase: "title" as GamePhase,
     level: 1,
@@ -599,9 +607,13 @@ export function JanglesBallGame() {
         resetBall(s.level); s.phase="ready"; s.countdownTimer=0;
       }
       else if (s.phase==="level-clear" && s.clearTimer<=0) {
-        if (s.level>=5) s.phase="win"; else startLevel(s.level+1);
+        if (s.level>=5) {
+          s.phase="win";
+          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score); }
+        } else startLevel(s.level+1);
       }
       else if (s.phase==="game-over"||s.phase==="win") {
+        scoreSavedRef.current = false;
         s.score=0; s.lives=INITIAL_LIVES;
         pagesRef.current = pickPages();
         pagesRef.current.forEach((pg,i) => {
@@ -939,7 +951,10 @@ export function JanglesBallGame() {
 
       if (s.ball.y-s.ball.r>H+20) {
         s.lives--;
-        if (s.lives<=0) s.phase="game-over";
+        if (s.lives<=0) {
+          s.phase="game-over";
+          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score); }
+        }
         else { s.phase="ball-lost"; s.ballLostTimer=80; }
       }
 

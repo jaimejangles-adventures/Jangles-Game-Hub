@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { asset } from "@/lib/asset";
+import { useAuth } from "@/lib/auth-context";
+import { useScore } from "@/hooks/use-score";
 
 // ── Audio ─────────────────────────────────────────────────────────────────
 function makeAudio(): AudioContext | null {
@@ -430,6 +432,11 @@ export function JanglesKongGame() {
   const caseyImgRef  = useRef<HTMLImageElement | null>(null);
   const [, rerender] = useState(0);
 
+  const { user } = useAuth();
+  const { saveScore } = useScore("jangles-kong");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
   const stopMusic = useCallback(() => {
     if (bgMusicRef.current) {
       bgMusicRef.current.pause();
@@ -625,6 +632,7 @@ export function JanglesKongGame() {
             s.lives--;
             if (s.lives <= 0) {
               s.phase = "gameover";
+            if (user) saveScoreRef.current(s.score);
             } else {
               s.player = makePlayer(); s.compasses = [];
             }
