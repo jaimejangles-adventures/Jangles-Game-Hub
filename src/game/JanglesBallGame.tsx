@@ -132,7 +132,7 @@ const LEVEL_GRIDS: Record<number, (0|1|2|3)[][]> = {
   ],
 };
 
-const BALL_SPEEDS: Record<number, number> = { 1:5.2, 2:5.9, 3:6.7, 4:7.5, 5:8.4 };
+const BALL_SPEEDS: Record<number, number> = { 1:3.17, 2:3.57, 3:3.96, 4:4.41, 5:4.95 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

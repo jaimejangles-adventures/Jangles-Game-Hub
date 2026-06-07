@@ -59,8 +59,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral";
   title: string;
   eyebrow: string;
   description: string;
@@ -372,6 +372,32 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     category: "puzzles",
   },
   {
+    slug: "color-mix",
+    href: "/games/color-mix",
+    title: "Colour Mix!",
+    eyebrow: "Blend colours & learn",
+    description:
+      "Mix two paint buckets together and discover what colour you get! Learn red + yellow = orange, blue + yellow = green, and more!",
+    accent: "#FF8C00",
+    emoji: "🎨",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "learning",
+  },
+  {
+    slug: "jangles-pong",
+    href: "/games/jangles-pong",
+    title: "Jangles Pong",
+    eyebrow: "You vs CPU arcade classic",
+    description:
+      "Classic arcade Pong with a neon Jangles twist! Move your paddle, bounce the ball, and beat the CPU. First to 7 wins!",
+    accent: "#00eeff",
+    emoji: "🏓",
+    image: asset("/characters/jangles-ball-thumb.png"),
+    status: "live",
+    category: "arcade-adventures",
+  },
+  {
     slug: "type-with-casey",
     href: "/games/type-with-casey",
     title: "Type with Casey!",
@@ -383,6 +409,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     image: asset("/characters/casey-pointing.png"),
     status: "live",
     category: "learning",
+  },
+  {
+    slug: "casey-can-roman-numeral",
+    href: "/games/casey-can-roman-numeral",
+    title: "Casey Can Roman Numeral!",
+    eyebrow: "Teach & test — grades 3–5",
+    description:
+      "Learn Roman numerals with Casey! Step through lessons for I, V, X, L, C, D, and M — then quiz yourself. Three grade levels from I–XX all the way up to MMMCMXCIX.",
+    accent: "#C4B5FD",
+    emoji: "🏛️",
+    image: asset("/characters/casey-pointing.png"),
+    status: "live",
+    category: "math-games",
   },
 ];
 

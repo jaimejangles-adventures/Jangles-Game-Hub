@@ -11,7 +11,7 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong", "/games/color-mix", "/games/casey-can-roman-numeral"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
@@ -149,39 +149,43 @@ export function PortalShell({ children }: PortalShellProps) {
           </div>
 
           {/* Pills — hidden on mobile, visible on sm+ */}
-          <div className="hidden sm:flex flex-1 items-center justify-center pr-3 sm:pr-4 lg:pr-6">
-          <div ref={navRef} className="relative flex items-center gap-2">
-            {/* Game Hub pill — always visible so you can return home from any game */}
-            <Link
-              to="/"
-              className={cn(
-                "flex items-center gap-1.5 whitespace-nowrap rounded-full border-[3px] border-ink px-3 py-1.5 text-xs font-extrabold transition-transform hover:-translate-y-0.5 sm:px-4 sm:text-sm",
-                pathname === "/" ? "text-white" : "text-ink",
-              )}
-              style={{
-                background: pathname === "/" ? "#22C55E" : "#fff",
-                borderBottomWidth: 5,
-                borderRightWidth: 4,
-              }}
-            >
-              🏠 Game Hub
-            </Link>
+          <div className="hidden sm:flex min-w-0 flex-1 items-center py-2">
+          {/* navRef = positioning context + click-outside; no overflow so dropdown & animation are never clipped */}
+          <div ref={navRef} className="relative min-w-0 flex-1">
+            {/* Scrollable pill row */}
+            <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+              {/* Game Hub pill */}
+              <Link
+                to="/"
+                className={cn(
+                  "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-[2px] border-ink px-2.5 py-0.5 text-xs font-extrabold transition-opacity hover:opacity-75",
+                  pathname === "/" ? "text-white" : "text-ink",
+                )}
+                style={{
+                  background: pathname === "/" ? "#22C55E" : "#fff",
+                  borderBottomWidth: 3,
+                  borderRightWidth: 2,
+                }}
+              >
+                🏠 Game Hub
+              </Link>
 
-            {CATEGORY_MANIFEST.map((category) => {
-              const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
-              const activeGameInCategory = categoryGames.find((g) => g.href === pathname) ?? null;
-              return (
-                <CategoryButton
-                  key={category.slug}
-                  category={category}
-                  activeGame={activeGameInCategory}
-                  isOpen={openCategory === category.slug}
-                  onToggle={(btnEl) => handleCategoryToggle(category.slug, btnEl)}
-                />
-              );
-            })}
+              {CATEGORY_MANIFEST.map((category) => {
+                const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
+                const activeGameInCategory = categoryGames.find((g) => g.href === pathname) ?? null;
+                return (
+                  <CategoryButton
+                    key={category.slug}
+                    category={category}
+                    activeGame={activeGameInCategory}
+                    isOpen={openCategory === category.slug}
+                    onToggle={(btnEl) => handleCategoryToggle(category.slug, btnEl)}
+                  />
+                );
+              })}
+            </div>
 
-            {/* Panel rendered inside navRef but outside any overflow container — never clipped */}
+            {/* Dropdown panel — outside scroll div so it's never clipped */}
             {openCategory && openCategoryEntry && (
               <div
                 className="absolute z-50 min-w-[14rem] overflow-hidden rounded-[1.25rem] border-[3px] border-ink bg-paper shadow-xl"
@@ -408,13 +412,13 @@ function CategoryButton({
     <button
       onClick={(e) => onToggle(e.currentTarget)}
       className={cn(
-        "flex items-center gap-1.5 rounded-full border-[3px] border-ink px-3 py-1.5 text-xs font-extrabold transition-transform hover:-translate-y-0.5 sm:px-4 sm:text-sm",
+        "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-[2px] border-ink px-2.5 py-0.5 text-xs font-extrabold transition-opacity hover:opacity-75",
         activeGame ? "text-white" : "text-ink",
       )}
       style={{
         background: activeGame ? activeGame.accent : "#fff",
-        borderBottomWidth: 5,
-        borderRightWidth: 4,
+        borderBottomWidth: 3,
+        borderRightWidth: 2,
       }}
     >
       <span>{category.emoji}</span>

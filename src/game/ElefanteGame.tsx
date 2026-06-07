@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { asset } from "@/lib/asset";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
 
 // ── Country data ───────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -58,6 +60,17 @@ export function ElefanteGame() {
   const [phase,       setPhase]       = useState<Phase>("select");
   const [finalScore,  setFinalScore]  = useState(0);
   const [hoveredCard, setHoveredCard] = useState<Difficulty | null>(null);
+
+  const { user } = useAuth();
+  const { saveScore } = useScore("elefante");
+  const saveScoreRef = useRef(saveScore);
+  useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
+  useEffect(() => {
+    if (phase === "over" && user) {
+      saveScoreRef.current(finalScore);
+    }
+  }, [phase, user, finalScore]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

@@ -153,6 +153,7 @@ export function Leaderboard({ gameSlug, limit = 10, theme = 'light' }: Props) {
 const LEADERBOARD_GAMES = [
   'pacman',
   'jangles-ball',
+  'elefante',
   'air-fante-collect',
   'foxer',
   'jangles-kong',

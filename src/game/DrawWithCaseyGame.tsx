@@ -21,6 +21,19 @@ const CHALK_COLORS = [
   { hex: '#ffd166', label: 'Butter' },
 ];
 
+const BOLD_COLORS = [
+  { hex: '#ffffff', label: 'White' },
+  { hex: '#ff0000', label: 'Red' },
+  { hex: '#0057ff', label: 'Blue' },
+  { hex: '#00b800', label: 'Green' },
+  { hex: '#ffe000', label: 'Yellow' },
+  { hex: '#ff7700', label: 'Orange' },
+  { hex: '#9400d3', label: 'Purple' },
+  { hex: '#ff1cce', label: 'Pink' },
+  { hex: '#00c8c8', label: 'Cyan' },
+  { hex: '#1a1a1a', label: 'Black' },
+];
+
 // ── Trace outline renderer ────────────────────────────────────────
 
 // Geometric/angular shapes that should keep sharp corners.
@@ -269,7 +282,13 @@ function ModeCard({
 }
 
 // ── Intro screen — fits in one viewport, no scroll ────────────────
-function IntroScreen({ onStart }: { onStart: (name: string, traceMode: boolean) => void }) {
+function IntroScreen({
+  onStart,
+  onCustomDraw,
+}: {
+  onStart: (name: string, traceMode: boolean) => void;
+  onCustomDraw: (name: string) => void;
+}) {
   const [name, setName] = useState('');
 
   return (
@@ -328,10 +347,10 @@ function IntroScreen({ onStart }: { onStart: (name: string, traceMode: boolean) 
         <ModeCard
           emoji="🎨"
           title="Draw Your Own"
-          description="Blank board, total freedom!"
+          description="Type any object & draw it!"
           badge="Ages 4+"
           accent="#e87fa3"
-          onClick={() => onStart(name.trim() || 'Friend', false)}
+          onClick={() => onCustomDraw(name.trim() || 'Friend')}
         />
         <ModeCard
           emoji="✏️"
@@ -342,6 +361,83 @@ function IntroScreen({ onStart }: { onStart: (name: string, traceMode: boolean) 
           onClick={() => onStart(name.trim() || 'Friend', true)}
         />
       </div>
+    </motion.div>
+  );
+}
+
+// ── Custom object input screen ────────────────────────────────────
+function CustomInputScreen({
+  playerName,
+  onStart,
+  onBack,
+}: {
+  playerName: string;
+  onStart: (objectName: string) => void;
+  onBack: () => void;
+}) {
+  const [objectName, setObjectName] = useState('');
+
+  const handleSubmit = () => {
+    const trimmed = objectName.trim();
+    if (!trimmed) return;
+    onStart(trimmed);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="flex h-full w-full flex-col items-center justify-evenly px-5 py-3"
+      style={{ maxWidth: 480, margin: '0 auto' }}
+    >
+      {/* ── Casey image ── */}
+      <motion.img
+        src={asset("/characters/map-casey.png")}
+        alt="Casey Bea Jangles"
+        initial={{ scale: 0.88, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.08 }}
+        className="w-32 sm:w-40"
+        style={{ filter: 'drop-shadow(0 8px 14px rgba(0,0,0,0.10))' }}
+      />
+
+      {/* ── Casey bubble ── */}
+      <CaseyBubble text={`Ooh, ${playerName}! What do you want to draw today? Type it in and I'll set up the chalkboard! 🖊️`} />
+
+      {/* ── Object input ── */}
+      <div className="flex w-full flex-col items-center gap-3">
+        <label className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-ink/40">
+          What are you drawing?
+        </label>
+        <input
+          type="text"
+          maxLength={30}
+          placeholder="e.g. dragon, rocket, pizza…"
+          value={objectName}
+          autoFocus
+          onChange={e => setObjectName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+          className="w-full max-w-xs rounded-xl border-[3px] border-ink bg-white px-4 py-3 text-center text-lg font-bold text-ink outline-none transition-colors focus:border-[#e87fa3]"
+          style={{ borderBottomWidth: 4 }}
+        />
+        <PillBtn
+          onClick={handleSubmit}
+          accent={objectName.trim() ? '#e87fa3' : '#ccc'}
+          size="lg"
+          className={objectName.trim() ? '' : 'pointer-events-none'}
+        >
+          Let's draw it! 🎨
+        </PillBtn>
+      </div>
+
+      {/* ── Back link ── */}
+      <button
+        onClick={onBack}
+        className="text-xs font-semibold text-ink/40 underline underline-offset-2 hover:text-ink/60"
+      >
+        ← back to menu
+      </button>
     </motion.div>
   );
 }
@@ -359,6 +455,7 @@ function GameScreen({
   onSkip,
   onPrint,
   canvas,
+  customMode,
 }: {
   playerName: string;
   word: Word;
@@ -371,9 +468,12 @@ function GameScreen({
   onSkip: () => void;
   onPrint: () => void;
   canvas: ReturnType<typeof useChalkCanvas>;
+  customMode: boolean;
 }) {
   const { drawRef, tool, setTool, brushSize, setBrushSize, color, setColor, clearCanvas } = canvas;
   const hasTrace = !!GHOST_PATHS[word.word];
+  const [palette, setPalette] = useState<'pastel' | 'bold'>('pastel');
+  const activeColors = palette === 'pastel' ? CHALK_COLORS : BOLD_COLORS;
 
   return (
     <motion.div
@@ -534,23 +634,41 @@ function GameScreen({
       </div>
 
       {/* ── Colour palette ── */}
-      <div className="flex flex-wrap justify-center gap-2 px-1">
-        {CHALK_COLORS.map(({ hex, label }) => (
-          <button
-            key={hex}
-            title={label}
-            onClick={() => setColor(hex)}
-            className="rounded-full border-[3px] transition-all hover:scale-110"
-            style={{
-              width: 32,
-              height: 32,
-              background: hex,
-              borderColor: color === hex ? '#1a1a1a' : 'rgba(0,0,0,0.12)',
-              transform: color === hex ? 'scale(1.25)' : undefined,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-            }}
-          />
-        ))}
+      <div className="flex flex-col items-center gap-2">
+        {/* Palette toggle */}
+        <div className="flex rounded-full border-[3px] border-ink overflow-hidden" style={{ borderBottomWidth: 4 }}>
+          {(['pastel', 'bold'] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPalette(p)}
+              className="px-4 py-1 text-xs font-extrabold transition-colors"
+              style={{
+                background: palette === p ? '#f5c842' : '#fff',
+                color: '#1a1a1a',
+              }}
+            >
+              {p === 'pastel' ? '🌸 Pastel' : '🎨 Bold'}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap justify-center gap-2 px-1">
+          {activeColors.map(({ hex, label }) => (
+            <button
+              key={hex}
+              title={label}
+              onClick={() => setColor(hex)}
+              className="rounded-full border-[3px] transition-all hover:scale-110"
+              style={{
+                width: 32,
+                height: 32,
+                background: hex,
+                borderColor: color === hex ? '#1a1a1a' : 'rgba(0,0,0,0.12)',
+                transform: color === hex ? 'scale(1.25)' : undefined,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── Action buttons ── */}
@@ -559,7 +677,7 @@ function GameScreen({
           I'm done! 🎉
         </PillBtn>
         <PillBtn onClick={onSkip} accent="#e87fa3">
-          Different word 🔀
+          {customMode ? 'Draw something else 🔀' : 'Different word 🔀'}
         </PillBtn>
       </div>
 
@@ -648,13 +766,31 @@ function PassScreen({
   );
 }
 
+// ── Build a synthetic Word from a user-typed object name ─────────
+function makeCustomWord(objectName: string): Word {
+  const name = objectName.trim() || 'something';
+  return {
+    word: name,
+    emoji: '🎨',
+    caseyIntro: `Yes! Let's draw a ${name}! Your chalkboard is ready — go for it! 🖊️`,
+    caseyPass: [
+      `WOW! Look at that amazing ${name}! You are so talented!`,
+      `A ${name}! I love it! You drew that all by yourself!`,
+      `That's the best ${name} I've ever seen! You're a real artist!`,
+    ],
+    caseyHint: `Keep going! Your ${name} is looking great!`,
+    hint: `Free draw: ${name}`,
+  };
+}
+
 // ── Main orchestrator ─────────────────────────────────────────────
-type Phase = 'intro' | 'drawing' | 'pass';
+type Phase = 'intro' | 'custom-input' | 'drawing' | 'pass';
 
 export function DrawWithCaseyGame() {
   const [phase, setPhase]           = useState<Phase>('intro');
   const [playerName, setPlayerName] = useState('Friend');
   const [traceMode, setTraceMode]   = useState(false);   // true = Trace It mode
+  const [customMode, setCustomMode] = useState(false);   // true = user typed their own object
   const [wordOrder, setWordOrder]   = useState<Word[]>([]);
   const [wordIdx, setWordIdx]       = useState(0);
   const [stamps, setStamps]         = useState<Word[]>([]);
@@ -671,11 +807,28 @@ export function DrawWithCaseyGame() {
 
   const currentWord = wordOrder[wordIdx % Math.max(wordOrder.length, 1)];
 
-  // ── Start ─────────────────────────────────────────────────────
+  // ── Start (traced/guided mode) ────────────────────────────────
   const handleStart = useCallback((name: string, trace: boolean) => {
     setPlayerName(name);
     setTraceMode(trace);
+    setCustomMode(false);
     setWordOrder(shuffle(WORDS));
+    setWordIdx(0);
+    setStamps([]);
+    setPhase('drawing');
+  }, []);
+
+  // ── Custom draw — go to the input screen ──────────────────────
+  const handleCustomDraw = useCallback((name: string) => {
+    setPlayerName(name);
+    setPhase('custom-input');
+  }, []);
+
+  // ── Custom start — user submitted their object name ───────────
+  const handleCustomStart = useCallback((objectName: string) => {
+    setTraceMode(false);
+    setCustomMode(true);
+    setWordOrder([makeCustomWord(objectName)]);
     setWordIdx(0);
     setStamps([]);
     setPhase('drawing');
@@ -709,14 +862,16 @@ export function DrawWithCaseyGame() {
 
   // ── Skip ─────────────────────────────────────────────────────
   const handleSkip = useCallback(() => {
+    if (customMode) { setPhase('custom-input'); return; }
     setWordIdx(i => i + 1);
-  }, []);
+  }, [customMode]);
 
   // ── Next (from pass screen) ───────────────────────────────────
   const handleNext = useCallback(() => {
+    if (customMode) { setPhase('custom-input'); return; }
     setWordIdx(i => i + 1);
     setPhase('drawing');
-  }, []);
+  }, [customMode]);
 
   // ── Toggle trace ──────────────────────────────────────────────
   const handleToggleTrace = useCallback(() => {
@@ -770,7 +925,17 @@ export function DrawWithCaseyGame() {
       <AnimatePresence mode="wait">
         {phase === 'intro' && (
           <motion.div key="intro" className="h-full w-full">
-            <IntroScreen onStart={handleStart} />
+            <IntroScreen onStart={handleStart} onCustomDraw={handleCustomDraw} />
+          </motion.div>
+        )}
+
+        {phase === 'custom-input' && (
+          <motion.div key="custom-input" className="h-full w-full">
+            <CustomInputScreen
+              playerName={playerName}
+              onStart={handleCustomStart}
+              onBack={() => setPhase('intro')}
+            />
           </motion.div>
         )}
 
@@ -788,6 +953,7 @@ export function DrawWithCaseyGame() {
               onSkip={handleSkip}
               onPrint={handlePrint}
               canvas={canvas}
+              customMode={customMode}
             />
           </motion.div>
         )}
