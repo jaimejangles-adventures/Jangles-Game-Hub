@@ -8,6 +8,38 @@ import { useAuth } from "@/lib/auth-context";
 import { flagEmoji } from "@/lib/countries";
 import { useBucksContext } from "@/lib/bucks-context";
 
+type EarnerEntry = { emoji: string; title: string; difficulty: 1 | 2 | 3 | 4 };
+
+const BUCK_EARNERS: EarnerEntry[] = [
+  { emoji: "🔢", title: "Casey Can Count!", difficulty: 1 },
+  { emoji: "➕", title: "Casey Can Add!", difficulty: 1 },
+  { emoji: "🎨", title: "Color Mix!", difficulty: 1 },
+  { emoji: "🖍️", title: "Draw with Casey!", difficulty: 1 },
+  { emoji: "➖", title: "Casey Can Subtract!", difficulty: 2 },
+  { emoji: "🔤", title: "Casey Can Spell!", difficulty: 2 },
+  { emoji: "🔍", title: "Spot the Difference!", difficulty: 2 },
+  { emoji: "🃏", title: "Match Mania!", difficulty: 2 },
+  { emoji: "✖️", title: "Casey Can Multiply!", difficulty: 3 },
+  { emoji: "➗", title: "Casey Can Divide!", difficulty: 3 },
+  { emoji: "🦊", title: "Foxy's Word Scramble!", difficulty: 3 },
+  { emoji: "🧩", title: "Fix the Pic!", difficulty: 3 },
+  { emoji: "🏁", title: "Fly the Flag!", difficulty: 3 },
+  { emoji: "📍", title: "Name That Country!", difficulty: 3 },
+  { emoji: "⌨️", title: "Type with Casey!", difficulty: 3 },
+  { emoji: "🎵", title: "Music Match", difficulty: 4 },
+  { emoji: "🧭", title: "Find Jaime & Jeff", difficulty: 4 },
+  { emoji: "🔐", title: "Crack the Code!", difficulty: 4 },
+  { emoji: "🏛️", title: "Casey Can Roman Numeral!", difficulty: 4 },
+  { emoji: "💰", title: "Casey Can Cost!", difficulty: 4 },
+];
+
+const DIFFICULTY_LABELS: Record<1 | 2 | 3 | 4, { label: string; color: string }> = {
+  1: { label: "Super Easy", color: "#22C55E" },
+  2: { label: "Easy", color: "#3B82F6" },
+  3: { label: "Medium", color: "#F97316" },
+  4: { label: "Challenging", color: "#8B5CF6" },
+};
+
 type PortalShellProps = {
   children: ReactNode;
 };
@@ -27,6 +59,7 @@ export function PortalShell({ children }: PortalShellProps) {
   const [panelLeft, setPanelLeft] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEscapePrompt, setShowEscapePrompt] = useState(false);
+  const [showBucksModal, setShowBucksModal] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -250,14 +283,16 @@ export function PortalShell({ children }: PortalShellProps) {
               <span>{muted ? "Muted" : "Sound"}</span>
             </button>
             {user && (
-              <div
-                className="flex items-center gap-1 rounded-full border-[3px] border-ink bg-yellow-300 px-3 py-1.5 text-sm font-extrabold"
+              <button
+                className="flex items-center gap-1 rounded-full border-[3px] border-ink bg-yellow-300 px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
                 style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
-                title="Jangles Bucks — earn by playing learning games, spend on arcade games!"
+                onClick={() => setShowBucksModal(true)}
+                aria-label="What are Jangles Bucks?"
               >
                 <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" />
                 <span>{balance}</span>
-              </div>
+                <span className="text-[0.6rem] opacity-60 ml-0.5">?</span>
+              </button>
             )}
             {user ? (
               <UserMenu user={user} profile={profile} flagEmoji={flagEmoji} signOut={signOut} openEditProfile={openEditProfile} />
@@ -305,13 +340,15 @@ export function PortalShell({ children }: PortalShellProps) {
               </button>
             )}
             {user && (
-              <div
-                className="flex items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-yellow-300 font-extrabold"
+              <button
+                className="flex w-full items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-yellow-300 font-extrabold text-left"
                 style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                onClick={() => { setShowBucksModal(true); setMobileMenuOpen(false); }}
               >
                 <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-6 w-6 object-contain" />
                 <span>{balance} Jangles Buck{balance !== 1 ? 's' : ''}</span>
-              </div>
+                <span className="ml-auto text-[0.7rem] opacity-60">What's this? →</span>
+              </button>
             )}
             {CATEGORY_MANIFEST.map((category) => {
               const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
@@ -388,6 +425,9 @@ export function PortalShell({ children }: PortalShellProps) {
         </div>
       )}
 
+      {/* Jangles Bucks info modal */}
+      {showBucksModal && <JanglesBucksModal onClose={() => setShowBucksModal(false)} balance={balance} />}
+
       {/* Escape → Game Hub prompt */}
       {showEscapePrompt && (
         <div
@@ -444,6 +484,158 @@ export function PortalShell({ children }: PortalShellProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function JanglesBucksModal({ onClose, balance }: { onClose: () => void; balance: number }) {
+  const grouped = [1, 2, 3, 4] as const;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.40)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col rounded-[2rem] border-[3px] border-ink bg-paper shadow-2xl overflow-hidden"
+        style={{
+          borderBottomWidth: 7,
+          borderRightWidth: 6,
+          maxWidth: "32rem",
+          width: "100%",
+          maxHeight: "90vh",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 px-6 pt-6 pb-4 border-b-[3px] border-ink"
+          style={{ background: "#FEF08A" }}
+        >
+          <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-10 w-10 object-contain" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-ink/50 mb-0.5">Your balance</div>
+            <div className="text-2xl font-extrabold text-ink leading-none">
+              {balance} Jangles Buck{balance !== 1 ? "s" : ""}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-[2px] border-ink bg-white text-sm font-extrabold hover:bg-ink/10 transition-colors"
+            style={{ borderBottomWidth: 3, borderRightWidth: 3 }}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
+          {/* What is a Jangles Buck */}
+          <div>
+            <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-ink/40 mb-1.5">What is a Jangles Buck?</div>
+            <p className="text-sm font-bold text-ink/80 leading-snug">
+              Jangles Bucks are coins you earn by playing <strong>learning games</strong>. Spend them to unlock <strong>Arcade Adventures</strong> — fast-paced games like Jangles Pac, FOXER, Jangles Kong, and more!
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-extrabold">
+              <span
+                className="flex items-center gap-1 rounded-full border-[2px] border-ink px-2.5 py-1"
+                style={{ background: "#D1FAE5" }}
+              >
+                📚 Learn → earn up to 5 per game, per day
+              </span>
+              <span
+                className="flex items-center gap-1 rounded-full border-[2px] border-ink px-2.5 py-1"
+                style={{ background: "#FEE2E2" }}
+              >
+                🕹️ Spend 1 buck per arcade session
+              </span>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div>
+            <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-ink/40 mb-3">
+              Games that earn Jangles Bucks
+            </div>
+
+            {/* Difficulty key */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {([1, 2, 3, 4] as const).map((d) => (
+                <span
+                  key={d}
+                  className="flex items-center gap-1 rounded-full border-[2px] border-ink px-2 py-0.5 text-[0.6rem] font-extrabold text-white"
+                  style={{ background: DIFFICULTY_LABELS[d].color, borderBottomWidth: 3, borderRightWidth: 2 }}
+                >
+                  {"★".repeat(d)}{"☆".repeat(4 - d)} {DIFFICULTY_LABELS[d].label}
+                </span>
+              ))}
+            </div>
+
+            {grouped.map((d) => {
+              const games = BUCK_EARNERS.filter((g) => g.difficulty === d);
+              return (
+                <div key={d} className="mb-3">
+                  <div
+                    className="inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold text-white mb-1.5"
+                    style={{ background: DIFFICULTY_LABELS[d].color, borderBottomWidth: 3, borderRightWidth: 2 }}
+                  >
+                    {"★".repeat(d)}{"☆".repeat(4 - d)} {DIFFICULTY_LABELS[d].label}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {games.map((g) => (
+                      <span
+                        key={g.title}
+                        className="flex items-center gap-1 rounded-full border-[2px] border-ink/20 bg-white px-2.5 py-1 text-xs font-bold text-ink"
+                      >
+                        {g.emoji} {g.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Arcade games */}
+          <div>
+            <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-ink/40 mb-2">
+              Arcade games (spend 1 buck each)
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { emoji: "🐘", title: "Air Fante World Tour" },
+                { emoji: "⭐", title: "Air Fante Collect!" },
+                { emoji: "🦊", title: "FOXER" },
+                { emoji: "🎮", title: "Jangles Ball" },
+                { emoji: "👾", title: "Jangles Pac" },
+                { emoji: "🦍", title: "Jangles Kong" },
+                { emoji: "🏓", title: "Jangles Pong" },
+              ].map((g) => (
+                <span
+                  key={g.title}
+                  className="flex items-center gap-1 rounded-full border-[2px] border-ink/20 px-2.5 py-1 text-xs font-bold text-ink"
+                  style={{ background: "#F0FDF4" }}
+                >
+                  {g.emoji} {g.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <div className="px-6 py-4 border-t-[2px] border-ink/10">
+          <button
+            onClick={onClose}
+            className="w-full rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+            style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+          >
+            Got it — let's play!
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
