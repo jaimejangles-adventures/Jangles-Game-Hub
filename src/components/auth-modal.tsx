@@ -74,17 +74,34 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
         if (email.includes('@')) {
           authEmail = email.trim();
         } else {
-          // Treat input as a username — look up their hidden auth email
-          const { data } = await supabase
+          // Treat input as a username — look up their auth email
+          // First try the stored auth_email column (fast path)
+          const { data: profile } = await supabase
             .from('profiles')
             .select('auth_email')
             .eq('username', email.trim())
             .maybeSingle();
-          if (!data?.auth_email) throw new Error('Username not found. Try your email instead.');
-          authEmail = data.auth_email;
+          if (!profile) throw new Error('Username not found.');
+          if (profile.auth_email) {
+            authEmail = profile.auth_email;
+          } else {
+            // Fall back to RPC that joins auth.users directly
+            const { data: rpcData, error: rpcErr } = await supabase.rpc('get_auth_email_by_username', { p_username: email.trim() });
+            if (rpcErr || !rpcData) throw new Error('Could not find this account. Please contact support.');
+            authEmail = rpcData as string;
+          }
         }
-        const { error: err } = await supabase.auth.signInWithPassword({ email: authEmail, password });
+        const { data: signInData, error: err } = await supabase.auth.signInWithPassword({ email: authEmail, password });
         if (err) throw err;
+        // Backfill auth_email on profile if it was missing (fixes accounts created before this field existed)
+        const userId = signInData.user?.id;
+        if (userId && email.includes('@')) {
+          await supabase
+            .from('profiles')
+            .update({ auth_email: authEmail })
+            .eq('id', userId)
+            .is('auth_email', null);
+        }
       } else {
         // Sign up
         if (username.trim().length < 2) throw new Error('Username must be at least 2 characters.');
@@ -523,10 +540,11 @@ export function EditProfileModal({ profile, onClose, onProfileUpdated }: EditPro
 
 type CompleteProfileProps = {
   userId: string;
+  authEmail?: string;
   onProfileCreated: (p: Profile) => void;
 };
 
-export function CompleteProfileModal({ userId, onProfileCreated }: CompleteProfileProps) {
+export function CompleteProfileModal({ userId, authEmail, onProfileCreated }: CompleteProfileProps) {
   const [username, setUsername] = useState('');
   const [countryCode, setCountryCode] = useState('US');
   const [detecting, setDetecting] = useState(false);
@@ -555,6 +573,7 @@ export function CompleteProfileModal({ userId, onProfileCreated }: CompleteProfi
         id: userId,
         username: username.trim(),
         country_code: countryCode,
+        ...(authEmail ? { auth_email: authEmail } : {}),
       });
       if (err) throw err;
       onProfileCreated({ id: userId, username: username.trim(), country_code: countryCode });

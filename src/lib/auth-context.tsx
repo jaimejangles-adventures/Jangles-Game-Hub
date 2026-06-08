@@ -134,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           {needsProfile && user && (
             <CompleteProfileModal
               userId={user.id}
+              authEmail={user.email}
               onProfileCreated={handleProfileCreated}
             />
           )}
