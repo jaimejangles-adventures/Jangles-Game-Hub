@@ -25,15 +25,16 @@ export function useBucks() {
   const earnBuck = useCallback(async (gameSlug: string): Promise<string | null> => {
     if (!isSupabaseConfigured || !user) return null;
     const today = new Date().toISOString().slice(0, 10);
-    // Check total coins earned today across all games
-    const { count: totalToday } = await supabase
+    // Check coins earned today for this specific game
+    const { count: gameCount } = await supabase
       .from('bucks_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .eq('game_slug', gameSlug)
       .eq('earn_date', today)
       .eq('action', 'earn');
-    const total = totalToday ?? 0;
-    if (total >= 5) return null;
+    const earned = gameCount ?? 0;
+    if (earned >= 5) return null;
     const { error } = await supabase.from('bucks_log').insert({
       user_id: user.id,
       game_slug: gameSlug,
@@ -41,14 +42,12 @@ export function useBucks() {
       amount: 1,
       earn_date: today,
     });
-    // 23505 = already earned from this game today — skip silently
-    if (error && error.code !== '23505') return null;
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ['bucks-balance', user.id] });
-      const newTotal = total + 1;
-      if (newTotal === 3) return '3 of 5 coins earned today!';
-      if (newTotal === 4) return '4 of 5 coins earned today!';
-      if (newTotal === 5) return 'No more coins today!';
+      const newTotal = earned + 1;
+      if (newTotal === 3) return '3 of 5 coins earned in this game today!';
+      if (newTotal === 4) return '4 of 5 coins earned in this game today!';
+      if (newTotal === 5) return 'No more coins from this game today!';
     }
     return null;
   }, [user, queryClient]);

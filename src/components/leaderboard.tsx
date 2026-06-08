@@ -211,7 +211,7 @@ export function HallOfFame() {
             borderRightWidth: 2,
           }}
         >
-          🏆 Hall of Fame
+          🏆 Hall of Fame Leaderboard
         </div>
         <span className="text-[0.6rem] text-ink/45 font-medium">Top players worldwide</span>
       </div>

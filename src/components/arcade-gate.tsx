@@ -12,6 +12,27 @@ type Props = {
 };
 
 const isDev = import.meta.env.DEV;
+const GUEST_PLAYS_KEY = 'jj-guest-arcade-plays';
+const GUEST_MAX = 3;
+
+function getGuestPlays(): number {
+  try {
+    const raw = localStorage.getItem(GUEST_PLAYS_KEY);
+    if (!raw) return 0;
+    const { date, count } = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    return date === today ? (count as number) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementGuestPlays(): number {
+  const today = new Date().toISOString().slice(0, 10);
+  const next = getGuestPlays() + 1;
+  localStorage.setItem(GUEST_PLAYS_KEY, JSON.stringify({ date: today, count: next }));
+  return next;
+}
 
 export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) {
   const { user, openAuthModal } = useAuth();
@@ -19,8 +40,12 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   const [sessionActive, setSessionActive] = useState(isDev);
   const [spending, setSpending] = useState(false);
   const [error, setError] = useState(false);
+  const [guestPlays, setGuestPlays] = useState(getGuestPlays);
 
-  const endSession = useCallback(() => setSessionActive(isDev), []);
+  const endSession = useCallback(() => {
+    setSessionActive(isDev);
+    setGuestPlays(getGuestPlays());
+  }, []);
 
   if (sessionActive) {
     return (
@@ -42,6 +67,13 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
     }
   }
 
+  function handleGuestPlay() {
+    incrementGuestPlays();
+    setSessionActive(true);
+  }
+
+  const guestOut = guestPlays >= GUEST_MAX;
+
   return (
     <div
       className="flex h-full flex-col items-center justify-center px-4"
@@ -52,7 +84,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
         style={{ borderBottomWidth: 7, borderRightWidth: 6, maxWidth: "22rem", width: "90vw" }}
       >
         {/* Coin icon */}
-        <div style={{ fontSize: "3.5rem", lineHeight: 1 }}>🪙</div>
+        <div style={{ fontSize: "3.5rem", lineHeight: 1 }}>🕹️</div>
 
         <div>
           <div
@@ -66,11 +98,61 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
           </h2>
         </div>
 
-        {!user && (
+        {/* Guest (not logged in) */}
+        {!user && !guestOut && (
           <>
+            {guestPlays > 0 && (
+              <div
+                className="flex items-center gap-2 rounded-full border-[2px] border-ink px-4 py-1.5 text-sm font-extrabold"
+                style={{ background: "#FEF3C7", borderBottomWidth: 4, borderRightWidth: 3 }}
+              >
+                🪙 {guestPlays} of {GUEST_MAX} free plays used today
+              </div>
+            )}
+            {guestPlays === 0 && (
+              <p className="text-sm font-bold text-ink/70 leading-snug">
+                You get <strong>3 free plays</strong> a day!<br />
+                Sign up to earn coins and play unlimited.
+              </p>
+            )}
+            <button
+              onClick={handleGuestPlay}
+              className="rounded-full border-[3px] border-ink px-8 py-3 text-base font-extrabold text-white transition-transform hover:-translate-y-0.5"
+              style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+            >
+              Play Free!
+            </button>
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => openAuthModal('sign-up')}
+                className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: "#3B82F6", borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Sign Up Free
+              </button>
+              <button
+                onClick={() => openAuthModal('sign-in')}
+                className="rounded-full border-[3px] border-ink bg-white px-6 py-2.5 text-sm font-extrabold text-ink transition-transform hover:-translate-y-0.5"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Sign In
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Guest — out of free plays */}
+        {!user && guestOut && (
+          <>
+            <div
+              className="flex items-center gap-2 rounded-full border-[2px] border-ink px-4 py-1.5 text-sm font-extrabold"
+              style={{ background: "#FEE2E2", borderBottomWidth: 4, borderRightWidth: 3, color: "#dc2626" }}
+            >
+              3 of 3 free plays used!
+            </div>
             <p className="text-sm font-bold text-ink/70 leading-snug">
-              Arcade games use <strong>Jangles Bucks</strong>!<br />
-              Play learning games to earn bucks, then spend them here.
+              You're all out for today.<br />
+              Sign up to earn coins and play as much as you want!
             </p>
             <div className="flex flex-col gap-2 w-full">
               <button
@@ -87,10 +169,18 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
               >
                 Sign In
               </button>
+              <Link
+                to="/"
+                className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-ink/60 bg-white transition-transform hover:-translate-y-0.5"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Come back tomorrow →
+              </Link>
             </div>
           </>
         )}
 
+        {/* Logged in — no bucks */}
         {user && balance < 1 && (
           <>
             <p className="text-sm font-bold text-ink/70 leading-snug">
@@ -112,6 +202,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
           </>
         )}
 
+        {/* Logged in — has bucks */}
         {user && balance >= 1 && (
           <>
             <div className="flex items-center gap-2">
