@@ -68,7 +68,7 @@ export function ElefanteGame() {
 
   useEffect(() => {
     if (phase === "over" && user) {
-      saveScoreRef.current(finalScore);
+      saveScoreRef.current(finalScore, difficultyRef.current);
     }
   }, [phase, user, finalScore]);
 

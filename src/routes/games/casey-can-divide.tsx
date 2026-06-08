@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { CaseyCanDivideGame } from '@/game/CaseyCanDivideGame';
+import { useBucksContext } from '@/lib/bucks-context';
 
 export const Route = createFileRoute('/games/casey-can-divide')({
   head: () => ({
@@ -16,5 +18,7 @@ export const Route = createFileRoute('/games/casey-can-divide')({
 });
 
 function CaseyCanDivideRoute() {
-  return <CaseyCanDivideGame />;
+  const { earnBuck } = useBucksContext();
+  const handleComplete = useCallback(() => earnBuck('casey-can-divide'), [earnBuck]);
+  return <CaseyCanDivideGame onComplete={handleComplete} />;
 }

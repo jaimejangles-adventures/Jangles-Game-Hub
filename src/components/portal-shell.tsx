@@ -6,6 +6,7 @@ import { asset } from "@/lib/asset";
 import { isMuted, setMuted } from "@/lib/sound";
 import { useAuth } from "@/lib/auth-context";
 import { flagEmoji } from "@/lib/countries";
+import { useBucksContext } from "@/lib/bucks-context";
 
 type PortalShellProps = {
   children: ReactNode;
@@ -18,7 +19,8 @@ export function PortalShell({ children }: PortalShellProps) {
     select: (state) => state.location.pathname,
   });
   const navigate = useNavigate();
-  const { user, profile, openAuthModal, signOut } = useAuth();
+  const { user, profile, openAuthModal, openEditProfile, signOut } = useAuth();
+  const { balance, showToast } = useBucksContext();
 
   const isFullBleed = FULL_BLEED_ROUTES.includes(pathname);
   const [openCategory, setOpenCategory] = useState<GameCategory | null>(null);
@@ -247,8 +249,18 @@ export function PortalShell({ children }: PortalShellProps) {
               <span>{muted ? "🔇" : "🔊"}</span>
               <span>{muted ? "Muted" : "Sound"}</span>
             </button>
+            {user && (
+              <div
+                className="flex items-center gap-1 rounded-full border-[3px] border-ink bg-yellow-300 px-3 py-1.5 text-sm font-extrabold"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                title="Jangles Bucks — earn by playing learning games, spend on arcade games!"
+              >
+                <span>🪙</span>
+                <span>{balance}</span>
+              </div>
+            )}
             {user ? (
-              <UserMenu user={user} profile={profile} flagEmoji={flagEmoji} signOut={signOut} />
+              <UserMenu user={user} profile={profile} flagEmoji={flagEmoji} signOut={signOut} openEditProfile={openEditProfile} />
             ) : (
               <button
                 onClick={() => openAuthModal('sign-in')}
@@ -292,6 +304,15 @@ export function PortalShell({ children }: PortalShellProps) {
                 🏆 Sign In / Join Leaderboard
               </button>
             )}
+            {user && (
+              <div
+                className="flex items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-yellow-300 font-extrabold"
+                style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                <span>🪙</span>
+                <span>{balance} Jangles Buck{balance !== 1 ? 's' : ''}</span>
+              </div>
+            )}
             {CATEGORY_MANIFEST.map((category) => {
               const categoryGames = GAME_MANIFEST.filter((g) => g.category === category.slug);
               return (
@@ -334,6 +355,21 @@ export function PortalShell({ children }: PortalShellProps) {
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8">{children}</div>
+        </div>
+      )}
+
+      {/* Jangles Buck earned toast */}
+      {showToast && (
+        <div
+          className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-full border-[3px] border-ink bg-yellow-300 px-5 py-3 text-base font-extrabold shadow-xl"
+          style={{
+            borderBottomWidth: 5,
+            borderRightWidth: 4,
+            animation: "buckToast 2.5s ease forwards",
+          }}
+        >
+          <span style={{ fontSize: "1.3rem" }}>🪙</span>
+          <span>+1 Jangles Buck earned!</span>
         </div>
       )}
 
@@ -433,11 +469,13 @@ function UserMenu({
   profile,
   flagEmoji: flag,
   signOut,
+  openEditProfile,
 }: {
   user: { email?: string };
   profile: { country_code: string; username: string } | null;
   flagEmoji: (code: string) => string;
   signOut: () => void;
+  openEditProfile: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -470,8 +508,14 @@ function UserMenu({
             {user.email?.includes("@play.jaimejangles.com") ? "No email set" : user.email}
           </div>
           <button
-            onClick={() => { setOpen(false); signOut(); }}
+            onClick={() => { setOpen(false); openEditProfile(); }}
             className="w-full text-left px-3 py-2.5 text-sm font-bold text-ink hover:bg-ink/5 transition-colors"
+          >
+            ✏️ Edit Profile
+          </button>
+          <button
+            onClick={() => { setOpen(false); signOut(); }}
+            className="w-full text-left px-3 py-2.5 text-sm font-bold text-ink hover:bg-ink/5 transition-colors border-t border-ink/10"
           >
             Sign Out
           </button>

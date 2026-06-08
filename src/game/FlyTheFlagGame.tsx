@@ -287,7 +287,7 @@ function ScoreRow({ score, total }: { score: number; total: number }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function FlyTheFlagGame() {
+export function FlyTheFlagGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase] = useState<Phase>("start");
   const [queue, setQueue] = useState<Country[]>([]);
   const [roundIdx, setRoundIdx] = useState(0);
@@ -349,6 +349,7 @@ export function FlyTheFlagGame() {
     if (next >= queue.length) {
       burstFinale();
       setPhase("done");
+      onComplete?.();
     } else {
       setRoundIdx(next);
       setChoices(buildChoices(queue[next]));

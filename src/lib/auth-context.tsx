@@ -9,14 +9,14 @@ import {
 } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase, type Profile } from './supabase';
-import { AuthModal } from '@/components/auth-modal';
-import { CompleteProfileModal } from '@/components/auth-modal';
+import { AuthModal, CompleteProfileModal, EditProfileModal } from '@/components/auth-modal';
 
 type AuthContextType = {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
   openAuthModal: (mode?: 'sign-in' | 'sign-up') => void;
+  openEditProfile: () => void;
   signOut: () => void;
 };
 
@@ -25,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: false,
   openAuthModal: () => {},
+  openEditProfile: () => {},
   signOut: () => {},
 });
 
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const profileCache = useRef<Record<string, Profile>>({});
 
@@ -93,6 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setModalOpen(true);
   }, []);
 
+  const openEditProfile = useCallback(() => {
+    setEditProfileOpen(true);
+  }, []);
+
   const signOut = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     await supabase.auth.signOut();
@@ -107,8 +113,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsProfile(false);
   }, []);
 
+  const handleProfileUpdated = useCallback((p: Profile) => {
+    profileCache.current[p.id] = p;
+    setProfile(p);
+    setEditProfileOpen(false);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, openAuthModal, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, openAuthModal, openEditProfile, signOut }}>
       {children}
       {isSupabaseConfigured && (
         <>
@@ -123,6 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <CompleteProfileModal
               userId={user.id}
               onProfileCreated={handleProfileCreated}
+            />
+          )}
+          {editProfileOpen && profile && (
+            <EditProfileModal
+              profile={profile}
+              onClose={() => setEditProfileOpen(false)}
+              onProfileUpdated={handleProfileUpdated}
             />
           )}
         </>

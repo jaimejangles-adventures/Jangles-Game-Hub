@@ -59,7 +59,7 @@ function speakWord(word: string) {
   window.speechSynthesis.speak(utt);
 }
 
-export function CaseyCanSpellGame() {
+export function CaseyCanSpellGame({ onComplete }: { onComplete?: () => void } = {}) {
   // Words in difficulty order — no shuffle
   const [wordIdx, setWordIdx] = useState(0);
   const wordData = SPELL_WORDS[wordIdx];
@@ -105,7 +105,7 @@ export function CaseyCanSpellGame() {
       setSlots(newSlots);
       if (currentNextSlot === word.length - 1) {
         setCaseyMsg(pick(MSGS.correct));
-        setScore(s => s + 1);
+        setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
         setPhase('correct');
         playCorrectExclamation();
         if (roundNum >= SPELL_WORDS.length) burstFinale(); else burstCorrect();
@@ -127,6 +127,19 @@ export function CaseyCanSpellGame() {
       }
     }
   }, [phase, wordData.word, slots, lives, roundNum, resetCurrentWord]);
+
+  // Keyboard input — pressing a letter triggers the matching tile
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (phase !== 'spelling') return;
+      const key = e.key.toLowerCase();
+      if (!/^[a-z]$/.test(key)) return;
+      const tile = pool.find(t => t.char === key && !t.used);
+      if (tile) handleTap(tile);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phase, pool, handleTap]);
 
   const nextWord = useCallback(() => {
     const nextIdx = (wordIdx + 1) % SPELL_WORDS.length;

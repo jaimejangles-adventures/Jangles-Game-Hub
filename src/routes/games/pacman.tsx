@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PacmanGame } from "@/game/PacmanGame";
+import { ArcadeGate } from "@/components/arcade-gate";
 
 export const Route = createFileRoute("/games/pacman")({
   head: () => ({
@@ -16,5 +17,9 @@ export const Route = createFileRoute("/games/pacman")({
 });
 
 function PacmanRoute() {
-  return <PacmanGame />;
+  return (
+    <ArcadeGate gameSlug="pacman" gameTitle="Jangles Pac" gameEmoji="👾">
+      <PacmanGame />
+    </ArcadeGate>
+  );
 }

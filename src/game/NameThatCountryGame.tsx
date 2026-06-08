@@ -179,7 +179,7 @@ function CountryPassport({ countries }: { countries: Country[] }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function NameThatCountryGame() {
+export function NameThatCountryGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase] = useState<Phase>("start");
   const [queue, setQueue] = useState<Country[]>([]);
   const [roundIdx, setRoundIdx] = useState(0);
@@ -242,6 +242,7 @@ export function NameThatCountryGame() {
     if (next >= queue.length) {
       burstFinale();
       setPhase("done");
+      onComplete?.();
     } else {
       setRoundIdx(next);
       setChoices(buildChoices(queue[next]));

@@ -1,5 +1,7 @@
+import { useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { JanglesGame } from "@/game/JanglesGame";
+import { useBucksContext } from "@/lib/bucks-context";
 
 export const Route = createFileRoute("/games/music-match")({
   head: () => ({
@@ -15,5 +17,7 @@ export const Route = createFileRoute("/games/music-match")({
 });
 
 function MusicMatchRoute() {
-  return <JanglesGame />;
+  const { earnBuck } = useBucksContext();
+  const handleComplete = useCallback(() => earnBuck("music-match"), [earnBuck]);
+  return <JanglesGame onComplete={handleComplete} />;
 }

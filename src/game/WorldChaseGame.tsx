@@ -331,7 +331,7 @@ function MapContents({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function WorldChaseGame() {
+export function WorldChaseGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase] = useState<WorldChasePhase>("briefing");
   const [stopIndex, setStopIndex] = useState(-1);
   const [movesLeft, setMovesLeft] = useState(MAX_MOVES);
@@ -429,6 +429,7 @@ export function WorldChaseGame() {
       burstFinale();
       addGlobalStamps(1);
       setPhase("found");
+      onComplete?.();
     } else {
       setPhase("arrived");
     }

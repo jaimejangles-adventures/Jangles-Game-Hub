@@ -233,7 +233,7 @@ type Phase = "boot" | "play" | "result";
 type View = "play" | "facts";
 type RoundStatus = "pending" | "correct" | "wrong";
 
-export function JanglesGame() {
+export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [view, setView] = useState<View>("play");
   const [phase, setPhase] = useState<Phase>("boot");
   const [rounds, setRounds] = useState<Fact[]>([]);
@@ -348,6 +348,7 @@ export function JanglesGame() {
       setPhase("result");
       addStamps(score);
       burstFinale();
+      onComplete?.();
       return;
     }
     setCurrentRound((i) => i + 1);

@@ -1,5 +1,7 @@
+import { useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SpotTheDifferenceGame } from "@/game/SpotTheDifferenceGame";
+import { useBucksContext } from "@/lib/bucks-context";
 
 export const Route = createFileRoute("/games/spot-the-difference")({
   head: () => ({
@@ -15,5 +17,7 @@ export const Route = createFileRoute("/games/spot-the-difference")({
 });
 
 function SpotTheDifferenceRoute() {
-  return <SpotTheDifferenceGame />;
+  const { earnBuck } = useBucksContext();
+  const handleComplete = useCallback(() => earnBuck("spot-the-difference"), [earnBuck]);
+  return <SpotTheDifferenceGame onComplete={handleComplete} />;
 }

@@ -786,7 +786,7 @@ function makeCustomWord(objectName: string): Word {
 // ── Main orchestrator ─────────────────────────────────────────────
 type Phase = 'intro' | 'custom-input' | 'drawing' | 'pass';
 
-export function DrawWithCaseyGame() {
+export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase]           = useState<Phase>('intro');
   const [playerName, setPlayerName] = useState('Friend');
   const [traceMode, setTraceMode]   = useState(false);   // true = Trace It mode
@@ -856,6 +856,7 @@ export function DrawWithCaseyGame() {
     if (!currentWord) return;
     setStamps(prev => [...prev, currentWord]);
     setPhase('pass');
+    onComplete?.();
     burstCorrect();
     setTimeout(burstFinale, 300);
   }, [currentWord]);

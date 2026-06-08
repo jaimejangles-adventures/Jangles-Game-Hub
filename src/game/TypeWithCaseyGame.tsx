@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useScore } from '@/hooks/use-score';
+import { useAuth } from '@/lib/auth-context';
+import { Leaderboard } from '@/components/leaderboard';
 
 // ── Finger data ──────────────────────────────────────────────────────────────
 
@@ -118,7 +121,10 @@ const RIGHT_FINGERS = [
 
 type Screen = 'intro' | 'playing' | 'complete';
 
-export function TypeWithCaseyGame() {
+export function TypeWithCaseyGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore('type-with-casey');
+
   const [screen, setScreen]         = useState<Screen>('intro');
   const [level, setLevel]           = useState<Level>(1);
   const [wordIdx, setWordIdx]       = useState(0);
@@ -145,7 +151,13 @@ export function TypeWithCaseyGame() {
     if (screen === 'playing') containerRef.current?.focus();
   }, [screen, wordIdx]);
 
+  // Save score when game completes
+  useEffect(() => {
+    if (screen === 'complete' && score > 0) saveScore(score);
+  }, [screen, score, saveScore]);
+
   function startGame(lvl: Level) {
+    resetScore();
     setLevel(lvl);
     setWordIdx(0);
     setCharIdx(0);
@@ -186,6 +198,7 @@ export function TypeWithCaseyGame() {
           const nextWord = wordIdx + 1;
           if (nextWord >= words.length) {
             setScreen('complete');
+            onComplete?.();
           } else {
             setWordIdx(nextWord);
             setCharIdx(0);
@@ -632,6 +645,29 @@ export function TypeWithCaseyGame() {
           : finalAcc >= 80
           ? '👍 Great job! Remember: eyes on screen, fingers on home row!'
           : '💡 Tip: Start slow and focus on the right finger for each key!'}
+      </div>
+
+      {/* Leaderboard */}
+      <div
+        className="w-full rounded-2xl border-[3px] border-ink p-4"
+        style={{ background: '#1a1a2e', borderBottomWidth: 6, borderRightWidth: 5 }}
+      >
+        <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">
+          🏆 Top Typists — Type with Casey
+        </div>
+        {user ? (
+          <p className="text-xs font-bold mb-2" style={{ color: saving ? '#9ca3af' : saved ? '#4ade80' : 'transparent' }}>
+            {saving ? 'Saving score…' : '✓ Score saved to leaderboard'}
+          </p>
+        ) : (
+          <button
+            onClick={() => openAuthModal('sign-up')}
+            className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block"
+          >
+            🏆 Sign in to save your score
+          </button>
+        )}
+        <Leaderboard gameSlug="type-with-casey" limit={5} theme="dark" />
       </div>
 
       {/* Actions */}

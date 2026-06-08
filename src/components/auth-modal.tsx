@@ -372,6 +372,153 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
   );
 }
 
+// ─── Edit Profile Modal ────────────────────────────────────────────────────────
+
+type EditProfileProps = {
+  profile: Profile;
+  onClose: () => void;
+  onProfileUpdated: (p: Profile) => void;
+};
+
+export function EditProfileModal({ profile, onClose, onProfileUpdated }: EditProfileProps) {
+  const [username, setUsername] = useState(profile.username);
+  const [countryCode, setCountryCode] = useState(profile.country_code);
+  const [detecting, setDetecting] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  async function detectCountry() {
+    setDetecting(true);
+    try {
+      const res = await fetch('https://ipwho.is/');
+      const json = await res.json();
+      if (json.country_code) setCountryCode(json.country_code);
+    } catch { /* silent */ }
+    finally { setDetecting(false); }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (username.trim().length < 2) { setError('Username must be at least 2 characters.'); return; }
+    if (username.trim().length > 20) { setError('Username must be 20 characters or less.'); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { setError('Letters, numbers and underscores only.'); return; }
+    setSubmitting(true);
+    try {
+      const { error: err } = await supabase
+        .from('profiles')
+        .update({ username: username.trim(), country_code: countryCode })
+        .eq('id', profile.id);
+      if (err) throw err;
+      setSuccess(true);
+      setTimeout(() => {
+        onProfileUpdated({ ...profile, username: username.trim(), country_code: countryCode });
+        onClose();
+      }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('23505') || msg.toLowerCase().includes('unique')) {
+        setError('Sorry, that username is taken.');
+      } else {
+        setError(msg || 'Something went wrong.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm mx-4 rounded-[2rem] border-[3px] border-ink bg-paper p-7"
+        style={{ borderBottomWidth: 7, borderRightWidth: 6 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border-[2px] border-ink text-sm font-bold text-ink/60 hover:text-ink"
+          style={{ borderBottomWidth: 3, borderRightWidth: 3 }}
+        >
+          ✕
+        </button>
+
+        <div className="mb-5 text-center">
+          <div
+            className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+            style={{ background: '#FBBF24', borderBottomWidth: 4, borderRightWidth: 3 }}
+          >
+            ✏️ Edit Profile
+          </div>
+          <h2 className="text-xl font-extrabold text-ink">Update your info</h2>
+          <p className="mt-0.5 text-xs text-ink/55">Changes will appear on the leaderboard right away.</p>
+        </div>
+
+        {success ? (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <div className="text-5xl">🎉</div>
+            <p className="font-extrabold text-ink">Profile updated!</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="YourName123"
+                maxLength={20}
+                required
+                autoFocus
+                className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none focus:border-[3px]"
+                style={{ background: '#fff', borderBottomWidth: 4 }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[0.65rem] font-extrabold uppercase tracking-[0.15em] text-ink/50">Country</label>
+                <button type="button" onClick={detectCountry} disabled={detecting} className="text-[0.6rem] font-bold text-blue-600 hover:underline disabled:opacity-50">
+                  {detecting ? 'Detecting…' : '📍 Detect mine'}
+                </button>
+              </div>
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                required
+                className="rounded-xl border-[2px] border-ink px-3 py-2 text-sm font-bold text-ink outline-none focus:border-[3px]"
+                style={{ background: '#fff', borderBottomWidth: 4 }}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{flagEmoji(c.code)} {c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {error && (
+              <p className="rounded-xl border-[2px] border-red-300 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-1 rounded-full border-[3px] border-ink py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+              style={{ background: '#22C55E', borderBottomWidth: 5, borderRightWidth: 4 }}
+            >
+              {submitting ? '…' : 'Save Changes'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Complete Profile Modal (shown when user is signed in but has no profile) ─
 
 type CompleteProfileProps = {

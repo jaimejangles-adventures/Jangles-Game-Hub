@@ -6,7 +6,7 @@ import { useScore } from "@/hooks/use-score";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BrickType = "normal" | "tough" | "indestructible";
-type PowerUpType = "extend" | "slow" | "laser" | "sticky";
+type PowerUpType = "extend" | "slow" | "laser" | "sticky" | "multi";
 type GamePhase =
   | "title" | "level-transition" | "ready" | "playing"
   | "ball-lost" | "level-clear" | "game-over" | "win";
@@ -363,10 +363,10 @@ function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, level: number, slow
 }
 
 const POWERUP_COLORS: Record<PowerUpType,string> = {
-  extend:"#4488ff", slow:"#44ffaa", laser:"#ff4444", sticky:"#bb88ff",
+  extend:"#4488ff", slow:"#44ffaa", laser:"#ff4444", sticky:"#bb88ff", multi:"#ff9900",
 };
 const POWERUP_LABELS: Record<PowerUpType,string> = {
-  extend:"E", slow:"S", laser:"L", sticky:"M",
+  extend:"E", slow:"S", laser:"L", sticky:"G", multi:"M",
 };
 
 function drawPowerUps(ctx: CanvasRenderingContext2D, powerUps: PowerUp[]) {
@@ -432,7 +432,7 @@ function drawHUD(
     { label:"E", timer:extendTimer,  color:POWERUP_COLORS.extend },
     { label:"S", timer:slowTimer,    color:POWERUP_COLORS.slow },
     { label:"L", timer:laserTimer,   color:POWERUP_COLORS.laser },
-    { label:"M", timer:stickyTimer,  color:POWERUP_COLORS.sticky },
+    { label:"G", timer:stickyTimer,  color:POWERUP_COLORS.sticky },
   ].filter(e => e.timer > 0);
 
   if (effects.length) {
@@ -475,6 +475,7 @@ export function JanglesBallGame() {
     score: 0,
     bricks: [] as Brick[],
     ball: { x:W/2, y:H-130, vx:3, vy:-3.17, r:BALL_R } as Ball,
+    extraBalls: [] as Ball[],
     paddle: { x:W/2-40, y:H-52, w:PADDLE_BASE_W, h:PADDLE_H } as Paddle,
     paddleTarget: W/2,
     mouseY: 0,
@@ -539,7 +540,7 @@ export function JanglesBallGame() {
     s.bricks = makeBricks(lvl);
     s.paddle = { x:W/2-40, y:H-52, w:PADDLE_BASE_W, h:PADDLE_H };
     s.paddleTarget = W/2;
-    s.particles = []; s.powerUps = []; s.laserBolts = [];
+    s.particles = []; s.powerUps = []; s.laserBolts = []; s.extraBalls = [];
     s.extendTimer = 0; s.slowTimer = 0; s.laserTimer = 0; s.stickyTimer = 0;
     s.laserFireTimer = 0;
     resetBall(lvl);
@@ -609,7 +610,7 @@ export function JanglesBallGame() {
       else if (s.phase==="level-clear" && s.clearTimer<=0) {
         if (s.level>=5) {
           s.phase="win";
-          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score); }
+          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score, s.difficulty); }
         } else startLevel(s.level+1);
       }
       else if (s.phase==="game-over"||s.phase==="win") {
@@ -704,7 +705,7 @@ export function JanglesBallGame() {
         }
 
         c.font="bold 10px 'Courier New', monospace"; c.fillStyle="#333";
-        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [M]AGNET",W/2,H/2+162);
+        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [G]RIP [M]ULTI",W/2,H/2+162);
         return;
       }
 
@@ -772,10 +773,22 @@ export function JanglesBallGame() {
           if (pu.type==="laser")  s.laserTimer=EFFECT_DURATION;
           if (pu.type==="sticky") {
             s.stickyTimer=EFFECT_DURATION;
-            // Immediately stick ball if it's in play
-            if (!s.ballStuck) {
-              s.stuckOffsetX = s.ball.x - pad.x;
-              s.ballStuck = true;
+          }
+          if (pu.type==="multi") {
+            // Spawn 2 extra balls from the main ball's current position
+            const speed = Math.hypot(s.ball.vx, s.ball.vy) || s.baseSpeed;
+            const baseAngle = s.ballStuck ? -Math.PI/2 : Math.atan2(s.ball.vy, s.ball.vx);
+            const spawnX = s.ball.x;
+            const spawnY = s.ball.y;
+            for (let i = 0; i < 2; i++) {
+              const spread = (i === 0 ? -Math.PI/5 : Math.PI/5);
+              const angle = baseAngle + spread;
+              s.extraBalls.push({
+                x: spawnX, y: spawnY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                r: BALL_R,
+              });
             }
           }
           spawnParticles(pu.x, pu.y, POWERUP_COLORS[pu.type], 10);
@@ -936,9 +949,9 @@ export function JanglesBallGame() {
           s.ball.x>=pad.x-s.ball.r &&
           s.ball.x<=pad.x+pad.w+s.ball.r) {
         if (s.stickyTimer > 0) {
-          // Magnet: stick ball to paddle
+          // Magnet: stick ball to paddle (clamp so ball center stays on the paddle)
           s.ballStuck = true;
-          s.stuckOffsetX = clamp(s.ball.x - pad.x, 0, pad.w);
+          s.stuckOffsetX = clamp(s.ball.x - pad.x, s.ball.r, pad.w - s.ball.r);
         } else {
           const hit=(s.ball.x-(pad.x+pad.w/2))/(pad.w/2);
           const spd=Math.hypot(s.ball.vx,s.ball.vy);
@@ -953,7 +966,7 @@ export function JanglesBallGame() {
         s.lives--;
         if (s.lives<=0) {
           s.phase="game-over";
-          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score); }
+          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score, s.difficulty); }
         }
         else { s.phase="ball-lost"; s.ballLostTimer=80; }
       }
@@ -983,6 +996,49 @@ export function JanglesBallGame() {
         }
         break;
       }
+
+      // ── Extra balls physics ────────────────────────────────────────────────
+      s.extraBalls = s.extraBalls.filter(eb => {
+        eb.x += eb.vx; eb.y += eb.vy;
+        if (eb.x-eb.r<4)   { eb.x=4+eb.r;    eb.vx=Math.abs(eb.vx); }
+        if (eb.x+eb.r>W-4) { eb.x=W-4-eb.r;  eb.vx=-Math.abs(eb.vx); }
+        if (eb.y-eb.r<52)  { eb.y=52+eb.r;   eb.vy=Math.abs(eb.vy); }
+        // Bounce off paddle
+        if (eb.vy>0 &&
+            eb.y+eb.r>=pad.y && eb.y+eb.r<=pad.y+pad.h+6 &&
+            eb.x>=pad.x-eb.r && eb.x<=pad.x+pad.w+eb.r) {
+          const hit=(eb.x-(pad.x+pad.w/2))/(pad.w/2);
+          const spd=Math.hypot(eb.vx,eb.vy);
+          const ang=hit*(Math.PI/3);
+          eb.vx=spd*Math.sin(ang); eb.vy=-Math.abs(spd*Math.cos(ang));
+          eb.y=pad.y-eb.r;
+        }
+        // Brick collisions (extra balls also destroy bricks)
+        for (const b of s.bricks) {
+          if (!b.alive) continue;
+          const nearX=clamp(eb.x,b.x,b.x+b.w);
+          const nearY=clamp(eb.y,b.y,b.y+b.h);
+          if (Math.hypot(eb.x-nearX,eb.y-nearY)>=eb.r) continue;
+          const overlapX=eb.x>b.x && eb.x<b.x+b.w;
+          const fromTop=eb.y<b.y; const fromLeft=eb.x<b.x; const fromRight=eb.x>b.x+b.w;
+          if (overlapX) eb.vy=fromTop?-Math.abs(eb.vy):Math.abs(eb.vy);
+          else { eb.vx=(fromLeft||(!fromRight&&fromTop))?-Math.abs(eb.vx):Math.abs(eb.vx); eb.vy=fromTop?-Math.abs(eb.vy):Math.abs(eb.vy); }
+          if (b.type!=="indestructible") {
+            b.hp--;
+            if (b.hp<=0) {
+              b.alive=false;
+              s.score+=(b.type==="tough"?20:10)*lvl;
+              spawnParticles(b.x+b.w/2,b.y+b.h/2,pal.bricks[b.palCol%pal.bricks.length]);
+              maybeDropPowerUp(s,b);
+            }
+          }
+          break;
+        }
+        // Draw extra ball inline
+        drawBall(c, eb, lvl, s.slowTimer>0, false);
+        // Remove if fallen off — no life penalty
+        return eb.y-eb.r <= H+20;
+      });
 
       // ── Level clear check ──────────────────────────────────────────────────
       if (!s.bricks.some(b=>b.alive&&b.type!=="indestructible")) {
@@ -1019,15 +1075,20 @@ export function JanglesBallGame() {
 
 function scaleSpeed(s: ReturnType<typeof buildState>, factor: number) {
   const spd = Math.hypot(s.ball.vx, s.ball.vy);
-  const newSpd = spd * factor;
   const angle = Math.atan2(s.ball.vy, s.ball.vx);
-  s.ball.vx = Math.cos(angle) * newSpd;
-  s.ball.vy = Math.sin(angle) * newSpd;
+  s.ball.vx = Math.cos(angle) * spd * factor;
+  s.ball.vy = Math.sin(angle) * spd * factor;
+  s.extraBalls.forEach(eb => {
+    const espd = Math.hypot(eb.vx, eb.vy);
+    const eangle = Math.atan2(eb.vy, eb.vx);
+    eb.vx = Math.cos(eangle) * espd * factor;
+    eb.vy = Math.sin(eangle) * espd * factor;
+  });
 }
 
 function maybeDropPowerUp(s: ReturnType<typeof buildState>, b: Brick) {
   if (Math.random() > POWERUP_DROP_CHANCE) return;
-  const types: PowerUpType[] = ["extend","slow","laser","sticky"];
+  const types: PowerUpType[] = ["extend","slow","laser","sticky","multi"];
   const type = types[Math.floor(Math.random()*types.length)];
   s.powerUps.push({ x:b.x+b.w/2, y:b.y, vy:1.8+Math.random()*.8, type, alive:true });
 }
@@ -1036,7 +1097,7 @@ function buildState() {
   return {
     phase: "title" as GamePhase,
     level: 1, lives: 3, score: 0,
-    bricks: [] as Brick[], ball: {} as Ball, paddle: {} as Paddle,
+    bricks: [] as Brick[], ball: {} as Ball, extraBalls: [] as Ball[], paddle: {} as Paddle,
     paddleTarget: 0, mouseY: 0, transitionTimer: 0, countdownTimer: 0,
     ballLostTimer: 0, clearTimer: 0, rafId: 0,
     particles: [] as { x:number;y:number;vx:number;vy:number;life:number;color:string;r:number; }[],

@@ -3,6 +3,14 @@ import { asset } from "@/lib/asset";
 import { useAuth } from "@/lib/auth-context";
 import { useScore } from "@/hooks/use-score";
 
+// ── Characters ─────────────────────────────────────────────────────────────
+const CHARACTERS = [
+  { id: "casey" as const, name: "Casey", color: "#f97316", spriteUrl: "/characters/casey-8bit.png" },
+  { id: "jaime" as const, name: "Jaime", color: "#3b82f6", spriteUrl: "/characters/jaime-8bit.png" },
+  { id: "jeff"  as const, name: "Jeff",  color: "#22c55e", spriteUrl: "/characters/jeff-8bit.png"  },
+];
+type CharDef = typeof CHARACTERS[0];
+
 // ── Audio ─────────────────────────────────────────────────────────────────
 function makeAudio(): AudioContext | null {
   try { return new (window.AudioContext || (window as any).webkitAudioContext)(); } catch { return null; }
@@ -20,7 +28,6 @@ function sfxDie(ctx: AudioContext)   { [440,349,294,220,165].forEach((f,i) => to
 function sfxBonus(ctx: AudioContext) { [523,659,784,1047].forEach((f,i) => tone(ctx, f, 0.09, "square", 0.12, i*0.08)); }
 function sfxThrow(ctx: AudioContext) { tone(ctx, 180, 0.1, "sawtooth", 0.07); }
 function sfxWin(ctx: AudioContext)   {
-  // big fanfare
   [523,659,784,1047,1175,1319,1568].forEach((f,i) => tone(ctx, f, 0.18, "square", 0.16, i*0.09));
 }
 
@@ -41,7 +48,6 @@ const KONG_LEVELS: KongLevel[] = [
   { country: "South Korea",  flag: "🇰🇷", music: "SOUTH KOREA.wav",  bgTint: "#00101a" },
 ];
 
-// Fisher-Yates shuffle of level indices — fresh random order every new game
 function shuffleLevels(): number[] {
   const arr = KONG_LEVELS.map((_, i) => i);
   for (let i = arr.length - 1; i > 0; i--) {
@@ -143,7 +149,7 @@ interface GameState {
   score: number;
   lives: number;
   level: number;
-  levelOrder: number[];  // shuffled indices into KONG_LEVELS — stays fixed for the whole game
+  levelOrder: number[];
   phase: "title" | "playing" | "winPause" | "win" | "gameover";
   throwTimer: number;
   throwInterval: number;
@@ -163,9 +169,6 @@ function makePlayer(): Player {
   };
 }
 
-// Difficulty ramps up each level:
-// throwInterval: starts at 155, shrinks 13/level, floor 38 (~level 10)
-// compassSpeed: starts at 1.0, +0.28/level (uncapped)
 function makeState(level = 1, lives = 3, score = 0, levelOrder?: number[]): GameState {
   const order = levelOrder ?? shuffleLevels();
   return {
@@ -214,15 +217,15 @@ function checkCompassLanding(prevBottomY: number, curBottomY: number, cx: number
   return null;
 }
 
-function onLadderCheck(p: Player): { on: boolean; snapX: number; yBot: number } {
+function onLadderCheck(p: Player): { on: boolean; snapX: number; yBot: number; yTop: number } {
   const cx = p.x + PLAYER_W / 2;
   const cy = p.y + PLAYER_H / 2;
   for (const l of LADDERS) {
     if (Math.abs(cx - (l.x + 8)) < 20 && cy > l.yTop - 4 && cy < l.yBot + 4) {
-      return { on: true, snapX: l.x - 8, yBot: l.yBot };
+      return { on: true, snapX: l.x - 8, yBot: l.yBot, yTop: l.yTop };
     }
   }
-  return { on: false, snapX: 0, yBot: 0 };
+  return { on: false, snapX: 0, yBot: 0, yTop: 0 };
 }
 
 // ── Drawing ───────────────────────────────────────────────────────────────
@@ -305,17 +308,20 @@ function drawFlag(ctx: CanvasRenderingContext2D, lvl: KongLevel, frame: number) 
   ctx.restore();
 }
 
-function drawCasey(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, p: Player) {
+// Sprites face left by default (same as Pac characters).
+// Flip horizontally when facing right so the character looks the correct way.
+function drawPlayer(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, p: Player, color: string) {
   ctx.save();
   if (p.dead && Math.floor(p.deadTimer / 5) % 2 === 0) { ctx.restore(); return; }
-  const drawX = p.facingLeft ? p.x + PLAYER_W : p.x;
+  // When facing left (default sprite orientation): no flip. When facing right: flip.
+  const drawX = p.facingLeft ? p.x : p.x + PLAYER_W;
   ctx.translate(drawX, p.y);
-  ctx.scale(p.facingLeft ? -1 : 1, 1);
+  ctx.scale(p.facingLeft ? 1 : -1, 1);
   if (img && img.complete) {
     ctx.drawImage(img, 0, 0, PLAYER_W, PLAYER_H);
   } else {
-    ctx.fillStyle = "#f97316"; ctx.fillRect(0, 0, PLAYER_W, PLAYER_H);
-    ctx.fillStyle = "#fff"; ctx.font = "8px monospace"; ctx.fillText("C", 10, 24);
+    ctx.fillStyle = color; ctx.fillRect(0, 0, PLAYER_W, PLAYER_H);
+    ctx.fillStyle = "#fff"; ctx.font = "8px monospace"; ctx.fillText("?", 10, 24);
   }
   ctx.restore();
 }
@@ -332,7 +338,7 @@ function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, lvl: KongLevel) {
   ctx.restore();
 }
 
-function drawTitle(ctx: CanvasRenderingContext2D, casey: HTMLImageElement | null) {
+function drawTitle(ctx: CanvasRenderingContext2D, playerImg: HTMLImageElement | null, charColor: string) {
   ctx.save();
   ctx.fillStyle = "#aa0000"; ctx.fillRect(40, 48, 400, 82);
   ctx.strokeStyle = "#ff4444"; ctx.lineWidth = 3; ctx.strokeRect(40, 48, 400, 82);
@@ -340,13 +346,14 @@ function drawTitle(ctx: CanvasRenderingContext2D, casey: HTMLImageElement | null
   ctx.fillText("JANGLES KONG", W / 2, 93);
   ctx.font = "13px monospace"; ctx.fillStyle = "#ffd700";
   ctx.fillText("Climb to the flag! Collect the music!", W / 2, 117);
-  if (casey?.complete) ctx.drawImage(casey, 50, 165, 70, 90);
+  if (playerImg?.complete) ctx.drawImage(playerImg, 50, 165, 70, 90);
+  else {
+    ctx.fillStyle = charColor; ctx.fillRect(50, 165, 70, 90);
+  }
   ctx.font = "36px serif"; ctx.textBaseline = "middle";
   const flags = ["🇺🇸","🇲🇽","🇯🇲","🇬🇧","🇯🇵","🇫🇷","🇰🇪","🇪🇸","🇮🇹","🇵🇪","🇬🇭","🇰🇷"];
   flags.forEach((f, i) => ctx.fillText(f, W - 170 + (i % 4) * 36, 188 + Math.floor(i / 4) * 44));
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#f97316"; ctx.font = "bold 13px monospace";
-  ctx.fillText("CASEY", 62, 268);
   ctx.fillStyle = "#ccc"; ctx.font = "12px monospace";
   ctx.fillText("← → run   ↑ ↓ climb ladders", W / 2, 340);
   ctx.fillText("SPACE / ↑ to jump over compasses 🧭", W / 2, 360);
@@ -371,14 +378,10 @@ function drawConfetti(ctx: CanvasRenderingContext2D, confetti: Confetti[]) {
 }
 
 function drawWinOverlay(ctx: CanvasRenderingContext2D, s: GameState, lvlDef: KongLevel) {
-  // draw confetti BEHIND the overlay
   drawConfetti(ctx, s.confetti);
-
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.68)"; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
-
-  // big pulsing flag
   const pulse = 1 + 0.08 * Math.sin(Date.now() * 0.008);
   ctx.save();
   ctx.translate(W / 2, H / 2 - 80);
@@ -386,22 +389,16 @@ function drawWinOverlay(ctx: CanvasRenderingContext2D, s: GameState, lvlDef: Kon
   ctx.font = "72px serif"; ctx.textBaseline = "middle";
   ctx.fillText(lvlDef.flag, 0, 0);
   ctx.restore();
-
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#ffd700"; ctx.font = "bold 28px monospace";
   ctx.fillText(`${lvlDef.country}!`, W / 2, H / 2 - 18);
-
   ctx.font = "14px monospace"; ctx.fillStyle = "#44ff88";
   ctx.fillText("🎵 Music playing!", W / 2, H / 2 + 14);
-
   ctx.font = "15px monospace"; ctx.fillStyle = "#fff";
   ctx.fillText(`+${1000 * s.level} bonus pts`, W / 2, H / 2 + 40);
-
-  // next country preview
   const nextLvlDef = KONG_LEVELS[s.levelOrder[s.level % s.levelOrder.length]];
   ctx.fillStyle = "#aaa"; ctx.font = "12px monospace";
   ctx.fillText(`Next: ${nextLvlDef.flag} ${nextLvlDef.country}`, W / 2, H / 2 + 66);
-
   ctx.textAlign = "left";
   ctx.restore();
 }
@@ -423,14 +420,19 @@ function drawGameOver(ctx: CanvasRenderingContext2D, score: number) {
 
 // ── Main component ────────────────────────────────────────────────────────
 export function JanglesKongGame() {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const stateRef     = useRef<GameState>({ ...makeState(), phase: "title" });
-  const keysRef      = useRef<Set<string>>(new Set());
-  const audioRef     = useRef<AudioContext | null>(null);
-  const bgMusicRef   = useRef<HTMLAudioElement | null>(null);
-  const rafRef       = useRef<number>(0);
-  const caseyImgRef  = useRef<HTMLImageElement | null>(null);
-  const [, rerender] = useState(0);
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const stateRef       = useRef<GameState>({ ...makeState(), phase: "title" });
+  const keysRef        = useRef<Set<string>>(new Set());
+  const audioRef       = useRef<AudioContext | null>(null);
+  const bgMusicRef     = useRef<HTMLAudioElement | null>(null);
+  const rafRef         = useRef<number>(0);
+  const playerImgRef   = useRef<HTMLImageElement | null>(null);
+  const [, rerender]   = useState(0);
+
+  // Character select state — drives the select screen before the game canvas
+  const [screenPhase, setScreenPhase]   = useState<"select" | "game">("select");
+  const [selectedChar, setSelectedChar] = useState<CharDef>(CHARACTERS[0]);
+  const selectedCharRef                 = useRef<CharDef>(CHARACTERS[0]);
 
   const { user } = useAuth();
   const { saveScore } = useScore("jangles-kong");
@@ -453,19 +455,33 @@ export function JanglesKongGame() {
     el.play().catch(() => {});
   }, [stopMusic]);
 
-  useEffect(() => {
-    const casey = new Image(); casey.src = asset("/characters/casey-8bit.png");
-    caseyImgRef.current = casey;
-  }, []);
-
   const getAudio = useCallback(() => {
     if (!audioRef.current) audioRef.current = makeAudio();
     audioRef.current?.resume();
     return audioRef.current;
   }, []);
 
-  // keyboard
+  // Load character sprite whenever selected character changes
   useEffect(() => {
+    const img = new Image();
+    img.src = asset(selectedChar.spriteUrl);
+    playerImgRef.current = img;
+    selectedCharRef.current = selectedChar;
+  }, [selectedChar]);
+
+  const startGame = useCallback((char: CharDef) => {
+    const img = new Image();
+    img.src = asset(char.spriteUrl);
+    playerImgRef.current = img;
+    selectedCharRef.current = char;
+    stateRef.current = { ...makeState(), phase: "title" };
+    setScreenPhase("game");
+    rerender(n => n + 1);
+  }, []);
+
+  // keyboard — only active while game canvas is visible
+  useEffect(() => {
+    if (screenPhase !== "game") return;
     const down = (e: KeyboardEvent) => {
       keysRef.current.add(e.key);
       if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)) e.preventDefault();
@@ -473,12 +489,12 @@ export function JanglesKongGame() {
       if (s.phase === "title") {
         getAudio();
         keysRef.current.clear();
-        stateRef.current = makeState(1);  // new game = new shuffle
+        stateRef.current = makeState(1);
         rerender(n => n + 1);
       }
       if (s.phase === "gameover" && (e.key === " " || e.key === "Enter")) {
         keysRef.current.clear();
-        stateRef.current = makeState(1);  // new game = new shuffle
+        stateRef.current = makeState(1);
         rerender(n => n + 1);
       }
     };
@@ -486,10 +502,11 @@ export function JanglesKongGame() {
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
-  }, [getAudio]);
+  }, [getAudio, screenPhase]);
 
   // game loop
   useEffect(() => {
+    if (screenPhase !== "game") return;
     let cancelled = false;
 
     function tick() {
@@ -502,31 +519,25 @@ export function JanglesKongGame() {
 
       const s    = stateRef.current;
       const keys = keysRef.current;
+      const char = selectedCharRef.current;
 
-      // ── Current level definition (from shuffled order) ─────────────────
       const lvlDef = KONG_LEVELS[s.levelOrder[(s.level - 1) % s.levelOrder.length]];
 
-      // ── winPause: only animate confetti ───────────────────────────────
       if (s.phase === "winPause") {
         for (const c of s.confetti) {
           c.x += c.vx + Math.sin(Date.now() * 0.002 + c.angle) * 0.5;
           c.y += c.vy;
           c.angle += c.spin;
-          // reset confetti that falls off screen — keep the party going
-          if (c.y > H + 20) {
-            c.y = -10 - Math.random() * 40;
-            c.x = Math.random() * W;
-          }
+          if (c.y > H + 20) { c.y = -10 - Math.random() * 40; c.x = Math.random() * W; }
         }
       }
 
       if (s.phase === "playing") {
         const p = s.player;
 
-        // Jeff animation
         if (++s.jeffFrameTimer > 18) { s.jeffFrame = (s.jeffFrame + 1) % 2; s.jeffFrameTimer = 0; }
 
-        // Spawn compass — at higher levels, faster throw rate and sometimes two at once
+        // Spawn compasses
         if (++s.throwTimer >= s.throwInterval) {
           s.throwTimer = 0;
           const ac = getAudio(); if (ac) sfxThrow(ac);
@@ -537,7 +548,6 @@ export function JanglesKongGame() {
             vx: goRight ? spd : -spd, vy: 0,
             onGround: false, angle: 0, id: s.compassId++,
           });
-          // Level 6+: occasionally throw a second compass from the opposite side
           if (s.level >= 6 && Math.random() < 0.4) {
             const spd2 = spd * (0.8 + Math.random() * 0.4);
             s.compasses.push({
@@ -556,11 +566,8 @@ export function JanglesKongGame() {
           c.y += c.vy;
           c.angle += 0.07 * (c.vx > 0 ? 1 : -1);
           const landY = checkCompassLanding(c.prevY + COMPASS_R, c.y + COMPASS_R, c.x);
-          if (landY !== null) {
-            c.y = landY - COMPASS_R; c.vy = 0; c.onGround = true;
-          } else {
-            c.onGround = false;
-          }
+          if (landY !== null) { c.y = landY - COMPASS_R; c.vy = 0; c.onGround = true; }
+          else { c.onGround = false; }
           if (c.x - COMPASS_R < 0)  { c.x = COMPASS_R;     c.vx =  Math.abs(c.vx); }
           if (c.x + COMPASS_R > W)  { c.x = W - COMPASS_R; c.vx = -Math.abs(c.vx); }
         }
@@ -569,6 +576,7 @@ export function JanglesKongGame() {
         // Player input & physics
         if (!p.dead) {
           const ladder = onLadderCheck(p);
+
           if (!p.onLadder) {
             if      (keys.has("ArrowLeft"))  { p.vx = -MOVE_SPEED; p.facingLeft = true; }
             else if (keys.has("ArrowRight")) { p.vx =  MOVE_SPEED; p.facingLeft = false; }
@@ -576,20 +584,41 @@ export function JanglesKongGame() {
           } else {
             p.vx = 0;
           }
+
           if (ladder.on && (keys.has("ArrowUp") || keys.has("ArrowDown"))) {
             const goingDown = keys.has("ArrowDown");
-            const atBottom  = goingDown && (p.y + PLAYER_H >= ladder.yBot - 2);
-            if (!atBottom) {
+            const atBottom  = goingDown  && (p.y + PLAYER_H >= ladder.yBot - 2);
+            // Snap onto platform when player center reaches the top of the ladder
+            const atTop     = !goingDown && (p.y + PLAYER_H / 2 <= ladder.yTop + 2);
+            if (atTop) {
+              p.y       = ladder.yTop - PLAYER_H;
+              p.vy      = 0; p.vx = 0;
+              p.onLadder  = false;
+              p.onGround  = true;
+            } else if (!atBottom) {
               p.onLadder = true; p.x = ladder.snapX;
               p.vy = goingDown ? CLIMB_SPD : -CLIMB_SPD; p.vx = 0;
             } else {
               p.onLadder = false; p.vy = 0; p.onGround = true;
             }
           } else if (p.onLadder && !ladder.on) {
+            // Exited from the top while climbing up — snap onto the platform
+            if (p.vy < 0) {
+              const cx = p.x + PLAYER_W / 2;
+              for (const l of LADDERS) {
+                if (Math.abs(cx - (l.x + 8)) < 24) {
+                  p.y        = l.yTop - PLAYER_H;
+                  p.vy       = 0;
+                  p.onGround = true;
+                  break;
+                }
+              }
+            }
             p.onLadder = false;
           } else if (p.onLadder && !keys.has("ArrowUp") && !keys.has("ArrowDown")) {
             p.vy = 0;
           }
+
           if ((keys.has(" ") || keys.has("ArrowUp")) && p.onGround && !p.onLadder) {
             p.vy = JUMP_V; p.onGround = false;
             const ac = getAudio(); if (ac) sfxJump(ac);
@@ -614,7 +643,6 @@ export function JanglesKongGame() {
           }
         }
 
-        // hard floor
         const GROUND_Y = PLATFORMS[0].y;
         if (p.y + PLAYER_H > GROUND_Y) {
           p.y = GROUND_Y - PLAYER_H; p.vy = 0; p.onGround = true; p.onLadder = false;
@@ -632,14 +660,14 @@ export function JanglesKongGame() {
             s.lives--;
             if (s.lives <= 0) {
               s.phase = "gameover";
-            if (user) saveScoreRef.current(s.score);
+              if (user) saveScoreRef.current(s.score);
             } else {
               s.player = makePlayer(); s.compasses = [];
             }
           }
         }
 
-        // Note / hat collection
+        // Hat collection
         if (!p.dead) {
           for (const hat of s.hats) {
             if (!hat.collected && rectsOverlap(p.x, p.y, PLAYER_W, PLAYER_H, hat.x - 10, hat.y - 10, 20, 20)) {
@@ -649,7 +677,7 @@ export function JanglesKongGame() {
           }
         }
 
-        // Compass hit — full 2-axis overlap
+        // Compass hit
         if (!p.dead) {
           for (const c of s.compasses) {
             const playerTop     = p.y;
@@ -673,7 +701,7 @@ export function JanglesKongGame() {
             s.score += 1000 * s.level;
             const ac = getAudio(); if (ac) sfxWin(ac);
             playCountryMusic(lvlDef);
-            s.confetti = makeConfetti();   // 🎉 launch confetti
+            s.confetti = makeConfetti();
             s.phase = "winPause";
             const capturedOrder = s.levelOrder;
             const capturedLives = s.lives;
@@ -682,7 +710,6 @@ export function JanglesKongGame() {
             setTimeout(() => {
               if (stateRef.current.phase === "winPause") {
                 stopMusic();
-                // carry the same shuffle order to the next level
                 stateRef.current = makeState(capturedLevel + 1, capturedLives, capturedScore, capturedOrder);
                 rerender(n => n + 1);
               }
@@ -701,7 +728,7 @@ export function JanglesKongGame() {
       }
 
       if (s.phase === "title") {
-        drawTitle(ctx, caseyImgRef.current);
+        drawTitle(ctx, playerImgRef.current, char.color);
         return;
       }
       if (s.phase === "gameover") {
@@ -714,7 +741,7 @@ export function JanglesKongGame() {
       for (const hat of s.hats)   if (!hat.collected) drawHat(ctx, hat.x, hat.y);
       drawFlag(ctx, lvlDef, s.jeffFrame);
       for (const c of s.compasses) drawCompass(ctx, c.x, c.y, c.angle);
-      drawCasey(ctx, caseyImgRef.current, s.player);
+      drawPlayer(ctx, playerImgRef.current, s.player, char.color);
       drawHUD(ctx, s, lvlDef);
 
       if (s.phase === "winPause") drawWinOverlay(ctx, s, lvlDef);
@@ -725,7 +752,7 @@ export function JanglesKongGame() {
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
     };
-  }, [getAudio, playCountryMusic, stopMusic]);
+  }, [getAudio, playCountryMusic, stopMusic, screenPhase]);
 
   // touch controls
   const touchStart = useCallback((dir: string) => {
@@ -737,6 +764,76 @@ export function JanglesKongGame() {
   }, [getAudio]);
   const touchEnd = useCallback((dir: string) => keysRef.current.delete(dir), []);
 
+  // ── Character select screen ────────────────────────────────────────────
+  if (screenPhase === "select") {
+    return (
+      <div
+        className="flex flex-col items-center justify-center bg-gray-950 text-white p-4"
+        style={{ minHeight: "100dvh" }}
+      >
+        <div className="mb-6 text-center">
+          <div className="text-5xl mb-2">🕹️</div>
+          <h1
+            className="text-4xl font-black tracking-wider"
+            style={{ fontFamily: "monospace", textShadow: "0 0 20px #ef4444" }}
+          >
+            JANGLES KONG
+          </h1>
+          <p className="text-gray-400 mt-1 text-sm">Climb to the flag! Dodge the compasses!</p>
+        </div>
+
+        <p className="text-yellow-400 font-bold mb-6 tracking-widest text-xs">CHOOSE YOUR CHARACTER</p>
+
+        <div className="flex items-end justify-center gap-8 mb-8">
+          {CHARACTERS.map(char => {
+            const isSelected = selectedChar.id === char.id;
+            return (
+              <button
+                key={char.id}
+                onClick={() => setSelectedChar(char)}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                className="flex flex-col items-center gap-2 transition-all"
+              >
+                <img
+                  src={asset(char.spriteUrl)}
+                  alt={char.name}
+                  style={{
+                    height: isSelected ? 130 : 96,
+                    imageRendering: "pixelated",
+                    opacity: isSelected ? 1 : 0.5,
+                    transition: "all 0.15s ease",
+                    filter: isSelected ? `drop-shadow(0 0 10px ${char.color})` : "none",
+                    transform: "scaleX(-1)", // sprites face left; flip to show them facing the player
+                  }}
+                />
+                <span
+                  className="text-xs font-bold tracking-widest uppercase"
+                  style={{ color: isSelected ? char.color : "#6b7280", transition: "color 0.15s" }}
+                >
+                  {char.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => startGame(selectedChar)}
+          className="px-10 py-4 rounded-xl text-xl font-black tracking-widest transition-all"
+          style={{
+            background: selectedChar.color,
+            color: "#000",
+            boxShadow: `0 0 30px ${selectedChar.color}88`,
+            fontFamily: "monospace",
+          }}
+        >
+          START GAME
+        </button>
+      </div>
+    );
+  }
+
+  // ── Game canvas ───────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center justify-center bg-gray-950 overflow-y-auto" style={{ minHeight: "100dvh" }}>
       <div className="flex flex-col items-center gap-3 py-4 px-2">

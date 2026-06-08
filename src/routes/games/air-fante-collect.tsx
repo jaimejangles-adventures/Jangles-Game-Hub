@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AirFanteCollectGame } from "@/game/AirFanteCollectGame";
+import { ArcadeGate } from "@/components/arcade-gate";
 
 export const Route = createFileRoute("/games/air-fante-collect")({
   head: () => ({
@@ -11,5 +12,13 @@ export const Route = createFileRoute("/games/air-fante-collect")({
       { rel: "icon", type: "image/png", href: "/characters/air-fante.png" },
     ],
   }),
-  component: AirFanteCollectGame,
+  component: AirFanteCollectRoute,
 });
+
+function AirFanteCollectRoute() {
+  return (
+    <ArcadeGate gameSlug="air-fante-collect" gameTitle="Air Fante Collect!" gameEmoji="⭐">
+      <AirFanteCollectGame />
+    </ArcadeGate>
+  );
+}

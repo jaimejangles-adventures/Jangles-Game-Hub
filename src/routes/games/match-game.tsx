@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { MatchGame } from '@/game/MatchGame';
+import { useBucksContext } from '@/lib/bucks-context';
 
 export const Route = createFileRoute('/games/match-game')({
   head: () => ({
@@ -15,5 +17,7 @@ export const Route = createFileRoute('/games/match-game')({
 });
 
 function MatchGameRoute() {
-  return <MatchGame />;
+  const { earnBuck } = useBucksContext();
+  const handleComplete = useCallback(() => earnBuck('match-game'), [earnBuck]);
+  return <MatchGame onComplete={handleComplete} />;
 }

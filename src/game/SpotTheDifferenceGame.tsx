@@ -493,7 +493,7 @@ function DifficultyPicker({ onPick }: { onPick: (d: Difficulty) => void }) {
 
 // ── Main game ─────────────────────────────────────────────────────────────────
 
-export function SpotTheDifferenceGame() {
+export function SpotTheDifferenceGame({ onComplete }: { onComplete?: () => void } = {}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   function playLevelMusic(src: string | null) {
@@ -543,8 +543,10 @@ export function SpotTheDifferenceGame() {
         if (levelIdx === LEVELS.length - 1) {
           setTimeout(() => burstFinale(), 100);
           setGameComplete(true);
+          onComplete?.();
         } else {
           setLevelComplete(true);
+          onComplete?.();
         }
       }
       return next;

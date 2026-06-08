@@ -41,3 +41,40 @@ create policy "Users can insert their own scores"
 
 create policy "Users can update their own scores"
   on public.scores for update using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Jangles Bucks: immutable transaction ledger
+-- Run this block separately in Supabase SQL Editor after running the above
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table public.bucks_log (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users on delete cascade not null,
+  game_slug  text not null,
+  action     text not null check (action in ('earn', 'spend')),
+  amount     integer not null default 1,
+  earn_date  date,
+  created_at timestamptz default now() not null
+);
+
+-- Once per game per calendar day (server-enforced, can't be gamed from client)
+create unique index bucks_log_daily_earn_idx
+  on public.bucks_log (user_id, game_slug, earn_date)
+  where action = 'earn';
+
+-- Derived balance view — balance = sum(earns) - sum(spends)
+create or replace view public.bucks_balance as
+select
+  user_id,
+  sum(case when action = 'earn' then amount else -amount end) as balance
+from public.bucks_log
+group by user_id;
+
+alter table public.bucks_log enable row level security;
+
+create policy "read own bucks"
+  on public.bucks_log for select using (auth.uid() = user_id);
+
+create policy "insert own bucks"
+  on public.bucks_log for insert with check (auth.uid() = user_id);
+-- No update/delete policies = immutable ledger

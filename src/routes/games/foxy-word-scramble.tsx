@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { FoxyWordScrambleGame } from '@/game/FoxyWordScrambleGame';
+import { useBucksContext } from '@/lib/bucks-context';
 
 export const Route = createFileRoute('/games/foxy-word-scramble')({
   head: () => ({
@@ -13,5 +15,7 @@ export const Route = createFileRoute('/games/foxy-word-scramble')({
 });
 
 function FoxyWordScrambleRoute() {
-  return <FoxyWordScrambleGame />;
+  const { earnBuck } = useBucksContext();
+  const handleComplete = useCallback(() => earnBuck('foxy-word-scramble'), [earnBuck]);
+  return <FoxyWordScrambleGame onComplete={handleComplete} />;
 }

@@ -47,7 +47,7 @@ function buildShuffled(size: number): number[] {
   return tiles;
 }
 
-export function SlidingPuzzleGame() {
+export function SlidingPuzzleGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [gridSize, setGridSize] = useState(3);
   const [pageIdx, setPageIdx] = useState(() => Math.floor(Math.random() * PAGES.length));
   const [tiles, setTiles] = useState<number[]>([]);
@@ -133,6 +133,7 @@ export function SlidingPuzzleGame() {
     if (tiles.length === 0 || solved) return;
     if (tiles.every((v, i) => v === i)) {
       setSolved(true);
+      onComplete?.();
       setTimeout(() => {
         setShowWin(true);
         burstFinale();

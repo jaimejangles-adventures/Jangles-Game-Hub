@@ -92,6 +92,14 @@
   }
 }
 
+@keyframes buckToast {
+  0%   { opacity: 0; transform: translate(-50%, 1rem) scale(0.9); }
+  15%  { opacity: 1; transform: translate(-50%, 0)    scale(1.05); }
+  25%  { transform: translate(-50%, 0) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -0.5rem) scale(0.95); }
+}
+
 @layer components {
   .block-card {
     background: var(--c, var(--pink));

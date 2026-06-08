@@ -46,7 +46,7 @@ function buildScramble(word: string): LetterTile[] {
   return tiles;
 }
 
-export function FoxyWordScrambleGame() {
+export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [wordOrder] = useState(() => shuffle(SPELL_WORDS.map((_, i) => i)));
   const [wordOrderIdx, setWordOrderIdx] = useState(0);
   const [pool, setPool] = useState<LetterTile[]>(() => buildScramble(SPELL_WORDS[wordOrder[0]].word));
@@ -76,7 +76,7 @@ export function FoxyWordScrambleGame() {
         const attempt = next.map(t => t!.char).join('');
         if (attempt === word) {
           setFoxyMsg(pick(MSGS.correct));
-          setScore(s => s + 1);
+          setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
           setPhase('correct');
           playCorrectExclamation();
           setRoundNum(r => {

@@ -87,7 +87,7 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function MatchGame() {
+export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase] = useState<'select' | 'playing' | 'win'>('select');
   const [difficulty, setDifficulty] = useState<Difficulty>('rookie');
   const [cards, setCards] = useState<Card[]>([]);
@@ -154,6 +154,7 @@ export function MatchGame() {
             setTimeout(() => {
               burstFinale();
               setPhase('win');
+              onComplete?.();
             }, 400);
           }
           return next;

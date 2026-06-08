@@ -14,13 +14,16 @@ type Theme = 'light' | 'dark';
 
 type Props = {
   gameSlug: string;
+  difficulty?: string;
   limit?: number;
   theme?: Theme;
 };
 
-export function Leaderboard({ gameSlug, limit = 10, theme = 'light' }: Props) {
+export function Leaderboard({ gameSlug, difficulty, limit = 10, theme = 'light' }: Props) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const slug = difficulty ? `${gameSlug}-${difficulty}` : gameSlug;
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -34,7 +37,7 @@ export function Leaderboard({ gameSlug, limit = 10, theme = 'light' }: Props) {
       const { data: scoreData } = await supabase
         .from('scores')
         .select('score, user_id')
-        .eq('game_slug', gameSlug)
+        .eq('game_slug', slug)
         .order('score', { ascending: false })
         .limit(limit);
 
@@ -67,7 +70,7 @@ export function Leaderboard({ gameSlug, limit = 10, theme = 'light' }: Props) {
       );
       setLoading(false);
     })();
-  }, [gameSlug, limit]);
+  }, [slug, limit]);
 
   const isDark = theme === 'dark';
 
@@ -157,14 +160,21 @@ const LEADERBOARD_GAMES = [
   'air-fante-collect',
   'foxer',
   'jangles-kong',
+  'type-with-casey',
 ] as const;
+
+// Games that have rookie/master difficulty splits in the leaderboard
+const DIFFICULTY_GAMES = new Set(['elefante']);
 
 export function HallOfFame() {
   const [activeSlug, setActiveSlug] = useState<string>(LEADERBOARD_GAMES[0]);
+  const [activeDifficulty, setActiveDifficulty] = useState<'rookie' | 'master'>('rookie');
 
   const games = LEADERBOARD_GAMES.map((slug) => GAME_MANIFEST.find((g) => g.slug === slug)).filter(
     Boolean,
   );
+
+  const hasDifficulty = DIFFICULTY_GAMES.has(activeSlug);
 
   return (
     <div
@@ -210,7 +220,42 @@ export function HallOfFame() {
         })}
       </div>
 
-      <Leaderboard gameSlug={activeSlug} limit={10} theme="light" />
+      {/* Rookie / Master toggle — only shown for difficulty games */}
+      {hasDifficulty && (
+        <div className="mb-3 flex gap-1.5">
+          <button
+            onClick={() => setActiveDifficulty('rookie')}
+            className="flex-1 rounded-full border-[2px] border-ink py-1 text-xs font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{
+              background: activeDifficulty === 'rookie' ? '#00C9A7' : '#fff',
+              color: activeDifficulty === 'rookie' ? '#fff' : '#1a1a1a',
+              borderBottomWidth: activeDifficulty === 'rookie' ? 4 : 3,
+              borderRightWidth: activeDifficulty === 'rookie' ? 3 : 2,
+            }}
+          >
+            🌟 Rookie
+          </button>
+          <button
+            onClick={() => setActiveDifficulty('master')}
+            className="flex-1 rounded-full border-[2px] border-ink py-1 text-xs font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{
+              background: activeDifficulty === 'master' ? '#FF8C00' : '#fff',
+              color: activeDifficulty === 'master' ? '#fff' : '#1a1a1a',
+              borderBottomWidth: activeDifficulty === 'master' ? 4 : 3,
+              borderRightWidth: activeDifficulty === 'master' ? 3 : 2,
+            }}
+          >
+            ⚡ Jangles Master
+          </button>
+        </div>
+      )}
+
+      <Leaderboard
+        gameSlug={activeSlug}
+        difficulty={hasDifficulty ? activeDifficulty : undefined}
+        limit={10}
+        theme="light"
+      />
     </div>
   );
 }

@@ -82,7 +82,7 @@ function generateRound(excludeIdx?: number) {
 
 type Phase = 'playing' | 'correct' | 'wrong';
 
-export function CaseyCanMultiplyGame() {
+export function CaseyCanMultiplyGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [round, setRound] = useState(() => generateRound());
   const [phase, setPhase] = useState<Phase>('playing');
   const [picked, setPicked] = useState<number | null>(null);
@@ -111,7 +111,7 @@ export function CaseyCanMultiplyGame() {
     if (phase !== 'playing') return;
     setPicked(n);
     if (n === round.answer) {
-      setScore(s => s + 1);
+      setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
       setCaseyMsg(pick(MSGS.correct));
       setPhase('correct');
       playCorrectExclamation();

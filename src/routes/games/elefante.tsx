@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ElefanteGame } from "@/game/ElefanteGame";
+import { ArcadeGate } from "@/components/arcade-gate";
 
 export const Route = createFileRoute("/games/elefante")({
   head: () => ({
@@ -11,5 +12,13 @@ export const Route = createFileRoute("/games/elefante")({
       { rel: "icon", type: "image/png", href: "/characters/air-fante.png" },
     ],
   }),
-  component: ElefanteGame,
+  component: ElefanteRoute,
 });
+
+function ElefanteRoute() {
+  return (
+    <ArcadeGate gameSlug="elefante" gameTitle="Air Fante World Tour" gameEmoji="🐘">
+      <ElefanteGame />
+    </ArcadeGate>
+  );
+}

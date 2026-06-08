@@ -117,7 +117,7 @@ function SelectScreen({ onSelect }: { onSelect: (d: Difficulty) => void }) {
 
 // ── Game ──────────────────────────────────────────────────────────────────────
 
-export function MastermindGame() {
+export function MastermindGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [phase, setPhase] = useState<GamePhase>('select');
   const [difficulty, setDifficulty] = useState<Difficulty>('rookie');
   const [bg] = useState(pickBg);
@@ -167,6 +167,7 @@ export function MastermindGame() {
       setGameOver(true); setWon(true);
       setWinMessage(WIN_EXCLAMATIONS[Math.floor(Math.random() * WIN_EXCLAMATIONS.length)]);
       burstFinale();
+      onComplete?.();
     }
     else if (next.length >= maxGuesses) { setGameOver(true); }
   }, [gameOver, current, guesses, secret, maxGuesses]);

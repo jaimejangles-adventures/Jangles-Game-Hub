@@ -9,26 +9,28 @@ export function useScore(gameSlug: string) {
   const savedForScore = useRef<number | null>(null);
 
   const saveScore = useCallback(
-    async (score: number) => {
+    async (score: number, difficulty?: string) => {
       if (!isSupabaseConfigured || !user || score <= 0) return;
       if (savedForScore.current === score) return;
 
       setSaving(true);
       savedForScore.current = score;
 
+      const slug = difficulty ? `${gameSlug}-${difficulty}` : gameSlug;
+
       try {
         const { data: existing } = await supabase
           .from('scores')
           .select('score')
           .eq('user_id', user.id)
-          .eq('game_slug', gameSlug)
+          .eq('game_slug', slug)
           .maybeSingle();
 
         if (!existing || score > existing.score) {
           await supabase.from('scores').upsert(
             {
               user_id: user.id,
-              game_slug: gameSlug,
+              game_slug: slug,
               score,
               updated_at: new Date().toISOString(),
             },

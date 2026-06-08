@@ -51,7 +51,7 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
   },
   {
     slug: "learning",
-    title: "Learning Games",
+    title: "Learning",
     emoji: "📚",
     eyebrow: "Skills, typing & real-world learning",
     accent: "#48DBFB",
@@ -343,7 +343,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     emoji: "🔤",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
-    category: "music-arts",
+    category: "learning",
   },
   {
     slug: "match-game",

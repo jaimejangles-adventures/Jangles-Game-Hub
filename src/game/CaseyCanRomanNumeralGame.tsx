@@ -114,17 +114,21 @@ const GRADE_DATA: Record<Grade, {
   },
 };
 
-const BACKGROUNDS = [
-  asset('/count-backgrounds/page-3.png'),
-  asset('/count-backgrounds/page-4.png'),
-  asset('/count-backgrounds/page-5.png'),
-  asset('/count-backgrounds/page-6.png'),
-  asset('/count-backgrounds/page-7.png'),
-  asset('/count-backgrounds/page-8.png'),
-  asset('/count-backgrounds/page-10.png'),
-  asset('/count-backgrounds/page-11.png'),
-  asset('/count-backgrounds/page-12.png'),
-  asset('/count-backgrounds/page-13.png'),
+const ROUNDS = [
+  { country: 'USA',          bg: asset('/count-backgrounds/page-3.png'),  music: asset('/music/NEW ORLEANS.wav') },
+  { country: 'Mexico',       bg: asset('/count-backgrounds/page-4.png'),  music: asset('/music/MEXICO.wav') },
+  { country: 'Jamaica',      bg: asset('/count-backgrounds/page-5.png'),  music: asset('/music/JAMAICA.wav') },
+  { country: 'Barbados',     bg: asset('/count-backgrounds/page-6.png'),  music: asset('/music/BARBADOS_2.wav') },
+  { country: 'Peru',         bg: asset('/count-backgrounds/page-7.png'),  music: asset('/music/PERU.wav') },
+  { country: 'Argentina',    bg: asset('/count-backgrounds/page-8.png'),  music: asset('/music/ARGENTINA DRUMS AND HORNS_1.2.wav') },
+  { country: 'UK',           bg: asset('/count-backgrounds/page-10.png'), music: asset('/music/UK.wav') },
+  { country: 'Spain',        bg: asset('/count-backgrounds/page-11.png'), music: asset('/music/SPAIN1.2.wav') },
+  { country: 'France',       bg: asset('/count-backgrounds/page-12.png'), music: asset('/music/FRANCE.wav') },
+  { country: 'Italy',        bg: asset('/count-backgrounds/page-13.png'), music: asset('/music/ITALY.wav') },
+  { country: 'Kenya',        bg: asset('/count-backgrounds/page-18.png'), music: asset('/music/KENYA.wav') },
+  { country: 'Japan',        bg: asset('/count-backgrounds/page-16.png'), music: asset('/music/JAPAN.wav') },
+  { country: 'South Korea',  bg: asset('/count-backgrounds/page-21.png'), music: asset('/music/SOUTH KOREA.wav') },
+  { country: 'Australia',    bg: asset('/count-backgrounds/page-24.png'), music: asset('/music/Jamie Jangles_Daniel_Australia.wav') },
 ];
 
 const BUTTON_PALETTE = ['#F9A8D4', '#86EFAC', '#67E8F9', '#FCD34D', '#C4B5FD', '#FCA5A5', '#93C5FD', '#FDE68A'];
@@ -158,23 +162,25 @@ interface QuizQuestion {
   correctNum: number;
   type: QuizType;
   choices: number[];
-  bgIdx: number;
+  rdIdx: number;
+  country: string;
+  music: string;
 }
 
-function makeQuestion(pool: number[], prevBgIdx: number, prevNum?: number): QuizQuestion {
+function makeQuestion(pool: number[], prevRdIdx: number, prevNum?: number): QuizQuestion {
   const filtered = prevNum !== undefined ? pool.filter(n => n !== prevNum) : pool;
   const src = filtered.length > 0 ? filtered : pool;
   const correctNum = src[Math.floor(Math.random() * src.length)];
   const type: QuizType = Math.random() < 0.5 ? 'roman-to-number' : 'number-to-roman';
   const wrongs = makeWrongChoices(correctNum, pool);
   const choices = [correctNum, ...wrongs].sort(() => Math.random() - 0.5);
-  let bgIdx: number;
-  do { bgIdx = randInt(0, BACKGROUNDS.length - 1); } while (bgIdx === prevBgIdx && BACKGROUNDS.length > 1);
-  return { correctNum, type, choices, bgIdx };
+  let rdIdx: number;
+  do { rdIdx = randInt(0, ROUNDS.length - 1); } while (rdIdx === prevRdIdx && ROUNDS.length > 1);
+  return { correctNum, type, choices, rdIdx, country: ROUNDS[rdIdx].country, music: ROUNDS[rdIdx].music };
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
-export function CaseyCanRomanNumeralGame() {
+export function CaseyCanRomanNumeralGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [screen, setScreen] = useState<Screen>('grade-select');
   const [grade, setGrade] = useState<Grade>(3);
   const [learnIdx, setLearnIdx] = useState(0);
@@ -190,7 +196,16 @@ export function CaseyCanRomanNumeralGame() {
     if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; musicRef.current = null; }
   }
 
+  function playMusic(src: string) {
+    stopMusic();
+    const audio = new Audio(src);
+    audio.volume = 0.7;
+    audio.play().catch(() => {});
+    musicRef.current = audio;
+  }
+
   const selectGrade = useCallback((g: Grade) => {
+    stopMusic();
     setGrade(g);
     setLearnIdx(0);
     setScore(0);
@@ -209,6 +224,7 @@ export function CaseyCanRomanNumeralGame() {
   }, []);
 
   const startQuiz = useCallback(() => {
+    stopMusic();
     setScore(0);
     setRoundNum(1);
     setPhase('playing');
@@ -236,21 +252,22 @@ export function CaseyCanRomanNumeralGame() {
     if (phase !== 'playing') return;
     setPicked(n);
     if (n === question.correctNum) {
-      setScore(s => s + 1);
+      setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
       setCaseyMsg(pick(MSGS.correct));
       setPhase('correct');
       playCorrectExclamation();
+      playMusic(question.music);
       if (roundNum >= 10) burstFinale(); else burstCorrect();
     } else {
       setCaseyMsg(pick(MSGS.wrong));
       playIncorrectExclamation();
       setPhase('wrong');
     }
-  }, [phase, question.correctNum, roundNum]);
+  }, [phase, question.correctNum, question.music, roundNum]);
 
   const nextQuestion = useCallback(() => {
     stopMusic();
-    setQuestion(prev => makeQuestion(GRADE_DATA[grade].quizPool, prev.bgIdx, prev.correctNum));
+    setQuestion(prev => makeQuestion(GRADE_DATA[grade].quizPool, prev.rdIdx, prev.correctNum));
     setPhase('playing');
     setPicked(null);
     setCaseyMsg(pick(MSGS.quiz));
@@ -265,7 +282,8 @@ export function CaseyCanRomanNumeralGame() {
   }, []);
 
   const data = GRADE_DATA[grade];
-  const bg = BACKGROUNDS[question.bgIdx];
+  const rd = ROUNDS[question.rdIdx];
+  const bg = rd.bg;
 
   // ── Grade select screen ──────────────────────────────────────────────────
   if (screen === 'grade-select') {
@@ -565,6 +583,10 @@ export function CaseyCanRomanNumeralGame() {
                     {type === 'roman-to-number'
                       ? `${correctRoman} = ${correctNum}`
                       : `${correctNum} = ${correctRoman}`}
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-0.5 text-[0.65rem] font-extrabold"
+                    style={{ background: '#FCD34D', borderBottomWidth: 3, borderRightWidth: 2 }}>
+                    🎵 Music from {rd.country}!
                   </div>
                   <button onClick={nextQuestion}
                     className="rounded-2xl border-[3px] border-ink px-6 py-2 text-sm font-extrabold shadow active:scale-95 transition-transform"

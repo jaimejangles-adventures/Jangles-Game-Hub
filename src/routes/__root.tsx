@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { PortalShell } from "@/components/portal-shell";
 import { AuthProvider } from "@/lib/auth-context";
+import { BucksProvider } from "@/lib/bucks-context";
 
 function NotFoundComponent() {
   return (
@@ -77,9 +78,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <PortalShell>
-          <Outlet />
-        </PortalShell>
+        <BucksProvider>
+          <PortalShell>
+            <Outlet />
+          </PortalShell>
+        </BucksProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

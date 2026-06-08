@@ -64,7 +64,7 @@ function speakNumber(n: number) {
   window.speechSynthesis.speak(utt);
 }
 
-export function CaseyCanCountGame() {
+export function CaseyCanCountGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [roundOrder]  = useState(() => [...ROUNDS.keys()].sort(() => Math.random() - 0.5));
   const [roundIdx,    setRoundIdx]  = useState(0);
   const [round,       setRound]     = useState(() => buildRound(Math.ceil(Math.random() * 10), 0));
@@ -114,7 +114,7 @@ export function CaseyCanCountGame() {
     if (phase !== 'choosing') return;
     setDisplay(String(n));
     if (n === round.count) {
-      setScore(s => s + 1);
+      setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
       setCaseyMsg(pick(MSGS.correct));
       setPhase('correct');
       playMusic(round.music);
