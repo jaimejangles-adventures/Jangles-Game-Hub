@@ -20,7 +20,7 @@ export function PortalShell({ children }: PortalShellProps) {
   });
   const navigate = useNavigate();
   const { user, profile, openAuthModal, openEditProfile, signOut } = useAuth();
-  const { balance, showToast } = useBucksContext();
+  const { balance, showToast, warningMessage } = useBucksContext();
 
   const isFullBleed = FULL_BLEED_ROUTES.includes(pathname);
   const [openCategory, setOpenCategory] = useState<GameCategory | null>(null);
@@ -370,6 +370,21 @@ export function PortalShell({ children }: PortalShellProps) {
         >
           <span style={{ fontSize: "1.3rem" }}>🪙</span>
           <span>+1 Jangles Buck earned!</span>
+        </div>
+      )}
+
+      {/* Coins remaining warning toast */}
+      {warningMessage && (
+        <div
+          className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2 rounded-full border-[3px] border-ink bg-orange-300 px-5 py-3 text-base font-extrabold shadow-xl"
+          style={{
+            borderBottomWidth: 5,
+            borderRightWidth: 4,
+            animation: "buckToast 3s ease forwards",
+          }}
+        >
+          <span style={{ fontSize: "1.3rem" }}>⚠️</span>
+          <span>{warningMessage}</span>
         </div>
       )}
 

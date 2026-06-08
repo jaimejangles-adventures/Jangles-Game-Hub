@@ -179,15 +179,12 @@ const LEADERBOARD_GAMES = [
   'jangles-kong',
   'type-with-casey',
   'music-match',
-  'fly-the-flag',
-  'name-that-country',
-  'color-mix',
-  'find-foxy',
   'match-game',
+  'sliding-puzzle',
 ] as const;
 
 // Games that have rookie/master difficulty splits in the leaderboard
-const DIFFICULTY_GAMES = new Set(['elefante']);
+const DIFFICULTY_GAMES = new Set(['elefante', 'match-game', 'sliding-puzzle']);
 
 export function HallOfFame() {
   const [activeSlug, setActiveSlug] = useState<string>(LEADERBOARD_GAMES[0]);

@@ -33,8 +33,8 @@ const ALL_OBJECTS = [
 type Difficulty = 'rookie' | 'master';
 
 const DIFFICULTY_CONFIG = {
-  rookie: { cols: 5, rows: 4, pairsPerObject: 1, label: 'Rookie', emoji: '⭐', color: '#22c55e', desc: '5×4 grid · 10 pairs' },
-  master: { cols: 10, rows: 10, pairsPerObject: 2, label: 'Master', emoji: '🔥', color: '#ef4444', desc: '10×10 grid · 50 pairs' },
+  rookie: { cols: 4, rows: 3, pairs: 6,  timeLimit: 120, label: 'Rookie', emoji: '⭐', color: '#22c55e', desc: '3×4 grid · 6 pairs · 2 min' },
+  master: { cols: 6, rows: 6, pairs: 18, timeLimit: 240, label: 'Master', emoji: '🔥', color: '#ef4444', desc: '6×6 grid · 18 pairs · 4 min' },
 };
 
 type Card = {
@@ -56,31 +56,13 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function buildDeck(difficulty: Difficulty): Card[] {
-  const pairs: Array<{ obj: typeof ALL_OBJECTS[0]; pairIdx: number }> = [];
-
-  if (difficulty === 'rookie') {
-    // Pick 10 random objects, 1 pair each = 20 cards
-    const chosen = shuffle(ALL_OBJECTS).slice(0, 10);
-    for (const obj of chosen) pairs.push({ obj, pairIdx: 0 });
-  } else {
-    // 20 objects × 2 pairs = 40, then 10 random objects get a 3rd pair = 50 pairs total
-    for (const obj of ALL_OBJECTS) {
-      pairs.push({ obj, pairIdx: 0 });
-      pairs.push({ obj, pairIdx: 1 });
-    }
-    const extra = shuffle(ALL_OBJECTS).slice(0, 10);
-    for (const obj of extra) pairs.push({ obj, pairIdx: 2 });
-  }
-
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  const chosen = shuffle(ALL_OBJECTS).slice(0, cfg.pairs);
   const cards: Card[] = [];
-  for (const { obj, pairIdx } of pairs) {
-    // uid must be unique per card; objectId is just obj.id so any two cards
-    // showing the same image always count as a match regardless of which
-    // "copy" of the pair they belong to.
-    cards.push({ uid: `${obj.id}-${pairIdx}-a`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
-    cards.push({ uid: `${obj.id}-${pairIdx}-b`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
+  for (const obj of chosen) {
+    cards.push({ uid: `${obj.id}-a`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
+    cards.push({ uid: `${obj.id}-b`, objectId: obj.id, src: obj.src, label: obj.label, flipped: false, matched: false });
   }
-
   return shuffle(cards);
 }
 
@@ -94,7 +76,7 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
   const { user, openAuthModal } = useAuth();
   const { saveScore, saving, saved, reset: resetScore } = useScore('match-game');
 
-  const [phase, setPhase] = useState<'select' | 'playing' | 'win'>('select');
+  const [phase, setPhase] = useState<'select' | 'playing' | 'win' | 'timeout'>('select');
   const [difficulty, setDifficulty] = useState<Difficulty>('rookie');
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedUids, setFlippedUids] = useState<string[]>([]);
@@ -104,16 +86,25 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [blocking, setBlocking] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const totalPairs = (DIFFICULTY_CONFIG[difficulty].cols * DIFFICULTY_CONFIG[difficulty].rows) / 2;
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  const totalPairs = cfg.pairs;
+  const timeLeft = Math.max(0, cfg.timeLimit - seconds);
 
-  // Save score on win: faster = higher. master difficulty gets a 2× bonus.
+  // Timeout when countdown hits zero
+  useEffect(() => {
+    if (phase === 'playing' && seconds >= cfg.timeLimit) {
+      setPhase('timeout');
+    }
+  }, [phase, seconds, cfg.timeLimit]);
+
+  // Save score on win — faster = more points, split by difficulty
   useEffect(() => {
     if (phase === 'win' && seconds > 0) {
-      const base = Math.max(1, Math.round(60000 / Math.max(1, seconds)));
-      const final = difficulty === 'master' ? base * 2 : base;
-      saveScore(final);
+      const score = Math.round(cfg.timeLimit * 1000 / Math.max(1, seconds));
+      saveScore(score, difficulty);
     }
-  }, [phase, seconds, difficulty, saveScore]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   function startGame(diff: Difficulty) {
     resetScore();
@@ -189,8 +180,6 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
     }
   }, [blocking, cards, flippedUids, totalPairs]);
 
-  const cfg = DIFFICULTY_CONFIG[difficulty];
-
   // ─── Select screen ───────────────────────────────────────────────
   if (phase === 'select') {
     return (
@@ -198,7 +187,7 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
         <div className="text-center">
           <div className="mb-2 text-5xl">🃏</div>
           <h1 className="text-3xl font-extrabold">Match Mania!</h1>
-          <p className="mt-1 text-sm text-ink/60">Flip cards to find matching pairs. How fast can you clear the board?</p>
+          <p className="mt-1 text-sm text-ink/60">Flip cards to find matching pairs. Clear the board before time runs out!</p>
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row">
@@ -228,14 +217,44 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
         </div>
 
         <p className="text-center text-xs text-ink/40 max-w-xs">
-          Master mode: 100 cards, 50 pairs — how fast can you clear the whole board?
+          Faster wins = more points. Master the board in record time!
         </p>
+      </div>
+    );
+  }
+
+  // ─── Timeout screen ──────────────────────────────────────────────
+  if (phase === 'timeout') {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-4 text-center">
+        <div className="text-6xl">⏰</div>
+        <h2 className="text-3xl font-extrabold">Time's Up!</h2>
+        <p className="text-sm text-ink/60">
+          You matched {matchedCount} of {totalPairs} pairs in {cfg.label} mode.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            onClick={() => startGame(difficulty)}
+            className="rounded-full border-[3px] border-ink px-8 py-2 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{ background: cfg.color, borderBottomWidth: 5, borderRightWidth: 4 }}
+          >
+            Try Again
+          </button>
+          <button
+            onClick={() => setPhase('select')}
+            className="rounded-full border-[3px] border-ink px-8 py-2 text-sm font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{ background: '#e5e7eb', borderBottomWidth: 5, borderRightWidth: 4 }}
+          >
+            Change Mode
+          </button>
+        </div>
       </div>
     );
   }
 
   // ─── Win screen ────────────────────────────────────────────────
   if (phase === 'win') {
+    const winScore = Math.round(cfg.timeLimit * 1000 / Math.max(1, seconds));
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-4 text-center">
         <div className="text-6xl">🎉</div>
@@ -245,9 +264,17 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
           <span>🃏 {moves} moves</span>
           <span>{cfg.emoji} {cfg.label}</span>
         </div>
+        <div
+          className="rounded-2xl border-[3px] border-ink px-6 py-2 text-xl font-extrabold"
+          style={{ background: cfg.color + '33', borderBottomWidth: 5, borderRightWidth: 4 }}
+        >
+          🏆 {winScore.toLocaleString()} pts
+        </div>
         {/* Leaderboard */}
         <div className="w-full max-w-sm rounded-[2rem] border-[3px] border-ink p-4 text-left" style={{ background: "#1a1a2e", borderBottomWidth: 6, borderRightWidth: 5 }}>
-          <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Match Game</div>
+          <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">
+            🏆 Top Scores — {cfg.label}
+          </div>
           {user ? (
             <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
               {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
@@ -257,7 +284,7 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
               🏆 Sign in to save your score
             </button>
           )}
-          <Leaderboard gameSlug="match-game" limit={5} theme="dark" />
+          <Leaderboard gameSlug="match-game" difficulty={difficulty} limit={5} theme="dark" />
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -281,7 +308,8 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
   }
 
   // ─── Playing ─────────────────────────────────────────────────────
-  const cardSize = difficulty === 'rookie' ? 80 : 60;
+  const cardSize = difficulty === 'rookie' ? 88 : 72;
+  const isLowTime = timeLeft <= 30;
 
   return (
     <div className="flex flex-col items-center gap-4 px-2 pb-6">
@@ -292,10 +320,15 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
           <span>{cfg.emoji}</span>
           <span>{cfg.label}</span>
         </div>
-        <div className="flex gap-4 text-sm font-bold text-ink/70">
-          <span>⏱ {formatTime(seconds)}</span>
-          <span>🃏 {moves}</span>
-          <span>✅ {matchedCount}/{totalPairs}</span>
+        <div className="flex gap-4 text-sm font-bold">
+          <span
+            className="font-extrabold tabular-nums"
+            style={{ color: isLowTime ? '#ef4444' : 'inherit' }}
+          >
+            ⏱ {formatTime(timeLeft)}
+          </span>
+          <span className="text-ink/70">🃏 {moves}</span>
+          <span className="text-ink/70">✅ {matchedCount}/{totalPairs}</span>
         </div>
         <button
           onClick={() => setPhase('select')}
@@ -311,7 +344,7 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
         className="grid"
         style={{
           gridTemplateColumns: `repeat(${cfg.cols}, ${cardSize}px)`,
-          gap: difficulty === 'rookie' ? '8px' : '4px',
+          gap: difficulty === 'rookie' ? '8px' : '6px',
         }}
       >
         {cards.map(card => (

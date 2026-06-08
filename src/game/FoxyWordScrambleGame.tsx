@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from '@tanstack/react-router';
 import { burstCorrect, burstFinale } from '@/game/confetti';
@@ -54,10 +54,13 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
   const [phase, setPhase] = useState<Phase>('scrambling');
   const [foxyMsg, setFoxyMsg] = useState(() => pick(MSGS.intro));
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [roundNum, setRoundNum] = useState(1);
   const [shakingSlots, setShakingSlots] = useState(false);
   const [cardKey, setCardKey] = useState(0);
   const [hintVisible, setHintVisible] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
+  const [lastPoints, setLastPoints] = useState<number | null>(null);
 
   const wordData = SPELL_WORDS[wordOrder[wordOrderIdx]];
 
@@ -82,12 +85,15 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
     const attempt = next.map(t => t!.char).join('');
 
     if (attempt === word) {
+      const pts = hintUsed ? 500 : 2000;
       setFoxyMsg(pick(MSGS.correct));
-      const newScore = score + 1;
-      setScore(newScore);
+      setScore(s => s + pts);
+      setLastPoints(pts);
+      const newCount = correctCount + 1;
+      setCorrectCount(newCount);
       setPhase('correct');
       playCorrectExclamation();
-      if (newScore % 5 === 0) onComplete?.();
+      if (newCount % 5 === 0) onComplete?.();
       if (roundNum >= SPELL_WORDS.length - 1) burstFinale(); else burstCorrect();
     } else {
       const returnTiles = next.filter(Boolean) as LetterTile[];
@@ -103,7 +109,7 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
         setFoxyMsg(pick(MSGS.intro));
       }, 1200);
     }
-  }, [phase, placed, wordOrder, wordOrderIdx, score, roundNum, onComplete]);
+  }, [phase, placed, wordOrder, wordOrderIdx, correctCount, hintUsed, roundNum, onComplete]);
 
   const handleTapPlaced = useCallback((slotIdx: number) => {
     if (phase !== 'scrambling') return;
@@ -127,7 +133,28 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
     setRoundNum(r => r + 1);
     setCardKey(k => k + 1);
     setHintVisible(false);
+    setHintUsed(false);
+    setLastPoints(null);
   }, [wordOrderIdx, wordOrder]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (phase !== 'scrambling') return;
+      if (e.key === 'Backspace') {
+        // Return the last placed tile
+        const lastIdx = [...placed].map((t, i) => t ? i : -1).filter(i => i !== -1).pop();
+        if (lastIdx !== undefined) handleTapPlaced(lastIdx);
+      } else if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        const char = e.key.toLowerCase();
+        const tile = pool.find(t => t.char.toLowerCase() === char);
+        if (tile) handleTapPool(tile);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [phase, placed, pool, handleTapPool, handleTapPlaced]);
 
   return (
     <div className="relative flex h-full overflow-hidden select-none">
@@ -148,7 +175,7 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
         </div>
         <div className="rounded-2xl border-[3px] border-ink px-3 py-1 text-xs font-extrabold shadow"
           style={{ background: '#fbbf24', borderBottomWidth: 4, borderRightWidth: 3 }}>
-          ⭐ {score}
+          ⭐ {score.toLocaleString()}
         </div>
       </div>
 
@@ -203,7 +230,7 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
               </div>
             )}
             <button
-              onClick={() => setHintVisible(h => !h)}
+              onClick={() => { setHintVisible(h => !h); setHintUsed(true); }}
               className="rounded-2xl border-[3px] border-ink px-3 py-1 text-xs font-extrabold shadow transition-all"
               style={{
                 background: hintVisible ? '#fde68a' : '#f1f5f9',
@@ -267,14 +294,52 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
 
           <AnimatePresence>
             {phase === 'correct' && (
-              <motion.button
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                onClick={nextWord}
-                className="w-full rounded-xl border-[3px] border-ink py-2 text-sm font-extrabold shadow"
-                style={{ background: '#86efac', borderBottomWidth: 4, borderRightWidth: 3 }}
+                className="flex flex-col items-center gap-2 w-full"
               >
-                Next Word →
-              </motion.button>
+                {/* Points earned */}
+                <motion.div
+                  initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                  className="text-2xl font-extrabold"
+                  style={{ color: lastPoints === 2000 ? '#16a34a' : '#d97706' }}
+                >
+                  +{lastPoints?.toLocaleString()} pts{lastPoints === 2000 ? ' 🌟' : ''}
+                </motion.div>
+
+                {/* Revealed item */}
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                  className="flex items-center justify-center rounded-2xl border-[3px] bg-white/90 p-2 shadow-lg"
+                  style={{ width: 100, height: 100, borderColor: '#ef6c00' }}
+                >
+                  {wordData.hintEmoji
+                    ? <span style={{ fontSize: 64, lineHeight: 1 }}>{wordData.hintEmoji}</span>
+                    : <img src={wordData.image} alt={wordData.label} className="w-full h-full object-contain" />}
+                </motion.div>
+
+                {/* Story quip */}
+                {wordData.quip && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="text-center text-xs font-semibold leading-snug px-1"
+                    style={{ color: '#78350f', maxWidth: 220 }}
+                  >
+                    {wordData.quip}
+                  </motion.p>
+                )}
+
+                <button
+                  onClick={nextWord}
+                  className="w-full rounded-xl border-[3px] border-ink py-2 text-sm font-extrabold shadow"
+                  style={{ background: '#86efac', borderBottomWidth: 4, borderRightWidth: 3 }}
+                >
+                  Next Word →
+                </button>
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.div>

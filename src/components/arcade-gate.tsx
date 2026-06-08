@@ -11,14 +11,16 @@ type Props = {
   children: ReactNode;
 };
 
+const isDev = import.meta.env.DEV;
+
 export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) {
   const { user, openAuthModal } = useAuth();
   const { balance, spendBuck } = useBucksContext();
-  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionActive, setSessionActive] = useState(isDev);
   const [spending, setSpending] = useState(false);
   const [error, setError] = useState(false);
 
-  const endSession = useCallback(() => setSessionActive(false), []);
+  const endSession = useCallback(() => setSessionActive(isDev), []);
 
   if (sessionActive) {
     return (
