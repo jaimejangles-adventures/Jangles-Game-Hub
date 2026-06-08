@@ -255,7 +255,7 @@ export function PortalShell({ children }: PortalShellProps) {
                 style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
                 title="Jangles Bucks — earn by playing learning games, spend on arcade games!"
               >
-                <span>🪙</span>
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" />
                 <span>{balance}</span>
               </div>
             )}
@@ -309,7 +309,7 @@ export function PortalShell({ children }: PortalShellProps) {
                 className="flex items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 bg-yellow-300 font-extrabold"
                 style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
               >
-                <span>🪙</span>
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-6 w-6 object-contain" />
                 <span>{balance} Jangles Buck{balance !== 1 ? 's' : ''}</span>
               </div>
             )}
@@ -368,7 +368,7 @@ export function PortalShell({ children }: PortalShellProps) {
             animation: "buckToast 2.5s ease forwards",
           }}
         >
-          <span style={{ fontSize: "1.3rem" }}>🪙</span>
+          <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-7 w-7 object-contain" />
           <span>+1 Jangles Buck earned!</span>
         </div>
       )}

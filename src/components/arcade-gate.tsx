@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/lib/auth-context';
 import { useBucksContext } from '@/lib/bucks-context';
 import { ArcadeSessionContext } from '@/lib/arcade-session-context';
+import { asset } from '@/lib/asset';
 
 type Props = {
   gameSlug: string;
@@ -106,7 +107,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
                 className="flex items-center gap-2 rounded-full border-[2px] border-ink px-4 py-1.5 text-sm font-extrabold"
                 style={{ background: "#FEF3C7", borderBottomWidth: 4, borderRightWidth: 3 }}
               >
-                🪙 {guestPlays} of {GUEST_MAX} free plays used today
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> {guestPlays} of {GUEST_MAX} free plays used today
               </div>
             )}
             {guestPlays === 0 && (
@@ -190,7 +191,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
             <div
               className="flex items-center gap-2 rounded-full border-[2px] border-ink/30 bg-yellow-100 px-4 py-2 text-sm font-extrabold text-ink/60"
             >
-              🪙 0 Jangles Bucks
+              <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> 0 Jangles Bucks
             </div>
             <Link
               to="/"
@@ -210,13 +211,13 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
                 className="flex items-center gap-1.5 rounded-full border-[2px] border-ink bg-yellow-300 px-3 py-1 text-sm font-extrabold"
                 style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
               >
-                🪙 {balance} buck{balance !== 1 ? 's' : ''}
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> {balance} buck{balance !== 1 ? 's' : ''}
               </div>
               <span className="text-ink/40 text-sm font-bold">→</span>
               <div
                 className="flex items-center gap-1.5 rounded-full border-[2px] border-ink/30 bg-white px-3 py-1 text-sm font-extrabold text-ink/50"
               >
-                🪙 {balance - 1} left
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> {balance - 1} left
               </div>
             </div>
             <p className="text-[0.75rem] font-bold text-ink/50 -mt-2">
