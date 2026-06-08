@@ -524,6 +524,7 @@ export function SpotTheDifferenceGame({ onComplete }: { onComplete?: () => void 
   const [showHints, setShowHints] = useState(false);
   const [levelComplete, setLevelComplete] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const levelsCompletedRef = useRef(0);
 
   const level = LEVELS[levelIdx];
   const diffs = resolvedDiffs;
@@ -540,13 +541,13 @@ export function SpotTheDifferenceGame({ onComplete }: { onComplete?: () => void 
       if (next.size === total) {
         // Play this country's music on level complete
         playLevelMusic(LEVELS[levelIdx].music);
+        levelsCompletedRef.current += 1;
+        if (levelsCompletedRef.current % 5 === 0) onComplete?.();
         if (levelIdx === LEVELS.length - 1) {
           setTimeout(() => burstFinale(), 100);
           setGameComplete(true);
-          onComplete?.();
         } else {
           setLevelComplete(true);
-          onComplete?.();
         }
       }
       return next;
@@ -588,6 +589,7 @@ export function SpotTheDifferenceGame({ onComplete }: { onComplete?: () => void 
 
   function restart() {
     stopMusic();
+    levelsCompletedRef.current = 0;
     setDifficulty(null);
     setResolvedDiffs([]);
     setLevelIdx(0);
