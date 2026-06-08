@@ -74,28 +74,16 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
         if (email.includes('@')) {
           authEmail = email.trim();
         } else {
-          // Treat input as a username — look up their auth email
-          // First try the stored auth_email column (fast path)
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('auth_email')
-            .eq('username', email.trim())
-            .maybeSingle();
-          if (!profile) throw new Error('Username not found.');
-          if (profile.auth_email) {
-            authEmail = profile.auth_email;
-          } else {
-            // Fall back to RPC that joins auth.users directly
-            const { data: rpcData, error: rpcErr } = await supabase.rpc('get_auth_email_by_username', { p_username: email.trim() });
-            if (rpcErr || !rpcData) throw new Error('Could not find this account. Please contact support.');
-            authEmail = rpcData as string;
-          }
+          // Username login — look up real auth email via RPC (joins auth.users directly)
+          const { data: rpcData, error: rpcErr } = await supabase.rpc('get_auth_email_by_username', { p_username: email.trim() });
+          if (rpcErr || !rpcData) throw new Error('Username not found.');
+          authEmail = rpcData as string;
         }
         const { data: signInData, error: err } = await supabase.auth.signInWithPassword({ email: authEmail, password });
         if (err) throw err;
-        // Backfill auth_email on profile if it was missing (fixes accounts created before this field existed)
+        // Backfill auth_email on profile for faster future lookups
         const userId = signInData.user?.id;
-        if (userId && email.includes('@')) {
+        if (userId) {
           await supabase
             .from('profiles')
             .update({ auth_email: authEmail })

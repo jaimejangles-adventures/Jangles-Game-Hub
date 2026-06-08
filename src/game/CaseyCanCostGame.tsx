@@ -136,7 +136,6 @@ export function CaseyCanCostGame({ onComplete }: { onComplete?: () => void } = {
       setCaseyMsg(pick(MSGS.correct));
       setPhase('correct');
       playCorrectExclamation();
-      speak(pick(MSGS.correct));
       if (roundNum >= 10) burstFinale(); else burstCorrect();
     } else {
       setCaseyMsg(pick(MSGS.wrong));
