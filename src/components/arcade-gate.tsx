@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/lib/auth-context';
 import { useBucksContext } from '@/lib/bucks-context';
+import { ArcadeSessionContext } from '@/lib/arcade-session-context';
 
 type Props = {
   gameSlug: string;
@@ -17,7 +18,15 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   const [spending, setSpending] = useState(false);
   const [error, setError] = useState(false);
 
-  if (sessionActive) return <>{children}</>;
+  const endSession = useCallback(() => setSessionActive(false), []);
+
+  if (sessionActive) {
+    return (
+      <ArcadeSessionContext.Provider value={{ endSession }}>
+        {children}
+      </ArcadeSessionContext.Provider>
+    );
+  }
 
   async function handlePlay() {
     setSpending(true);

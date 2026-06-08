@@ -128,19 +128,6 @@ export function CaseyCanSpellGame({ onComplete }: { onComplete?: () => void } = 
     }
   }, [phase, wordData.word, slots, lives, roundNum, resetCurrentWord]);
 
-  // Keyboard input — pressing a letter triggers the matching tile
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (phase !== 'spelling') return;
-      const key = e.key.toLowerCase();
-      if (!/^[a-z]$/.test(key)) return;
-      const tile = pool.find(t => t.char === key && !t.used);
-      if (tile) handleTap(tile);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [phase, pool, handleTap]);
-
   const nextWord = useCallback(() => {
     const nextIdx = (wordIdx + 1) % SPELL_WORDS.length;
     const next = SPELL_WORDS[nextIdx];
@@ -154,6 +141,23 @@ export function CaseyCanSpellGame({ onComplete }: { onComplete?: () => void } = 
     setRoundNum(r => r + 1);
     setCardKey(k => k + 1);
   }, [wordIdx]);
+
+  // Keyboard input — pressing a letter triggers the matching tile; Enter advances on correct
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        if (phase === 'correct') nextWord();
+        return;
+      }
+      if (phase !== 'spelling') return;
+      const key = e.key.toLowerCase();
+      if (!/^[a-z]$/.test(key)) return;
+      const tile = pool.find(t => t.char === key && !t.used);
+      if (tile) handleTap(tile);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phase, pool, handleTap, nextWord]);
 
   return (
     <div className="relative flex h-full overflow-hidden select-none">

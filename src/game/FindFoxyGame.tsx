@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { burstCorrect, burstFinale } from "@/game/confetti";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
+import { Leaderboard } from "@/components/leaderboard";
 import findFoxyMusic from "../../MUSIC FOR GAMES/FIND_FOXY_1.wav";
 
 import foxyLogo from "../../FOXY/FOX 1.png";
@@ -102,6 +105,9 @@ function playTone() {
 }
 
 export function FindFoxyGame() {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore("find-foxy");
+
   const [phase, setPhase] = useState<GamePhase>("setup");
   const [difficulty, setDifficulty] = useState<FindFoxyDifficulty>("beginner");
   const [playerName, setPlayerName] = useState("Explorer");
@@ -304,7 +310,12 @@ export function FindFoxyGame() {
     setPhase("playing");
   }
 
+  useEffect(() => {
+    if (phase === "win" && score > 0) saveScore(score);
+  }, [phase, score, saveScore]);
+
   function resetGame() {
+    resetScore();
     stopCountryMusic();
     setPhase("setup");
     setScore(0);
@@ -572,6 +583,21 @@ export function FindFoxyGame() {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Leaderboard */}
+                <div style={{ background: "#1a1a2e", borderRadius: "1rem", border: "2px solid #333", padding: "1rem", marginBottom: "0.5rem", textAlign: "left" }}>
+                  <div style={{ fontSize: "0.6rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.2em", color: "#6b7280", marginBottom: "0.25rem" }}>🏆 Top Scores — Find Foxy</div>
+                  {user ? (
+                    <p style={{ fontSize: "0.75rem", fontWeight: 700, marginBottom: "0.5rem", color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+                      {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+                    </p>
+                  ) : (
+                    <button onClick={() => openAuthModal("sign-up")} style={{ fontSize: "0.75rem", fontWeight: 700, color: "#facc15", textDecoration: "underline", marginBottom: "0.5rem", display: "block", background: "none", border: "none", cursor: "pointer" }}>
+                      🏆 Sign in to save your score
+                    </button>
+                  )}
+                  <Leaderboard gameSlug="find-foxy" limit={5} theme="dark" />
                 </div>
 
                 <button className="find-foxy__play-again" onClick={resetGame}>

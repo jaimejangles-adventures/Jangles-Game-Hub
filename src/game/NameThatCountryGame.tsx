@@ -6,6 +6,9 @@ import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
 import rawData from "@/game/data/fly-the-flag.json";
 import { asset } from "@/lib/asset";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
+import { Leaderboard } from "@/components/leaderboard";
 
 type Country = {
   countryId: string;
@@ -180,6 +183,9 @@ function CountryPassport({ countries }: { countries: Country[] }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NameThatCountryGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore("name-that-country");
+
   const [phase, setPhase] = useState<Phase>("start");
   const [queue, setQueue] = useState<Country[]>([]);
   const [roundIdx, setRoundIdx] = useState(0);
@@ -194,6 +200,7 @@ export function NameThatCountryGame({ onComplete }: { onComplete?: () => void } 
   const currentCountry = queue[roundIdx] ?? null;
 
   const startGame = useCallback(() => {
+    resetScore();
     const q = buildQueue();
     setQueue(q);
     setRoundIdx(0);
@@ -205,11 +212,15 @@ export function NameThatCountryGame({ onComplete }: { onComplete?: () => void } 
     setZoomed(false);
     audioRef.current?.pause();
     audioRef.current = null;
-  }, []);
+  }, [resetScore]);
 
   useEffect(() => {
     return () => { audioRef.current?.pause(); };
   }, []);
+
+  useEffect(() => {
+    if (phase === "done" && score > 0) saveScore(score);
+  }, [phase, score, saveScore]);
 
   const handleChoice = useCallback((chosen: Country) => {
     if (phase !== "guessing" || !currentCountry) return;
@@ -326,6 +337,21 @@ export function NameThatCountryGame({ onComplete }: { onComplete?: () => void } 
             <CountryPassport countries={earned} />
           </motion.div>
         )}
+
+        {/* Leaderboard */}
+        <div className="rounded-[2rem] border-[3px] border-ink p-4" style={{ background: "#1a1a2e", borderBottomWidth: 6, borderRightWidth: 5 }}>
+          <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Name That Country</div>
+          {user ? (
+            <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+              {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+            </p>
+          ) : (
+            <button onClick={() => openAuthModal("sign-up")} className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block">
+              🏆 Sign in to save your score
+            </button>
+          )}
+          <Leaderboard gameSlug="name-that-country" limit={5} theme="dark" />
+        </div>
       </div>
     );
   }

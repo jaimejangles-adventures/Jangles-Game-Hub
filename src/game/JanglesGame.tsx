@@ -11,6 +11,9 @@ import { useStamps } from "@/hooks/useStamps";
 import { playCorrectExclamation, playIncorrectExclamation } from "./exclamations";
 import { CountdownBar, WRONG_MS } from "./WrongFeedback";
 import { asset } from "@/lib/asset";
+import { useScore } from "@/hooks/use-score";
+import { useAuth } from "@/lib/auth-context";
+import { Leaderboard } from "@/components/leaderboard";
 
 const LOTTIE = {
   sparkle: "https://assets2.lottiefiles.com/packages/lf20_obhph3sh.json",
@@ -234,6 +237,9 @@ type View = "play" | "facts";
 type RoundStatus = "pending" | "correct" | "wrong";
 
 export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore("music-match");
+
   const [view, setView] = useState<View>("play");
   const [phase, setPhase] = useState<Phase>("boot");
   const [rounds, setRounds] = useState<Fact[]>([]);
@@ -265,6 +271,7 @@ export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
 
   // ── Game flow ──
   const startGame = useCallback(() => {
+    resetScore();
     const r = shuffle(FACTS.filter((f) => f.audio));
     const c = r.map((round) => pickChoices(round, FACTS));
     setRounds(r);
@@ -280,7 +287,7 @@ export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
     setHasStartedRound(false);
     setCollectedCountries([]);
     setPhase("play");
-  }, []);
+  }, [resetScore]);
 
   const resetToBoot = useCallback(() => {
     setPhase("boot");
@@ -360,6 +367,11 @@ export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
     setDuration(0);
     setHasStartedRound(false);
   }, [currentRound, rounds.length, score, addStamps]);
+
+  // Save score when game finishes
+  useEffect(() => {
+    if (phase === "result" && score > 0) saveScore(score);
+  }, [phase, score, saveScore]);
 
   // ── Audio side effects ──
   useEffect(() => {
@@ -505,12 +517,28 @@ export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
         ) : phase === "boot" ? (
           <BootScreen onStart={startGame} />
         ) : phase === "result" ? (
-          <ResultScreen
-            score={score}
-            total={rounds.length * 3}
-            onReplay={startGame}
-            onLearn={() => setView("facts")}
-          />
+          <div className="flex flex-col gap-4">
+            <ResultScreen
+              score={score}
+              total={rounds.length * 3}
+              onReplay={startGame}
+              onLearn={() => setView("facts")}
+            />
+            {/* Leaderboard */}
+            <div className="mx-auto w-full max-w-md rounded-[2rem] border-[3px] border-ink p-4" style={{ background: "#1a1a2e", borderBottomWidth: 6, borderRightWidth: 5 }}>
+              <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Music Match</div>
+              {user ? (
+                <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+                  {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+                </p>
+              ) : (
+                <button onClick={() => openAuthModal("sign-up")} className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block">
+                  🏆 Sign in to save your score
+                </button>
+              )}
+              <Leaderboard gameSlug="music-match" limit={5} theme="dark" />
+            </div>
+          </div>
         ) : (
           <PlayScreen
             round={round}

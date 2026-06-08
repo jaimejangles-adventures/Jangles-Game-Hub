@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { burstFinale } from '@/game/confetti';
 import { asset } from '@/lib/asset';
+import { useScore } from '@/hooks/use-score';
+import { useAuth } from '@/lib/auth-context';
+import { Leaderboard } from '@/components/leaderboard';
 
 // Real coloured book illustrations from /count-objects/
 const ALL_OBJECTS = [
@@ -88,6 +91,9 @@ function formatTime(s: number) {
 }
 
 export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore('match-game');
+
   const [phase, setPhase] = useState<'select' | 'playing' | 'win'>('select');
   const [difficulty, setDifficulty] = useState<Difficulty>('rookie');
   const [cards, setCards] = useState<Card[]>([]);
@@ -100,7 +106,17 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
 
   const totalPairs = (DIFFICULTY_CONFIG[difficulty].cols * DIFFICULTY_CONFIG[difficulty].rows) / 2;
 
+  // Save score on win: faster = higher. master difficulty gets a 2× bonus.
+  useEffect(() => {
+    if (phase === 'win' && seconds > 0) {
+      const base = Math.max(1, Math.round(60000 / Math.max(1, seconds)));
+      const final = difficulty === 'master' ? base * 2 : base;
+      saveScore(final);
+    }
+  }, [phase, seconds, difficulty, saveScore]);
+
   function startGame(diff: Difficulty) {
+    resetScore();
     setDifficulty(diff);
     setCards(buildDeck(diff));
     setFlippedUids([]);
@@ -229,6 +245,21 @@ export function MatchGame({ onComplete }: { onComplete?: () => void } = {}) {
           <span>🃏 {moves} moves</span>
           <span>{cfg.emoji} {cfg.label}</span>
         </div>
+        {/* Leaderboard */}
+        <div className="w-full max-w-sm rounded-[2rem] border-[3px] border-ink p-4 text-left" style={{ background: "#1a1a2e", borderBottomWidth: 6, borderRightWidth: 5 }}>
+          <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Match Game</div>
+          {user ? (
+            <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+              {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+            </p>
+          ) : (
+            <button onClick={() => openAuthModal("sign-up")} className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block">
+              🏆 Sign in to save your score
+            </button>
+          )}
+          <Leaderboard gameSlug="match-game" limit={5} theme="dark" />
+        </div>
+
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => startGame(difficulty)}

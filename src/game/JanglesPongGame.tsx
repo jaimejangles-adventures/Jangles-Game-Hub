@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -322,6 +323,10 @@ export function JanglesPongGame() {
   const stateRef = useRef<GameState>(makeInitialState());
   const rafRef = useRef<number>(0);
 
+  const { endSession } = useArcadeSession();
+  const endSessionRef = useRef(endSession);
+  useEffect(() => { endSessionRef.current = endSession; }, [endSession]);
+
   const PLAYER_Y = H - 50;
   const AI_Y = 36;
 
@@ -487,7 +492,7 @@ export function JanglesPongGame() {
     } else if (s.phase === "game-over") {
       // check play again button
       if (cx >= W / 2 - 100 && cx <= W / 2 + 100 && cy >= H / 2 + 60 && cy <= H / 2 + 112) {
-        Object.assign(s, makeInitialState(), { phase: "countdown", countdownTimer: 180 });
+        endSessionRef.current();
       }
     }
   }, []);

@@ -3,6 +3,7 @@ import { asset } from "@/lib/asset";
 import { useAuth } from "@/lib/auth-context";
 import { useScore } from "@/hooks/use-score";
 import { Leaderboard } from "@/components/leaderboard";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ─── Audio ─────────────────────────────────────────────────────────────────
 function createAudioCtx(): AudioContext | null {
@@ -641,6 +642,8 @@ export function PacmanGame() {
   const saveScoreRef = useRef(saveScore);
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
 
+  const { endSession } = useArcadeSession();
+
   const phaseRef       = useRef<Phase>("select");
   const mazeRef        = useRef<number[][]>(makeMaze(0));
   const mazeStyleRef   = useRef<MazeStyle>(MAZE_STYLES[0]);
@@ -1215,19 +1218,19 @@ export function PacmanGame() {
 
           <div className="flex gap-4 mt-2">
             <button
-              onClick={() => { resetScore(); stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+              onClick={() => { resetScore(); stopPowerMusic(); endSession(); }}
               className="px-8 py-3 bg-blue-600 rounded-xl font-bold text-lg hover:bg-blue-500"
             >
               Menu
             </button>
             {!isWin && (
-              <button onClick={() => { resetScore(); startGame(charRef.current); }}
+              <button onClick={() => { resetScore(); stopPowerMusic(); endSession(); }}
                 className="px-8 py-3 bg-green-600 rounded-xl font-bold text-lg hover:bg-green-500">
                 Retry
               </button>
             )}
             {isWin && (
-              <button onClick={() => { resetScore(); stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+              <button onClick={() => { resetScore(); stopPowerMusic(); endSession(); }}
                 className="px-8 py-3 bg-green-600 rounded-xl font-bold text-lg hover:bg-green-500">
                 Play Again
               </button>
@@ -1250,7 +1253,7 @@ export function PacmanGame() {
            style={{ height: 36 }}>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { stopPowerMusic(); phaseRef.current = "select"; setPhase("select"); }}
+            onClick={() => { stopPowerMusic(); endSession(); }}
             className="font-mono text-xs font-bold text-gray-500 hover:text-white transition-colors"
             style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
           >

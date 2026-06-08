@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { asset } from "@/lib/asset";
 import { useScore } from "@/hooks/use-score";
 import { useAuth } from "@/lib/auth-context";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 function createAudioCtx(): AudioContext | null {
@@ -1781,6 +1782,8 @@ export function FoxerGame() {
   const saveScoreRef = useRef(saveScore);
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
 
+  const { endSession } = useArcadeSession();
+
   useEffect(() => {
     if (gameState === "gameOver" && user) {
       saveScoreRef.current(scoreRef.current);
@@ -2230,7 +2233,7 @@ export function FoxerGame() {
             {displayScore >= displayHighScore && displayScore > 0 && (
               <div style={{ color: "#69f0ae", fontSize: 16, marginTop: 4 }}>🏆 New High Score!</div>
             )}
-            <button onClick={startGame} style={btnStyle("#e53935")}>
+            <button onClick={endSession} style={btnStyle("#e53935")}>
               PLAY AGAIN
             </button>
           </Overlay>

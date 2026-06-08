@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { asset } from "@/lib/asset";
 import { useAuth } from "@/lib/auth-context";
 import { useScore } from "@/hooks/use-score";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -468,6 +469,10 @@ export function JanglesBallGame() {
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
   const scoreSavedRef = useRef(false);
 
+  const { endSession } = useArcadeSession();
+  const endSessionRef = useRef(endSession);
+  useEffect(() => { endSessionRef.current = endSession; }, [endSession]);
+
   const state = useRef({
     phase: "title" as GamePhase,
     level: 1,
@@ -615,14 +620,8 @@ export function JanglesBallGame() {
       }
       else if (s.phase==="game-over"||s.phase==="win") {
         scoreSavedRef.current = false;
-        s.score=0; s.lives=INITIAL_LIVES;
-        pagesRef.current = pickPages();
-        pagesRef.current.forEach((pg,i) => {
-          const img = new Image(); img.src=asset(`/book3-nt/page-${pg}.png`);
-          imagesRef.current[i+1] = img;
-        });
-        // Return to title so the player can re-select difficulty
-        s.phase = "title";
+        // End the arcade session — player must spend another Jangles Buck to play again
+        endSessionRef.current();
       }
     };
 

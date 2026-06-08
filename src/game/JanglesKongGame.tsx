@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { asset } from "@/lib/asset";
 import { useAuth } from "@/lib/auth-context";
 import { useScore } from "@/hooks/use-score";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ── Characters ─────────────────────────────────────────────────────────────
 const CHARACTERS = [
@@ -439,6 +440,10 @@ export function JanglesKongGame() {
   const saveScoreRef = useRef(saveScore);
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
 
+  const { endSession } = useArcadeSession();
+  const endSessionRef = useRef(endSession);
+  useEffect(() => { endSessionRef.current = endSession; }, [endSession]);
+
   const stopMusic = useCallback(() => {
     if (bgMusicRef.current) {
       bgMusicRef.current.pause();
@@ -494,8 +499,8 @@ export function JanglesKongGame() {
       }
       if (s.phase === "gameover" && (e.key === " " || e.key === "Enter")) {
         keysRef.current.clear();
-        stateRef.current = makeState(1);
-        rerender(n => n + 1);
+        stopMusic();
+        endSessionRef.current();
       }
     };
     const up = (e: KeyboardEvent) => keysRef.current.delete(e.key);
@@ -760,7 +765,7 @@ export function JanglesKongGame() {
     getAudio();
     const s = stateRef.current;
     if (s.phase === "title")    { stateRef.current = makeState(1); rerender(n => n + 1); }
-    if (s.phase === "gameover") { stateRef.current = makeState(1); rerender(n => n + 1); }
+    if (s.phase === "gameover") { stopMusic(); endSessionRef.current(); }
   }, [getAudio]);
   const touchEnd = useCallback((dir: string) => keysRef.current.delete(dir), []);
 

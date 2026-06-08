@@ -5,6 +5,7 @@ create table public.profiles (
   id uuid references auth.users on delete cascade not null primary key,
   username text unique not null,
   country_code char(2) not null default 'US',
+  auth_email text,
   created_at timestamptz default now() not null
 );
 

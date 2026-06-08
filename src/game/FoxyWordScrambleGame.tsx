@@ -64,48 +64,46 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
   const handleTapPool = useCallback((tile: LetterTile) => {
     if (phase !== 'scrambling') return;
 
-    setPlaced(prev => {
-      const emptyIdx = prev.findIndex(s => s === null);
-      if (emptyIdx === -1) return prev;
-      const next = [...prev];
-      next[emptyIdx] = tile;
+    const emptyIdx = placed.findIndex(s => s === null);
+    if (emptyIdx === -1) return;
 
-      // Check win/loss when last slot filled
-      if (emptyIdx === prev.length - 1) {
-        const word = SPELL_WORDS[wordOrder[wordOrderIdx]].word;
-        const attempt = next.map(t => t!.char).join('');
-        if (attempt === word) {
-          setFoxyMsg(pick(MSGS.correct));
-          setScore(s => { if ((s + 1) % 5 === 0) onComplete?.(); return s + 1; });
-          setPhase('correct');
-          playCorrectExclamation();
-          setRoundNum(r => {
-            if (r >= SPELL_WORDS.length) burstFinale(); else burstCorrect();
-            return r;
-          });
-        } else {
-          setFoxyMsg(pick(MSGS.wrong));
-          playIncorrectExclamation();
-          setPhase('wrong');
-          setShakingSlots(true);
-          const returnTiles = next.filter(Boolean) as LetterTile[];
-          setTimeout(() => {
-            setShakingSlots(false);
-            setPool(p => shuffle([...p, ...returnTiles]));
-            setPlaced(Array(word.length).fill(null));
-            setPhase('scrambling');
-            setFoxyMsg(pick(MSGS.intro));
-          }, 1200);
-        }
-      } else {
-        setFoxyMsg(pick(MSGS.place));
-      }
-
-      return next;
-    });
-
+    const next = [...placed];
+    next[emptyIdx] = tile;
+    setPlaced(next);
     setPool(prev => prev.filter(t => t.id !== tile.id));
-  }, [phase, wordOrder, wordOrderIdx]);
+
+    if (emptyIdx < placed.length - 1) {
+      setFoxyMsg(pick(MSGS.place));
+      return;
+    }
+
+    // Last slot filled — check answer
+    const word = SPELL_WORDS[wordOrder[wordOrderIdx]].word;
+    const attempt = next.map(t => t!.char).join('');
+
+    if (attempt === word) {
+      setFoxyMsg(pick(MSGS.correct));
+      const newScore = score + 1;
+      setScore(newScore);
+      setPhase('correct');
+      playCorrectExclamation();
+      if (newScore % 5 === 0) onComplete?.();
+      if (roundNum >= SPELL_WORDS.length - 1) burstFinale(); else burstCorrect();
+    } else {
+      const returnTiles = next.filter(Boolean) as LetterTile[];
+      setFoxyMsg(pick(MSGS.wrong));
+      playIncorrectExclamation();
+      setPhase('wrong');
+      setShakingSlots(true);
+      setTimeout(() => {
+        setShakingSlots(false);
+        setPool(p => shuffle([...p, ...returnTiles]));
+        setPlaced(Array(word.length).fill(null));
+        setPhase('scrambling');
+        setFoxyMsg(pick(MSGS.intro));
+      }, 1200);
+    }
+  }, [phase, placed, wordOrder, wordOrderIdx, score, roundNum, onComplete]);
 
   const handleTapPlaced = useCallback((slotIdx: number) => {
     if (phase !== 'scrambling') return;
@@ -194,12 +192,16 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
             <img src={asset('/characters/FOX 3.png')} alt="Foxy" className="h-32 w-auto object-contain" />
           </div>
 
-          {/* Word image + label */}
+          {/* Hint */}
           <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center justify-center rounded-2xl border-[3px] bg-white/80 p-2 shadow"
-              style={{ width: 96, height: 96, borderColor: '#ef6c00' }}>
-              <img src={wordData.image} alt={wordData.label} className="w-full h-full object-contain" />
-            </div>
+            {hintVisible && (
+              <div className="flex items-center justify-center rounded-2xl border-[3px] bg-white/80 p-2 shadow"
+                style={{ width: 96, height: 96, borderColor: '#ef6c00' }}>
+                {wordData.hintEmoji
+                  ? <span style={{ fontSize: 60, lineHeight: 1 }}>{wordData.hintEmoji}</span>
+                  : <img src={wordData.image} alt={wordData.label} className="w-full h-full object-contain" />}
+              </div>
+            )}
             <button
               onClick={() => setHintVisible(h => !h)}
               className="rounded-2xl border-[3px] border-ink px-3 py-1 text-xs font-extrabold shadow transition-all"
@@ -209,7 +211,7 @@ export function FoxyWordScrambleGame({ onComplete }: { onComplete?: () => void }
                 borderRightWidth: 3,
               }}
             >
-              {hintVisible ? wordData.word.toUpperCase() : '💡 Hint'}
+              {hintVisible ? 'Hide Hint' : '💡 Hint'}
             </button>
           </div>
 

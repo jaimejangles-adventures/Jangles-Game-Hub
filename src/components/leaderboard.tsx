@@ -16,12 +16,14 @@ type Props = {
   gameSlug: string;
   difficulty?: string;
   limit?: number;
+  previewLimit?: number;
   theme?: Theme;
 };
 
-export function Leaderboard({ gameSlug, difficulty, limit = 10, theme = 'light' }: Props) {
+export function Leaderboard({ gameSlug, difficulty, limit = 10, previewLimit, theme = 'light' }: Props) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const slug = difficulty ? `${gameSlug}-${difficulty}` : gameSlug;
 
@@ -108,10 +110,11 @@ export function Leaderboard({ gameSlug, difficulty, limit = 10, theme = 'light' 
   }
 
   const medalColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+  const visibleEntries = previewLimit && !expanded ? entries.slice(0, previewLimit) : entries;
 
   return (
     <div className="flex flex-col gap-1.5">
-      {entries.map((e) => (
+      {visibleEntries.map((e) => (
         <div
           key={e.rank}
           className="flex items-center gap-2.5 rounded-xl px-3 py-2"
@@ -147,6 +150,20 @@ export function Leaderboard({ gameSlug, difficulty, limit = 10, theme = 'light' 
           </span>
         </div>
       ))}
+      {previewLimit && entries.length > previewLimit && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 w-full rounded-xl border-[2px] border-ink py-1.5 text-xs font-extrabold transition-transform hover:-translate-y-0.5"
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb',
+            color: isDark ? '#f1f5f9' : '#1a1a1a',
+            borderBottomWidth: 3,
+            borderRightWidth: 2,
+          }}
+        >
+          {expanded ? '▲ Show less' : `▼ Show top ${entries.length}`}
+        </button>
+      )}
     </div>
   );
 }
@@ -161,6 +178,12 @@ const LEADERBOARD_GAMES = [
   'foxer',
   'jangles-kong',
   'type-with-casey',
+  'music-match',
+  'fly-the-flag',
+  'name-that-country',
+  'color-mix',
+  'find-foxy',
+  'match-game',
 ] as const;
 
 // Games that have rookie/master difficulty splits in the leaderboard
@@ -254,6 +277,7 @@ export function HallOfFame() {
         gameSlug={activeSlug}
         difficulty={hasDifficulty ? activeDifficulty : undefined}
         limit={10}
+        previewLimit={5}
         theme="light"
       />
     </div>

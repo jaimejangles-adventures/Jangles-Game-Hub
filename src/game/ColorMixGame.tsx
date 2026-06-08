@@ -4,6 +4,9 @@ import { Link } from '@tanstack/react-router';
 import { burstCorrect, burstFinale } from '@/game/confetti';
 import { playCorrectExclamation, playIncorrectExclamation } from '@/game/exclamations';
 import { asset } from '@/lib/asset';
+import { useScore } from '@/hooks/use-score';
+import { useAuth } from '@/lib/auth-context';
+import { Leaderboard } from '@/components/leaderboard';
 
 type Color = { name: string; hex: string };
 type Pair  = { a: Color; b: Color };
@@ -66,6 +69,9 @@ const CORRECT_MSGS = ['Brilliant! 🎉', 'Perfect mix! ✨', 'You got it! 🌟',
 const WRONG_MSGS   = ['Not quite!', 'Try again!', 'Look carefully!', 'Hmm, not that one!'];
 
 export function ColorMixGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved, reset: resetScore } = useScore('color-mix');
+
   const [queue, setQueue]         = useState<PageMix[]>(() => shuffle([...PAGE_MIXES]));
   const [index, setIndex]         = useState(0);
   const [phase, setPhase]         = useState<Phase>('question');
@@ -116,7 +122,12 @@ export function ColorMixGame({ onComplete }: { onComplete?: () => void } = {}) {
     }
   }
 
+  useEffect(() => {
+    if (phase === 'done' && score > 0) saveScore(score);
+  }, [phase, score, saveScore]);
+
   function restart() {
+    resetScore();
     setQueue(shuffle([...PAGE_MIXES]));
     setIndex(0);
     setScore(0);
@@ -143,6 +154,21 @@ export function ColorMixGame({ onComplete }: { onComplete?: () => void } = {}) {
               <span key={i} className="text-lg">{i < score ? '⭐' : '☆'}</span>
             ))}
           </div>
+          {/* Leaderboard */}
+          <div className="w-full rounded-2xl border-[3px] border-ink p-4 text-left" style={{ background: "#1a1a2e", borderBottomWidth: 5, borderRightWidth: 4 }}>
+            <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Colour Mix</div>
+            {user ? (
+              <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+                {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+              </p>
+            ) : (
+              <button onClick={() => openAuthModal("sign-up")} className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block">
+                🏆 Sign in to save your score
+              </button>
+            )}
+            <Leaderboard gameSlug="color-mix" limit={5} theme="dark" />
+          </div>
+
           <div className="flex gap-3">
             <button onClick={restart}
               className="rounded-2xl border-[3px] border-ink bg-yellow-400 px-6 py-2.5 font-extrabold text-base"

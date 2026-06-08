@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { asset } from "@/lib/asset";
 import { useScore } from "@/hooks/use-score";
 import { useAuth } from "@/lib/auth-context";
+import { useArcadeSession } from "@/lib/arcade-session-context";
 
 // ── Country data ───────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -66,6 +67,10 @@ export function AirFanteCollectGame() {
   const { saveScore } = useScore("air-fante-collect");
   const saveScoreRef = useRef(saveScore);
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
+  const { endSession } = useArcadeSession();
+  const endSessionRef = useRef(endSession);
+  useEffect(() => { endSessionRef.current = endSession; }, [endSession]);
 
   useEffect(() => {
     if (phase === "over" && user) {
@@ -717,8 +722,8 @@ export function AirFanteCollectGame() {
     startFnRef.current();
   }
 
-  function handlePlayAgain() { startFnRef.current(); }
-  function handleChangeLevel() { setPhase("select"); phaseRef.current = "select"; }
+  function handlePlayAgain() { endSessionRef.current(); }
+  function handleChangeLevel() { endSessionRef.current(); }
 
   // ── Shared card base style ─────────────────────────────────────────────────
   const cardBase: React.CSSProperties = {
