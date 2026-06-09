@@ -5,7 +5,7 @@ import { ArcadeGate } from "@/components/arcade-gate";
 export const Route = createFileRoute("/games/elefante")({
   head: () => ({
     meta: [
-      { title: "Elefante: Air Fante World Tour" },
+      { title: "Elefante: Air Fante Dodge" },
       { name: "description", content: "Fly Elefante through the skies and dodge obstacles on a world music tour!" },
     ],
     links: [
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/games/elefante")({
 
 function ElefanteRoute() {
   return (
-    <ArcadeGate gameSlug="elefante" gameTitle="Air Fante World Tour" gameEmoji="🐘">
+    <ArcadeGate gameSlug="elefante" gameTitle="Air Fante Dodge" gameEmoji="🐘">
       <ElefanteGame />
     </ArcadeGate>
   );

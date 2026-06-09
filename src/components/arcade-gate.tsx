@@ -1,5 +1,6 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
+import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
 import { useBucksContext } from '@/lib/bucks-context';
 import { ArcadeSessionContext } from '@/lib/arcade-session-context';
@@ -69,7 +70,14 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   }
 
   function handleGuestPlay() {
-    incrementGuestPlays();
+    const newCount = incrementGuestPlays();
+    const remaining = GUEST_MAX - newCount;
+    if (remaining > 0) {
+      toast(`🎮 ${remaining} free play${remaining !== 1 ? 's' : ''} left today — sign up to play unlimited!`, {
+        duration: 4000,
+        style: { fontWeight: 'bold', fontSize: '0.875rem' },
+      });
+    }
     setSessionActive(true);
   }
 
@@ -80,6 +88,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
       className="flex h-full flex-col items-center justify-center px-4"
       style={{ background: "linear-gradient(135deg, #fffbf0 0%, #fff7e0 100%)" }}
     >
+      <Toaster position="top-center" />
       <div
         className="flex flex-col items-center gap-5 rounded-[2rem] border-[3px] border-ink bg-paper px-8 py-8 text-center"
         style={{ borderBottomWidth: 7, borderRightWidth: 6, maxWidth: "22rem", width: "90vw" }}

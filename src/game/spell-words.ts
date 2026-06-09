@@ -10,7 +10,7 @@ export type SpellWord = {
 
 // All images come from public/book-objects/ (real book illustrations)
 export const SPELL_WORDS: SpellWord[] = [
-  { word: 'fox',      image: '',                                              label: 'Fox',      hintEmoji: '🦊', quip: "Foxy is Jaime & Jeff's clever guide on every adventure!" },
+  { word: 'fox',      image: asset('/characters/FOX 1.png'),                  label: 'Fox',      hintEmoji: '🦊', quip: "Foxy is Jaime & Jeff's clever guide on every adventure!" },
   { word: 'fish',     image: asset('/book-objects/flying-fish.png'),          label: 'Fish',     quip: "Jaime spotted a glowing one near the Great Barrier Reef!" },
   { word: 'drum',     image: asset('/book-objects/jamaica-steel-drum.png'),   label: 'Drum',     quip: "Jeff played a steel drum in Jamaica and the whole beach started dancing!" },
   { word: 'tuba',     image: asset('/book-objects/tuba.png'),                 label: 'Tuba',     quip: "Casey made Jeff lug a tuba all the way through Europe — for one song!" },

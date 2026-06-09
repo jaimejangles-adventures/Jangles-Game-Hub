@@ -767,7 +767,7 @@ export function ElefanteGame() {
               alt="Air Fante"
             />
             <div style={{ fontSize: "1.9rem", fontWeight: 900, marginTop: 10, letterSpacing: "0.01em" }}>
-              Air Fante — World Tour
+              Air Fante — Dodge
             </div>
             <div style={{ fontSize: "1.1rem", fontWeight: 600, opacity: 0.75, marginTop: 4 }}>
               Choose your level
