@@ -6,6 +6,9 @@ import type { Word, PathStroke } from '@/game/draw-casey/data';
 import { useChalkCanvas } from '@/hooks/useChalkCanvas';
 import { cn } from '@/lib/utils';
 import { asset } from "@/lib/asset";
+import { useAuth } from '@/lib/auth-context';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { Link } from '@tanstack/react-router';
 
 // ── Chalk palette ────────────────────────────────────────────────
 const CHALK_COLORS = [
@@ -707,12 +710,26 @@ function PassScreen({
   word,
   playerName,
   onNext,
+  onSaveToGallery,
+  isLoggedIn,
+  onSignIn,
 }: {
   word: Word;
   playerName: string;
   onNext: () => void;
+  onSaveToGallery?: () => Promise<{ success: boolean }>;
+  isLoggedIn: boolean;
+  onSignIn: () => void;
 }) {
   const line = word.caseyPass[Math.floor(Math.random() * word.caseyPass.length)];
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const handleSave = async () => {
+    if (!onSaveToGallery) return;
+    setSaveState('saving');
+    const result = await onSaveToGallery();
+    setSaveState(result.success ? 'saved' : 'error');
+  };
 
   return (
     <motion.div
@@ -759,6 +776,41 @@ function PassScreen({
         <span style={{ color: '#4ecdc4' }}>{word.word}</span>!
       </p>
 
+      {/* ── Gallery save area ── */}
+      {isSupabaseConfigured && (
+        <div className="flex flex-col items-center gap-2">
+          {!isLoggedIn ? (
+            <button
+              onClick={onSignIn}
+              className="text-sm font-semibold text-ink/50 underline underline-offset-2 hover:text-ink/70"
+            >
+              Sign in to save to the Best Of gallery 🖼️
+            </button>
+          ) : saveState === 'saved' ? (
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm font-extrabold text-[#4ecdc4]">Saved to gallery! 🎉</span>
+              <Link
+                to="/casey-gallery"
+                className="text-xs font-semibold text-ink/50 underline underline-offset-2 hover:text-ink/70"
+              >
+                View Best Of →
+              </Link>
+            </div>
+          ) : saveState === 'error' ? (
+            <span className="text-sm font-semibold text-red-500">Couldn't save — try again?</span>
+          ) : (
+            <PillBtn
+              onClick={handleSave}
+              accent="#e87fa3"
+              size="sm"
+              className={saveState === 'saving' ? 'pointer-events-none opacity-60' : ''}
+            >
+              {saveState === 'saving' ? 'Saving…' : 'Save to Best Of 🖼️'}
+            </PillBtn>
+          )}
+        </div>
+      )}
+
       <PillBtn onClick={onNext} accent="#4ecdc4" size="lg">
         Draw Another! 🎨
       </PillBtn>
@@ -783,10 +835,50 @@ function makeCustomWord(objectName: string): Word {
   };
 }
 
+// ── Resize + upload a drawing to Supabase Storage ─────────────────
+async function uploadDrawing(
+  dataUrl: string,
+  userId: string,
+): Promise<string | null> {
+  // Downscale to max 640px wide before uploading
+  const img = new Image();
+  await new Promise<void>((res, rej) => {
+    img.onload = () => res();
+    img.onerror = rej;
+    img.src = dataUrl;
+  });
+  const maxW = 640;
+  const scale = img.width > maxW ? maxW / img.width : 1;
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const tmp = document.createElement('canvas');
+  tmp.width = w;
+  tmp.height = h;
+  const tc = tmp.getContext('2d')!;
+  tc.drawImage(img, 0, 0, w, h);
+
+  const blob: Blob = await new Promise(res =>
+    tmp.toBlob(b => res(b!), 'image/jpeg', 0.82),
+  );
+
+  const filename = `${userId}/${Date.now()}.jpg`;
+  const { error } = await supabase.storage
+    .from('casey-gallery')
+    .upload(filename, blob, { contentType: 'image/jpeg' });
+  if (error) return null;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('casey-gallery')
+    .getPublicUrl(filename);
+  return publicUrl;
+}
+
 // ── Main orchestrator ─────────────────────────────────────────────
 type Phase = 'intro' | 'custom-input' | 'drawing' | 'pass';
 
 export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = {}) {
+  const { user, openAuthModal } = useAuth();
+
   const [phase, setPhase]           = useState<Phase>('intro');
   const [playerName, setPlayerName] = useState('Friend');
   const [traceMode, setTraceMode]   = useState(false);   // true = Trace It mode
@@ -879,6 +971,22 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
     setTraceVisible(v => !v);
   }, []);
 
+  // ── Save to gallery ───────────────────────────────────────────
+  const handleSaveToGallery = useCallback(async (): Promise<{ success: boolean }> => {
+    if (!user || !currentWord || !isSupabaseConfigured) return { success: false };
+    const dataUrl = canvas.getImageDataUrl();
+    if (!dataUrl) return { success: false };
+    const imageUrl = await uploadDrawing(dataUrl, user.id);
+    if (!imageUrl) return { success: false };
+    const { error } = await supabase.from('casey_gallery').insert({
+      user_id: user.id,
+      image_url: imageUrl,
+      word: currentWord.word,
+      emoji: currentWord.emoji,
+    });
+    return { success: !error };
+  }, [user, currentWord, canvas]);
+
   // ── Print ─────────────────────────────────────────────────────
   const handlePrint = useCallback(() => {
     if (!currentWord || !canvas.drawEl) return;
@@ -961,7 +1069,14 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
 
         {phase === 'pass' && currentWord && (
           <motion.div key={`pass-${wordIdx}`} className="w-full overflow-y-auto">
-            <PassScreen word={currentWord} playerName={playerName} onNext={handleNext} />
+            <PassScreen
+              word={currentWord}
+              playerName={playerName}
+              onNext={handleNext}
+              onSaveToGallery={handleSaveToGallery}
+              isLoggedIn={!!user}
+              onSignIn={() => openAuthModal('sign-in')}
+            />
           </motion.div>
         )}
       </AnimatePresence>

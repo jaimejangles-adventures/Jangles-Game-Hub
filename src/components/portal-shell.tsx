@@ -44,7 +44,7 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong", "/games/color-mix", "/games/casey-can-roman-numeral", "/games/casey-can-cost"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong", "/games/color-mix", "/games/casey-can-roman-numeral", "/games/casey-can-cost", "/games/chess"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({

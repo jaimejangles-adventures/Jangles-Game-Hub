@@ -24,3 +24,14 @@ export type ScoreRow = {
     country_code: string;
   } | null;
 };
+
+export type GalleryRow = {
+  id: string;
+  user_id: string;
+  image_url: string;
+  word: string;
+  emoji: string;
+  created_at: string;
+  username?: string;
+  country_code?: string;
+};
