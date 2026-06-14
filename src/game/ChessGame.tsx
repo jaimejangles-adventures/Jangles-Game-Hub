@@ -672,6 +672,30 @@ const LESSONS: Record<LessonPiece, LessonStep[]> = {
   ],
 };
 
+// ─── Keyframe injection ──────────────────────────────────────────────────────
+
+const PULSE_CSS = `
+@keyframes yourTurnPulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  50%  { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+@keyframes checkPulse {
+  0%,100% { background: #dc2626; }
+  50%      { background: #ef4444; }
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+`;
+if (typeof document !== "undefined" && !document.getElementById("chess-keyframes")) {
+  const s = document.createElement("style");
+  s.id = "chess-keyframes";
+  s.textContent = PULSE_CSS;
+  document.head.appendChild(s);
+}
+
 // ─── Lesson Mode ──────────────────────────────────────────────────────────────
 
 const LESSON_TABS: { key: LessonPiece; label: string; emoji: string; color: string }[] = [
@@ -692,101 +716,71 @@ function LessonMode({ onBack }: { onBack: () => void }) {
   const step = steps[stepIdx];
   const tab = LESSON_TABS.find(t => t.key === activePiece)!;
 
-  function selectPiece(key: LessonPiece) {
-    setActivePiece(key);
-    setStepIdx(0);
-  }
+  function selectPiece(key: LessonPiece) { setActivePiece(key); setStepIdx(0); }
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", height: "100%",
-      padding: "16px", gap: 12, boxSizing: "border-box", overflow: "auto",
-    }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "linear-gradient(135deg,#f0f4ff 0%,#faf5ff 100%)", overflow: "auto" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px 0" }}>
         <button onClick={onBack} style={backBtnStyle}>← Back</button>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1a1a2e" }}>Chess Lessons</h2>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e1b4b" }}>Chess Lessons</h2>
       </div>
 
       {/* Piece tabs */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "14px 20px 0" }}>
         {LESSON_TABS.map(({ key, label, emoji, color }) => (
-          <button
-            key={key}
-            onClick={() => selectPiece(key)}
-            style={{
-              background: activePiece === key ? color : "#fff",
-              color: activePiece === key ? "#fff" : "#1a1a2e",
-              border: `2px solid ${color}`,
-              borderRadius: 20, padding: "5px 12px",
-              fontWeight: 700, cursor: "pointer", fontSize: 13,
-              display: "flex", alignItems: "center", gap: 4,
-            }}
-          >
+          <button key={key} onClick={() => selectPiece(key)} style={{
+            background: activePiece === key ? color : "rgba(255,255,255,0.8)",
+            color: activePiece === key ? "#fff" : "#374151",
+            border: `2px solid ${activePiece === key ? color : "rgba(0,0,0,0.1)"}`,
+            borderRadius: 99, padding: "6px 14px",
+            fontWeight: 700, cursor: "pointer", fontSize: 13,
+            boxShadow: activePiece === key ? `0 4px 12px ${color}55` : "0 1px 3px rgba(0,0,0,0.08)",
+            transition: "all 0.15s",
+          }}>
             {emoji} {label}
           </button>
         ))}
       </div>
 
-      {/* Main content: board + info side by side */}
-      <div style={{ display: "flex", gap: 16, flex: 1, flexWrap: "wrap", alignItems: "flex-start", minHeight: 0 }}>
-        {/* Board container — fixed square size */}
-        <div style={{ width: "min(100%, 420px)", aspectRatio: "1", flexShrink: 0 }}>
-          <ChessBoard
-            board={step.board}
-            selected={null}
-            validMoves={[]}
-            highlights={step.highlights}
-            interactive={false}
-          />
+      {/* Main area */}
+      <div style={{ display: "flex", gap: 20, flex: 1, flexWrap: "wrap", alignItems: "flex-start", padding: "16px 20px 20px" }}>
+        {/* Board */}
+        <div style={{ width: "min(100%, 420px)", aspectRatio: "1", flexShrink: 0, borderRadius: 16, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}>
+          <ChessBoard board={step.board} selected={null} validMoves={[]} highlights={step.highlights} interactive={false} />
         </div>
 
-        {/* Info panel */}
+        {/* Info card */}
         <div style={{ flex: "1 1 220px" }}>
-          <div style={cardStyle}>
-            {/* Step dots */}
+          <div style={glassCard}>
             {steps.length > 1 && (
-              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
                 {steps.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setStepIdx(i)}
-                    style={{
-                      width: 10, height: 10, borderRadius: "50%", border: "none",
-                      background: i === stepIdx ? tab.color : "#e5e7eb",
-                      cursor: "pointer", padding: 0,
-                    }}
-                  />
+                  <button key={i} onClick={() => setStepIdx(i)} style={{
+                    width: i === stepIdx ? 24 : 8, height: 8, borderRadius: 99, border: "none",
+                    background: i === stepIdx ? tab.color : "#e5e7eb",
+                    cursor: "pointer", padding: 0, transition: "all 0.2s",
+                  }} />
                 ))}
               </div>
             )}
-
-            <h3 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 8px", color: "#1a1a2e" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: tab.color, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>
+              {tab.emoji} {tab.label}
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 10px", color: "#1e1b4b", lineHeight: 1.3 }}>
               {step.title}
             </h3>
-            <p style={{ fontSize: 14, lineHeight: 1.65, color: "#444", margin: "0 0 14px" }}>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: "#4b5563", margin: "0 0 16px" }}>
               {step.description}
             </p>
-
-            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#166534" }}>
-              <strong>Green squares</strong> = where this piece can move or capture
+            <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "9px 14px", fontSize: 12, color: "#15803d", fontWeight: 600 }}>
+              🟢 Green squares = where this piece can move or capture
             </div>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button
-                onClick={() => setStepIdx(i => Math.max(0, i - 1))}
-                disabled={stepIdx === 0}
-                style={navBtnStyle(stepIdx === 0, tab.color)}
-              >
-                ← Prev
-              </button>
-              <button
-                onClick={() => setStepIdx(i => Math.min(steps.length - 1, i + 1))}
-                disabled={stepIdx === steps.length - 1}
-                style={navBtnStyle(stepIdx === steps.length - 1, tab.color)}
-              >
-                Next →
-              </button>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setStepIdx(i => Math.max(0, i - 1))} disabled={stepIdx === 0}
+                style={navBtnStyle(stepIdx === 0, tab.color)}>← Prev</button>
+              <button onClick={() => setStepIdx(i => Math.min(steps.length - 1, i + 1))} disabled={stepIdx === steps.length - 1}
+                style={navBtnStyle(stepIdx === steps.length - 1, tab.color)}>Next →</button>
             </div>
           </div>
         </div>
@@ -798,25 +792,38 @@ function LessonMode({ onBack }: { onBack: () => void }) {
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 
 const backBtnStyle: React.CSSProperties = {
-  background: "#1a1a2e", color: "#fff", border: "none",
-  borderRadius: 10, padding: "7px 14px", fontWeight: 700,
-  cursor: "pointer", fontSize: 13, flexShrink: 0,
+  background: "rgba(255,255,255,0.9)", color: "#374151",
+  border: "1.5px solid rgba(0,0,0,0.12)", borderRadius: 99,
+  padding: "7px 16px", fontWeight: 700, cursor: "pointer", fontSize: 13,
+  flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
 };
 
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  border: "3px solid #1a1a2e",
-  borderBottomWidth: 6, borderRightWidth: 5,
-  borderRadius: 16, padding: 18,
+const glassCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.85)",
+  backdropFilter: "blur(12px)",
+  border: "1.5px solid rgba(255,255,255,0.9)",
+  borderRadius: 20,
+  padding: 20,
+  boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+};
+
+const sideCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.08)",
+  backdropFilter: "blur(8px)",
+  border: "1.5px solid rgba(255,255,255,0.12)",
+  borderRadius: 16,
+  padding: "14px 14px",
 };
 
 function navBtnStyle(disabled: boolean, color: string): React.CSSProperties {
   return {
-    flex: 1, padding: "8px 0", borderRadius: 10,
-    border: `2px solid ${disabled ? "#e5e7eb" : color}`,
+    flex: 1, padding: "9px 0", borderRadius: 99,
+    border: "none",
     background: disabled ? "#f3f4f6" : color,
     color: disabled ? "#9ca3af" : "#fff",
     fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", fontSize: 14,
+    boxShadow: disabled ? "none" : `0 4px 12px ${color}55`,
+    transition: "all 0.15s",
   };
 }
 
@@ -841,58 +848,40 @@ function initialGameState(): GameState {
 
 // ─── Play Mode ────────────────────────────────────────────────────────────────
 
+function CapturedRow({ pieces, label }: { pieces: Piece[]; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, minHeight: 28 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", minWidth: 80 }}>{label}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        {pieces.length === 0
+          ? <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
+          : pieces.map((p, i) => (
+              <span key={i} style={{
+                fontSize: 18, lineHeight: 1,
+                color: p.color === "white" ? "#fff" : "#1e1b4b",
+                textShadow: p.color === "white" ? "0 0 2px #000, 0 1px 3px rgba(0,0,0,0.8)" : "none",
+              }}>
+                {PIECE_UNICODE[p.type][p.color]}
+              </span>
+            ))}
+      </div>
+    </div>
+  );
+}
+
 function PlayMode({ onBack }: { onBack: () => void }) {
   const [gs, setGs] = useState<GameState>(initialGameState);
   const [thinking, setThinking] = useState(false);
+  const [yourTurnFlash, setYourTurnFlash] = useState(false);
   const playerColor: Color = "white";
   const computerColor: Color = "black";
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moveListRef = useRef<HTMLDivElement>(null);
 
-  const applyPlayerMove = useCallback((from: Square, to: Square) => {
-    setGs(prev => {
-      const piece = prev.board[from.row][from.col]!;
-      const newBoard = applyMoveOnBoard(prev.board, from, to, prev.enPassantTarget);
-
-      const isPawnPromotion =
-        piece.type === "pawn" &&
-        ((piece.color === "white" && to.row === 0) || (piece.color === "black" && to.row === 7));
-
-      const cr = updateCastlingRights(prev.castlingRights, piece, from);
-      const ep = computeEnPassantTarget(piece, from, to);
-
-      const captured = prev.board[to.row][to.col];
-      // Also check for en passant capture
-      let epCaptured: Piece | null = null;
-      if (piece.type === "pawn" && prev.enPassantTarget && to.row === prev.enPassantTarget.row && to.col === prev.enPassantTarget.col) {
-        const captureRow = piece.color === "white" ? to.row + 1 : to.row - 1;
-        epCaptured = prev.board[captureRow][to.col];
-      }
-      const capturedWhite = [...prev.capturedWhite, ...(captured?.color === "white" ? [captured] : []), ...(epCaptured?.color === "white" ? [epCaptured] : [])];
-      const capturedBlack = [...prev.capturedBlack, ...(captured?.color === "black" ? [captured] : []), ...(epCaptured?.color === "black" ? [epCaptured] : [])];
-
-      const label = `${sqLabel(from.row, from.col)}→${sqLabel(to.row, to.col)}`;
-      const moveHistory = [...prev.moveHistory, label];
-      const nextTurn: Color = prev.turn === "white" ? "black" : "white";
-
-      if (isPawnPromotion) {
-        return {
-          ...prev, board: newBoard, selected: null, validMoves: [],
-          capturedWhite, capturedBlack, castlingRights: cr,
-          enPassantTarget: ep, moveHistory, turn: nextTurn,
-          promotionPending: { from, to },
-        };
-      }
-
-      const { status, winner } = computeGameStatus(newBoard, nextTurn, ep, cr, prev.turn);
-      return {
-        ...prev, board: newBoard, turn: nextTurn,
-        selected: null, validMoves: [],
-        capturedWhite, capturedBlack,
-        castlingRights: cr, enPassantTarget: ep,
-        status, winner, moveHistory, promotionPending: null,
-      };
-    });
-  }, []);
+  // Scroll move list to bottom whenever it updates
+  useEffect(() => {
+    if (moveListRef.current) moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
+  }, [gs.moveHistory.length]);
 
   const handleSquareClick = useCallback((sq: Square) => {
     if (gs.status === "checkmate" || gs.status === "stalemate") return;
@@ -900,58 +889,35 @@ function PlayMode({ onBack }: { onBack: () => void }) {
     if (thinking) return;
     if (gs.promotionPending) return;
 
-    setGs(prev => {
-      const piece = prev.board[sq.row][sq.col];
+    setYourTurnFlash(false);
 
-      if (prev.selected) {
-        const isValid = prev.validMoves.some(m => m.row === sq.row && m.col === sq.col);
-        if (isValid) {
-          // defer to applyPlayerMove via a small trick — return current state and call outside
-          return prev; // handled below
-        }
-        // Reselect own piece
-        if (piece?.color === playerColor) {
-          const moves = legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights);
-          return { ...prev, selected: sq, validMoves: moves };
-        }
-        return { ...prev, selected: null, validMoves: [] };
-      }
-
-      if (piece?.color === playerColor) {
-        const moves = legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights);
-        return { ...prev, selected: sq, validMoves: moves };
-      }
-      return prev;
-    });
-
-    // Handle the actual move outside setState to avoid closure stale state issues
     setGs(prev => {
       if (!prev.selected) {
         const piece = prev.board[sq.row][sq.col];
         if (piece?.color === playerColor) {
-          const moves = legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights);
-          return { ...prev, selected: sq, validMoves: moves };
+          return { ...prev, selected: sq, validMoves: legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights) };
         }
         return prev;
       }
+
       const isValid = prev.validMoves.some(m => m.row === sq.row && m.col === sq.col);
       if (!isValid) {
         const piece = prev.board[sq.row][sq.col];
         if (piece?.color === playerColor) {
-          const moves = legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights);
-          return { ...prev, selected: sq, validMoves: moves };
+          return { ...prev, selected: sq, validMoves: legalMoves(prev.board, sq, prev.enPassantTarget, prev.castlingRights) };
         }
         return { ...prev, selected: null, validMoves: [] };
       }
 
-      // Execute the move
       const from = prev.selected;
       const to = sq;
       const piece = prev.board[from.row][from.col]!;
       const newBoard = applyMoveOnBoard(prev.board, from, to, prev.enPassantTarget);
+
       const isPawnPromotion =
         piece.type === "pawn" &&
         ((piece.color === "white" && to.row === 0) || (piece.color === "black" && to.row === 7));
+
       const cr = updateCastlingRights(prev.castlingRights, piece, from);
       const ep = computeEnPassantTarget(piece, from, to);
 
@@ -961,30 +927,17 @@ function PlayMode({ onBack }: { onBack: () => void }) {
         const captureRow = piece.color === "white" ? to.row + 1 : to.row - 1;
         epCaptured = prev.board[captureRow][to.col];
       }
-      const capturedWhite = [...prev.capturedWhite, ...(regularCapture?.color === "white" ? [regularCapture] : []), ...(epCaptured?.color === "white" ? [epCaptured] : [])];
       const capturedBlack = [...prev.capturedBlack, ...(regularCapture?.color === "black" ? [regularCapture] : []), ...(epCaptured?.color === "black" ? [epCaptured] : [])];
+      const capturedWhite = [...prev.capturedWhite, ...(regularCapture?.color === "white" ? [regularCapture] : []), ...(epCaptured?.color === "white" ? [epCaptured] : [])];
 
       const label = `${sqLabel(from.row, from.col)}→${sqLabel(to.row, to.col)}`;
-      const moveHistory = [...prev.moveHistory, label];
       const nextTurn: Color = "black";
 
       if (isPawnPromotion) {
-        return {
-          ...prev, board: newBoard, selected: null, validMoves: [],
-          capturedWhite, capturedBlack, castlingRights: cr,
-          enPassantTarget: ep, moveHistory, turn: nextTurn,
-          promotionPending: { from, to },
-        };
+        return { ...prev, board: newBoard, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, moveHistory: [...prev.moveHistory, label], turn: nextTurn, promotionPending: { from, to } };
       }
-
       const { status, winner } = computeGameStatus(newBoard, nextTurn, ep, cr, "white");
-      return {
-        ...prev, board: newBoard, turn: nextTurn,
-        selected: null, validMoves: [],
-        capturedWhite, capturedBlack,
-        castlingRights: cr, enPassantTarget: ep,
-        status, winner, moveHistory, promotionPending: null,
-      };
+      return { ...prev, board: newBoard, turn: nextTurn, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null };
     });
   }, [gs.status, gs.turn, gs.promotionPending, playerColor, thinking]);
 
@@ -995,8 +948,7 @@ function PlayMode({ onBack }: { onBack: () => void }) {
       const newBoard = cloneBoard(prev.board);
       const piece = newBoard[to.row][to.col];
       if (piece) newBoard[to.row][to.col] = { ...piece, type };
-      const nextTurn = prev.turn;
-      const { status, winner } = computeGameStatus(newBoard, nextTurn, prev.enPassantTarget, prev.castlingRights, nextTurn === "white" ? "black" : "white");
+      const { status, winner } = computeGameStatus(newBoard, prev.turn, prev.enPassantTarget, prev.castlingRights, prev.turn === "white" ? "black" : "white");
       return { ...prev, board: newBoard, promotionPending: null, status, winner };
     });
   }, []);
@@ -1008,23 +960,17 @@ function PlayMode({ onBack }: { onBack: () => void }) {
     if (gs.promotionPending) return;
 
     setThinking(true);
-    const board = gs.board;
-    const ep = gs.enPassantTarget;
-    const cr = gs.castlingRights;
+    const { board, enPassantTarget, castlingRights } = gs;
 
     aiTimerRef.current = setTimeout(() => {
-      const move = getBestMove(board, computerColor, ep, cr);
+      const move = getBestMove(board, computerColor, enPassantTarget, castlingRights);
       setGs(prev => {
-        if (!move) return { ...prev };
+        if (!move) return prev;
         const piece = prev.board[move.from.row][move.from.col]!;
         let newBoard = applyMoveOnBoard(prev.board, move.from, move.to, prev.enPassantTarget);
 
-        // AI auto-promotes to queen
-        const isPawnPromotion =
-          piece.type === "pawn" &&
-          ((piece.color === "white" && move.to.row === 0) || (piece.color === "black" && move.to.row === 7));
-        if (isPawnPromotion)
-          newBoard[move.to.row][move.to.col] = { type: "queen", color: piece.color, id: piece.id };
+        const isPawnPromotion = piece.type === "pawn" && ((piece.color === "white" && move.to.row === 0) || (piece.color === "black" && move.to.row === 7));
+        if (isPawnPromotion) newBoard[move.to.row][move.to.col] = { type: "queen", color: piece.color, id: piece.id };
 
         const newCr = updateCastlingRights(prev.castlingRights, piece, move.from);
         const newEp = computeEnPassantTarget(piece, move.from, move.to);
@@ -1039,21 +985,13 @@ function PlayMode({ onBack }: { onBack: () => void }) {
         const capturedBlack = [...prev.capturedBlack, ...(regularCapture?.color === "black" ? [regularCapture] : []), ...(epCaptured?.color === "black" ? [epCaptured] : [])];
 
         const label = `${sqLabel(move.from.row, move.from.col)}→${sqLabel(move.to.row, move.to.col)}`;
-        const nextTurn: Color = "white";
-        const { status, winner } = computeGameStatus(newBoard, nextTurn, newEp, newCr, "black");
+        const { status, winner } = computeGameStatus(newBoard, "white", newEp, newCr, "black");
 
-        return {
-          ...prev, board: newBoard, turn: nextTurn,
-          capturedWhite, capturedBlack,
-          castlingRights: newCr, enPassantTarget: newEp,
-          status, winner,
-          moveHistory: [...prev.moveHistory, label],
-          promotionPending: null,
-          lastMove: { from: move.from, to: move.to },
-        } as GameState & { lastMove?: { from: Square; to: Square } };
+        return { ...prev, board: newBoard, turn: "white", capturedWhite, capturedBlack, castlingRights: newCr, enPassantTarget: newEp, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null };
       });
       setThinking(false);
-    }, 350);
+      setYourTurnFlash(true);
+    }, 400);
 
     return () => { if (aiTimerRef.current) clearTimeout(aiTimerRef.current); };
   }, [gs.turn, gs.status, gs.promotionPending, computerColor]);
@@ -1061,174 +999,218 @@ function PlayMode({ onBack }: { onBack: () => void }) {
   const resetGame = () => {
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     setThinking(false);
+    setYourTurnFlash(false);
     setGs(initialGameState());
   };
 
   const isGameOver = gs.status === "checkmate" || gs.status === "stalemate";
   const myTurn = gs.turn === playerColor && !isGameOver && !thinking;
 
-  const statusText = () => {
-    if (gs.status === "checkmate") return gs.winner === playerColor ? "🎉 Checkmate — You win!" : "💀 Checkmate — Computer wins!";
-    if (gs.status === "stalemate") return "🤝 Stalemate — It's a draw!";
-    if (gs.status === "check") return gs.turn === playerColor ? "⚠️ Your King is in CHECK!" : "⚠️ Computer's King is in check!";
-    if (thinking) return "🤔 Computer is thinking...";
-    return gs.turn === playerColor ? "Your turn — White ♙" : "Computer's turn — Black ♟";
-  };
-
-  const statusBg = () => {
-    if (gs.status === "checkmate" && gs.winner === playerColor) return "#16a34a";
-    if (gs.status === "checkmate") return "#dc2626";
-    if (gs.status === "stalemate") return "#6b7280";
-    if (gs.status === "check") return "#ea580c";
-    return "#6366f1";
-  };
-
-  const lastMoveRef = useRef<{ from: Square; to: Square } | null>(null);
-  if (gs.moveHistory.length > 0 && gs.turn === playerColor) {
-    // Track last AI move for highlighting
-  }
-
   return (
     <div style={{
       display: "flex", flexDirection: "column", height: "100%",
-      padding: "12px 16px", gap: 10, boxSizing: "border-box", overflow: "auto",
+      background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%)",
+      overflow: "auto",
     }}>
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={onBack} style={backBtnStyle}>← Back</button>
-        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#1a1a2e", flex: 1 }}>
-          Chess vs Computer
-        </h2>
-        <button
-          onClick={resetGame}
-          style={{
-            background: "#6366f1", color: "#fff", border: "none",
-            borderRadius: 10, padding: "7px 16px", fontWeight: 700,
-            cursor: "pointer", fontSize: 13,
-          }}
-        >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px 10px", flexWrap: "wrap" }}>
+        <button onClick={onBack} style={{ ...backBtnStyle, background: "rgba(255,255,255,0.12)", color: "#e0e7ff", border: "1.5px solid rgba(255,255,255,0.2)" }}>
+          ← Back
+        </button>
+        <span style={{ fontSize: 18, fontWeight: 800, color: "#e0e7ff", flex: 1 }}>Chess vs Computer</span>
+        <button onClick={resetGame} style={{
+          background: "rgba(99,102,241,0.85)", color: "#fff", border: "none",
+          borderRadius: 99, padding: "8px 18px", fontWeight: 700, cursor: "pointer", fontSize: 13,
+          boxShadow: "0 4px 12px rgba(99,102,241,0.4)",
+        }}>
           New Game
         </button>
       </div>
 
-      {/* Status banner */}
-      <div style={{
-        background: statusBg(), color: "#fff",
-        borderRadius: 10, padding: "9px 16px",
-        fontWeight: 800, fontSize: 14, textAlign: "center",
-      }}>
-        {statusText()}
-      </div>
+      {/* Main layout: sidebar left + board center + sidebar right */}
+      <div style={{ display: "flex", flex: 1, gap: 0, alignItems: "flex-start", justifyContent: "center", padding: "0 16px 16px", flexWrap: "wrap" }}>
 
-      {/* Promotion chooser */}
-      {gs.promotionPending && (
-        <div style={{
-          background: "#fff", border: "3px solid #6366f1",
-          borderRadius: 14, padding: "14px 18px",
-          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-        }}>
-          <span style={{ fontWeight: 800, fontSize: 15 }}>Choose promotion:</span>
-          {(["queen","rook","bishop","knight"] as PieceType[]).map(type => (
-            <button
-              key={type}
-              onClick={() => handlePromotion(type)}
-              style={{
-                background: "#6366f1", color: "#fff", border: "none",
-                borderRadius: 10, padding: "8px 14px", cursor: "pointer",
-                fontSize: 26, display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-              }}
-            >
-              <span>{PIECE_UNICODE[type]["white"]}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "capitalize" }}>{type}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Captured pieces — black pieces captured by white */}
-      <div style={{ minHeight: 26, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: "#9ca3af", marginRight: 4 }}>Captured:</span>
-        {gs.capturedBlack.map((p, i) => (
-          <span key={i} style={{ fontSize: 18, lineHeight: 1 }}>{PIECE_UNICODE[p.type][p.color]}</span>
-        ))}
-      </div>
-
-      {/* Board + side panel */}
-      <div style={{ display: "flex", gap: 16, flex: 1, alignItems: "flex-start", flexWrap: "wrap", minHeight: 0 }}>
-        {/* Board — fixed square aspect ratio, fills available width */}
-        <div style={{
-          width: "min(100%, min(70vh, 520px))",
-          aspectRatio: "1",
-          flexShrink: 0,
-        }}>
-          <ChessBoard
-            board={gs.board}
-            selected={gs.selected}
-            validMoves={gs.validMoves}
-            onSquareClick={myTurn ? handleSquareClick : undefined}
-            interactive={!!myTurn}
-          />
-        </div>
-
-        {/* Side panel */}
-        <div style={{ flex: "1 1 180px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Material advantage */}
-          <div style={{ ...cardStyle, padding: "12px 14px" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
-              Your Captures
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 2, minHeight: 24 }}>
-              {gs.capturedBlack.length === 0
-                ? <span style={{ fontSize: 12, color: "#9ca3af" }}>None yet</span>
-                : gs.capturedBlack.map((p, i) => (
-                    <span key={i} style={{ fontSize: 18 }}>{PIECE_UNICODE[p.type][p.color]}</span>
-                  ))}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "8px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>
-              Computer Captures
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 2, minHeight: 24 }}>
-              {gs.capturedWhite.length === 0
-                ? <span style={{ fontSize: 12, color: "#9ca3af" }}>None yet</span>
-                : gs.capturedWhite.map((p, i) => (
-                    <span key={i} style={{ fontSize: 18 }}>{PIECE_UNICODE[p.type][p.color]}</span>
-                  ))}
-            </div>
-          </div>
-
-          {/* Move history */}
-          <div style={{ ...cardStyle, padding: "12px 14px" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
-              Move History
-            </div>
-            <div style={{ maxHeight: 200, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 8px" }}>
+        {/* Left sidebar: move history */}
+        <div style={{ width: 160, flexShrink: 0, marginRight: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ ...sideCard, flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Move History</div>
+            <div ref={moveListRef} style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
               {gs.moveHistory.length === 0
-                ? <span style={{ color: "#9ca3af", fontSize: 12, gridColumn: "1/-1" }}>No moves yet</span>
-                : gs.moveHistory.map((m, i) => (
-                    <div key={i} style={{
-                      fontSize: 12, padding: "2px 6px", borderRadius: 4, fontFamily: "monospace",
-                      background: i % 4 < 2 ? "#f9fafb" : "#ede9fe",
-                      color: i % 2 === 0 ? "#1f2937" : "#6b7280",
-                    }}>
-                      {i % 2 === 0 ? `${Math.floor(i/2)+1}. ` : ""}{m}
+                ? <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>No moves yet</span>
+                : Array.from({ length: Math.ceil(gs.moveHistory.length / 2) }, (_, i) => (
+                    <div key={i} style={{ display: "flex", gap: 4, fontSize: 12, fontFamily: "monospace" }}>
+                      <span style={{ color: "rgba(255,255,255,0.35)", minWidth: 18 }}>{i+1}.</span>
+                      <span style={{ color: "#a5b4fc", flex: 1 }}>{gs.moveHistory[i*2]}</span>
+                      <span style={{ color: "rgba(255,255,255,0.5)" }}>{gs.moveHistory[i*2+1] || ""}</span>
                     </div>
                   ))}
             </div>
           </div>
+        </div>
 
-          {/* Help */}
-          <div style={{ background: "#fefce8", border: "2px solid #fde68a", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
-            <strong>How to play:</strong> Click a piece to see its moves (green dots). Click a highlighted square to move. Green ring = capture.
+        {/* Center: board + status */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 8 }}>
+          {/* Computer label + captures */}
+          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", minWidth: 70 }}>🤖 Computer</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1 }}>
+              {gs.capturedWhite.map((p, i) => (
+                <span key={i} style={{ fontSize: 16, lineHeight: 1, color: "#fff", textShadow: "0 0 2px #000, 0 1px 3px rgba(0,0,0,0.9)" }}>
+                  {PIECE_UNICODE[p.type][p.color]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Board */}
+          <div style={{
+            width: "min(90vw, 520px)",
+            aspectRatio: "1",
+            borderRadius: 16,
+            overflow: "hidden",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)",
+          }}>
+            <ChessBoard
+              board={gs.board}
+              selected={gs.selected}
+              validMoves={gs.validMoves}
+              onSquareClick={myTurn ? handleSquareClick : undefined}
+              interactive={!!myTurn}
+            />
+          </div>
+
+          {/* Player label + captures */}
+          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", minWidth: 70 }}>♙ You</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1 }}>
+              {gs.capturedBlack.map((p, i) => (
+                <span key={i} style={{ fontSize: 16, lineHeight: 1, color: "#1e1b4b", textShadow: "0 0 2px rgba(255,255,255,0.3)" }}>
+                  {PIECE_UNICODE[p.type][p.color]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Status / Your Turn button */}
+          {isGameOver ? (
+            <div style={{
+              width: "min(90vw, 520px)", borderRadius: 16, padding: "16px 20px",
+              background: gs.status === "checkmate" && gs.winner === playerColor ? "linear-gradient(135deg,#16a34a,#15803d)" : gs.status === "checkmate" ? "linear-gradient(135deg,#dc2626,#b91c1c)" : "linear-gradient(135deg,#6b7280,#4b5563)",
+              textAlign: "center", boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 4 }}>
+                {gs.status === "checkmate" && gs.winner === playerColor ? "🎉" : gs.status === "checkmate" ? "💀" : "🤝"}
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>
+                {gs.status === "checkmate" ? (gs.winner === playerColor ? "You win!" : "Computer wins!") : "Draw — Stalemate!"}
+              </div>
+              <button onClick={resetGame} style={{
+                marginTop: 12, background: "rgba(255,255,255,0.2)", color: "#fff",
+                border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 99,
+                padding: "8px 22px", fontWeight: 700, cursor: "pointer", fontSize: 14,
+              }}>
+                Play Again
+              </button>
+            </div>
+          ) : thinking ? (
+            <div style={{
+              width: "min(90vw, 520px)", borderRadius: 16, padding: "14px 20px",
+              background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)",
+              border: "1.5px solid rgba(255,255,255,0.15)", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+                🤔 Computer is thinking...
+              </div>
+            </div>
+          ) : gs.status === "check" && gs.turn === playerColor ? (
+            <div style={{
+              width: "min(90vw, 520px)", borderRadius: 16, padding: "14px 20px",
+              background: "linear-gradient(135deg,#dc2626,#ea580c)",
+              textAlign: "center", animation: "checkPulse 1s ease-in-out infinite",
+              boxShadow: "0 8px 24px rgba(220,38,38,0.5)",
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
+                ⚠️ Your King is in CHECK! — Click a piece to escape
+              </div>
+            </div>
+          ) : yourTurnFlash ? (
+            <button
+              onClick={() => setYourTurnFlash(false)}
+              style={{
+                width: "min(90vw, 520px)", borderRadius: 16, padding: "16px 20px",
+                background: "linear-gradient(135deg,#16a34a,#059669)",
+                border: "none", cursor: "pointer", textAlign: "center",
+                animation: "yourTurnPulse 1.2s ease-in-out 2",
+                boxShadow: "0 8px 28px rgba(22,163,74,0.55)",
+              }}
+            >
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", letterSpacing: 0.5 }}>
+                ✅ Your Turn!
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 3, fontWeight: 600 }}>
+                Click this or a piece to play
+              </div>
+            </button>
+          ) : (
+            <div style={{
+              width: "min(90vw, 520px)", borderRadius: 16, padding: "13px 20px",
+              background: "rgba(255,255,255,0.07)", backdropFilter: "blur(8px)",
+              border: "1.5px solid rgba(255,255,255,0.12)", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.65)" }}>
+                ♙ Your turn — click a white piece
+              </div>
+            </div>
+          )}
+
+          {/* Promotion chooser */}
+          {gs.promotionPending && (
+            <div style={{
+              width: "min(90vw, 520px)", borderRadius: 20, padding: "18px 20px",
+              background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+              animation: "fadeSlideIn 0.2s ease",
+            }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: "#1e1b4b", marginBottom: 14, textAlign: "center" }}>
+                Pawn Promotion — Choose a piece!
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                {(["queen","rook","bishop","knight"] as PieceType[]).map(type => (
+                  <button key={type} onClick={() => handlePromotion(type)} style={{
+                    background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                    color: "#fff", border: "none", borderRadius: 16,
+                    padding: "12px 18px", cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                    boxShadow: "0 4px 14px rgba(99,102,241,0.4)",
+                  }}>
+                    <span style={{ fontSize: 32, color: "#fff", textShadow: "0 0 2px #000, 0 1px 4px rgba(0,0,0,0.8)" }}>
+                      {PIECE_UNICODE[type]["white"]}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "capitalize" }}>{type}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right sidebar: help + tips */}
+        <div style={{ width: 160, flexShrink: 0, marginLeft: 16, marginTop: 8 }}>
+          <div style={sideCard}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>How to Play</div>
+            {[
+              ["🖱️ Click", "a piece to see its moves"],
+              ["🟢 Dot", "= empty square you can move to"],
+              ["🟢 Ring", "= enemy piece you can capture"],
+              ["⚠️ Check", "= your King is in danger!"],
+              ["🏁 Goal", "Checkmate the enemy King"],
+            ].map(([bold, rest]) => (
+              <div key={bold} style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 7, lineHeight: 1.4 }}>
+                <strong style={{ color: "rgba(255,255,255,0.9)" }}>{bold}</strong> {rest}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Captured by computer */}
-      <div style={{ minHeight: 26, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: "#9ca3af", marginRight: 4 }}>Computer took:</span>
-        {gs.capturedWhite.map((p, i) => (
-          <span key={i} style={{ fontSize: 18, lineHeight: 1 }}>{PIECE_UNICODE[p.type][p.color]}</span>
-        ))}
       </div>
     </div>
   );
@@ -1239,38 +1221,45 @@ function PlayMode({ onBack }: { onBack: () => void }) {
 function Menu({ onLesson, onPlay }: { onLesson: () => void; onPlay: () => void }) {
   return (
     <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "40px 20px", gap: 28,
-      minHeight: "100%", boxSizing: "border-box",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      minHeight: "100%", background: "linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e3a5f 100%)",
+      padding: "48px 20px", gap: 32, boxSizing: "border-box",
     }}>
+      {/* Title */}
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 72, lineHeight: 1 }}>♟</div>
-        <h1 style={{ fontSize: 34, fontWeight: 900, margin: "8px 0 6px", color: "#1a1a2e" }}>Chess</h1>
-        <p style={{ fontSize: 15, color: "#6b7280", margin: 0 }}>Learn the game, then challenge the computer!</p>
+        <div style={{ fontSize: 80, lineHeight: 1, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" }}>♟</div>
+        <h1 style={{ fontSize: 38, fontWeight: 900, margin: "10px 0 6px", color: "#e0e7ff", letterSpacing: -0.5 }}>Chess</h1>
+        <p style={{ fontSize: 15, color: "rgba(224,231,255,0.6)", margin: 0 }}>
+          Learn the rules, then battle the computer
+        </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 320 }}>
+      {/* Mode buttons */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 340 }}>
         {[
-          { icon: "📖", label: "Lesson Mode", sub: "Learn how every piece moves and attacks", color: "#6366f1", onClick: onLesson, enabled: true },
-          { icon: "🤖", label: "Play vs Computer", sub: "Challenge the AI — you play as White", color: "#22c55e", onClick: onPlay, enabled: true },
-          { icon: "🌐", label: "Online Multiplayer", sub: "Coming soon — play friends online!", color: "#9ca3af", onClick: undefined, enabled: false },
-        ].map(({ icon, label, sub, color, onClick, enabled }) => (
+          { icon: "📖", label: "Lesson Mode", sub: "Step-by-step guide to every piece", color: "#818cf8", bg: "rgba(99,102,241,0.15)", border: "rgba(129,140,248,0.4)", onClick: onLesson, enabled: true },
+          { icon: "🤖", label: "Play vs Computer", sub: "Challenge the AI — you play as White ♙", color: "#34d399", bg: "rgba(16,185,129,0.15)", border: "rgba(52,211,153,0.4)", onClick: onPlay, enabled: true },
+          { icon: "🌐", label: "Online Multiplayer", sub: "Coming soon — play friends online!", color: "#9ca3af", bg: "rgba(156,163,175,0.08)", border: "rgba(156,163,175,0.2)", onClick: undefined, enabled: false },
+        ].map(({ icon, label, sub, color, bg, border, onClick, enabled }) => (
           <button
             key={label}
             onClick={onClick}
             disabled={!enabled}
             style={{
-              background: "#fff",
-              border: `3px solid ${color}`,
-              borderBottomWidth: 6, borderRightWidth: 5,
-              borderRadius: 18, padding: "18px 22px",
+              background: bg, border: `1.5px solid ${border}`,
+              borderRadius: 20, padding: "20px 24px",
               cursor: enabled ? "pointer" : "default",
-              textAlign: "left", opacity: enabled ? 1 : 0.55,
+              textAlign: "left", opacity: enabled ? 1 : 0.45,
+              backdropFilter: "blur(8px)",
+              boxShadow: enabled ? `0 8px 24px rgba(0,0,0,0.25)` : "none",
+              transition: "transform 0.12s, box-shadow 0.12s",
             }}
+            onMouseEnter={e => { if (enabled) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 14px 32px rgba(0,0,0,0.35)`; } }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = enabled ? "0 8px 24px rgba(0,0,0,0.25)" : "none"; }}
           >
-            <div style={{ fontSize: 30, marginBottom: 4 }}>{icon}</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color }}>{label}</div>
-            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>{sub}</div>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>{icon}</div>
+            <div style={{ fontWeight: 800, fontSize: 19, color }}>{label}</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{sub}</div>
           </button>
         ))}
       </div>
@@ -1284,12 +1273,7 @@ export function ChessGame({ onComplete: _onComplete }: { onComplete?: () => void
   const [mode, setMode] = useState<Mode>("menu");
 
   return (
-    <div style={{
-      width: "100%", height: "100%",
-      background: "#f8fafc",
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
-    }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {mode === "menu"   && <Menu onLesson={() => setMode("lesson")} onPlay={() => setMode("play")} />}
       {mode === "lesson" && <LessonMode onBack={() => setMode("menu")} />}
       {mode === "play"   && <PlayMode onBack={() => setMode("menu")} />}

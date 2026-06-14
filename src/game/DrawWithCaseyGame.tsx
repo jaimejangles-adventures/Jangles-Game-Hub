@@ -865,7 +865,10 @@ async function uploadDrawing(
   const { error } = await supabase.storage
     .from('casey-gallery')
     .upload(filename, blob, { contentType: 'image/jpeg' });
-  if (error) return null;
+  if (error) {
+    console.error('[casey-gallery] storage upload failed:', error);
+    return null;
+  }
 
   const { data: { publicUrl } } = supabase.storage
     .from('casey-gallery')
@@ -973,9 +976,15 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
 
   // ── Save to gallery ───────────────────────────────────────────
   const handleSaveToGallery = useCallback(async (): Promise<{ success: boolean }> => {
-    if (!user || !currentWord || !isSupabaseConfigured) return { success: false };
+    if (!user || !currentWord || !isSupabaseConfigured) {
+      console.error('[casey-gallery] blocked: user=%o word=%o configured=%o', user, currentWord, isSupabaseConfigured);
+      return { success: false };
+    }
     const dataUrl = canvas.getImageDataUrl();
-    if (!dataUrl) return { success: false };
+    if (!dataUrl) {
+      console.error('[casey-gallery] getImageDataUrl returned empty');
+      return { success: false };
+    }
     const imageUrl = await uploadDrawing(dataUrl, user.id);
     if (!imageUrl) return { success: false };
     const { error } = await supabase.from('casey_gallery').insert({
@@ -984,6 +993,7 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
       word: currentWord.word,
       emoji: currentWord.emoji,
     });
+    if (error) console.error('[casey-gallery] insert failed:', error);
     return { success: !error };
   }, [user, currentWord, canvas]);
 
