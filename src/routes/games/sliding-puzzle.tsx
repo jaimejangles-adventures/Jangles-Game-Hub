@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { SlidingPuzzleGame } from '@/game/SlidingPuzzleGame';
 import { useBucksContext } from '@/lib/bucks-context';
@@ -19,5 +19,6 @@ export const Route = createFileRoute('/games/sliding-puzzle')({
 function SlidingPuzzleRoute() {
   const { earnBuck } = useBucksContext();
   const handleComplete = useCallback(() => earnBuck('sliding-puzzle'), [earnBuck]);
+  useEffect(() => { sessionStorage.setItem('jj-last-game', 'sliding-puzzle'); }, []);
   return <SlidingPuzzleGame onComplete={handleComplete} />;
 }

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { JanglesGame } from "@/game/JanglesGame";
 import { useBucksContext } from "@/lib/bucks-context";
@@ -19,5 +19,6 @@ export const Route = createFileRoute("/games/music-match")({
 function MusicMatchRoute() {
   const { earnBuck } = useBucksContext();
   const handleComplete = useCallback(() => earnBuck("music-match"), [earnBuck]);
+  useEffect(() => { sessionStorage.setItem('jj-last-game', 'music-match'); }, []);
   return <JanglesGame onComplete={handleComplete} />;
 }

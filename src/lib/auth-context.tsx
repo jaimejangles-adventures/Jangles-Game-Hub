@@ -101,10 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!isSupabaseConfigured) return;
-    await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     setNeedsProfile(false);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // local state already cleared above
+    }
   }, []);
 
   const handleProfileCreated = useCallback((p: Profile) => {

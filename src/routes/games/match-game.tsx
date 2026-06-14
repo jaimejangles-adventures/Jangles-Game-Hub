@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { MatchGame } from '@/game/MatchGame';
 import { useBucksContext } from '@/lib/bucks-context';
@@ -19,5 +19,6 @@ export const Route = createFileRoute('/games/match-game')({
 function MatchGameRoute() {
   const { earnBuck } = useBucksContext();
   const handleComplete = useCallback(() => earnBuck('match-game'), [earnBuck]);
+  useEffect(() => { sessionStorage.setItem('jj-last-game', 'match-game'); }, []);
   return <MatchGame onComplete={handleComplete} />;
 }

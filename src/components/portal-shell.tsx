@@ -605,7 +605,7 @@ function JanglesBucksModal({ onClose, balance }: { onClose: () => void; balance:
             </div>
             <div className="flex flex-wrap gap-1.5">
               {[
-                { emoji: "🐘", title: "Air Fante World Tour" },
+                { emoji: "🐘", title: "Air Fante Dodge" },
                 { emoji: "⭐", title: "Air Fante Collect!" },
                 { emoji: "🦊", title: "FOXER" },
                 { emoji: "🎮", title: "Jangles Ball" },

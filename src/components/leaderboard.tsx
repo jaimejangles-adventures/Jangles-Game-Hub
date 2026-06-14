@@ -186,8 +186,16 @@ const LEADERBOARD_GAMES = [
 // Games that have rookie/master difficulty splits in the leaderboard
 const DIFFICULTY_GAMES = new Set(['elefante', 'match-game', 'sliding-puzzle']);
 
+function getInitialSlug(): string {
+  try {
+    const stored = sessionStorage.getItem('jj-last-game');
+    if (stored && (LEADERBOARD_GAMES as readonly string[]).includes(stored)) return stored;
+  } catch {}
+  return LEADERBOARD_GAMES[0];
+}
+
 export function HallOfFame() {
-  const [activeSlug, setActiveSlug] = useState<string>(LEADERBOARD_GAMES[0]);
+  const [activeSlug, setActiveSlug] = useState<string>(getInitialSlug);
   const [activeDifficulty, setActiveDifficulty] = useState<'rookie' | 'master'>('rookie');
 
   const games = LEADERBOARD_GAMES.map((slug) => GAME_MANIFEST.find((g) => g.slug === slug)).filter(

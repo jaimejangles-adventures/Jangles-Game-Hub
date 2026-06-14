@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -36,16 +36,24 @@ function incrementGuestPlays(): number {
   return next;
 }
 
+const LAST_GAME_KEY = 'jj-last-game';
+
 export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) {
   const { user, openAuthModal } = useAuth();
   const { balance, spendBuck } = useBucksContext();
   const [sessionActive, setSessionActive] = useState(isDev);
+
+  useEffect(() => {
+    sessionStorage.setItem(LAST_GAME_KEY, gameSlug);
+  }, [gameSlug]);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const [spending, setSpending] = useState(false);
   const [error, setError] = useState(false);
   const [guestPlays, setGuestPlays] = useState(getGuestPlays);
 
   const endSession = useCallback(() => {
     setSessionActive(isDev);
+    setHasPlayed(true);
     setGuestPlays(getGuestPlays());
   }, []);
 
@@ -79,10 +87,175 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
       });
     }
     setSessionActive(true);
+    setGuestPlays(newCount);
   }
 
   const guestOut = guestPlays >= GUEST_MAX;
 
+  // After losing — show compact "Play Again?" popup instead of full landing page
+  if (hasPlayed) {
+    return (
+      <div
+        className="flex h-full flex-col items-center justify-center px-4"
+        style={{ background: "linear-gradient(135deg, #1a0a2e 0%, #0d1b3e 100%)" }}
+      >
+        <Toaster position="top-center" />
+        <div
+          className="flex flex-col items-center gap-5 rounded-[2rem] border-[3px] border-ink bg-paper px-8 py-8 text-center"
+          style={{ borderBottomWidth: 7, borderRightWidth: 6, maxWidth: "22rem", width: "90vw" }}
+        >
+          {/* Game Over header */}
+          <div style={{ fontSize: "3rem", lineHeight: 1 }}>💀</div>
+
+          <div>
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full border-[2px] border-ink px-3 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em] mb-3"
+              style={{ background: "#ef4444", borderBottomWidth: 4, borderRightWidth: 3, color: "#fff" }}
+            >
+              Game Over
+            </div>
+            <h2 className="text-xl font-extrabold leading-snug text-ink">
+              {gameEmoji} {gameTitle}
+            </h2>
+          </div>
+
+          {/* Guest — has plays left */}
+          {!user && !guestOut && (
+            <>
+              <p className="text-sm font-bold text-ink/70 leading-snug">
+                {GUEST_MAX - guestPlays} free play{GUEST_MAX - guestPlays !== 1 ? 's' : ''} left today.<br />
+                Sign up to earn Jangles Bucks and play unlimited!
+              </p>
+              <button
+                onClick={handleGuestPlay}
+                className="rounded-full border-[3px] border-ink px-8 py-3 text-base font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                Play Again — Free!
+              </button>
+              <div className="flex flex-col gap-2 w-full">
+                <button
+                  onClick={() => openAuthModal('sign-up')}
+                  className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                  style={{ background: "#3B82F6", borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Sign Up Free
+                </button>
+                <Link
+                  to="/"
+                  className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-ink/60 bg-white transition-transform hover:-translate-y-0.5"
+                  style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Go Home →
+                </Link>
+              </div>
+            </>
+          )}
+
+          {/* Guest — out of free plays */}
+          {!user && guestOut && (
+            <>
+              <div
+                className="flex items-center gap-2 rounded-full border-[2px] border-ink px-4 py-1.5 text-sm font-extrabold"
+                style={{ background: "#FEE2E2", borderBottomWidth: 4, borderRightWidth: 3, color: "#dc2626" }}
+              >
+                3 of 3 free plays used!
+              </div>
+              <p className="text-sm font-bold text-ink/70 leading-snug">
+                Sign up to earn Jangles Bucks and play as much as you want!
+              </p>
+              <div className="flex flex-col gap-2 w-full">
+                <button
+                  onClick={() => openAuthModal('sign-up')}
+                  className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                  style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Sign Up Free
+                </button>
+                <button
+                  onClick={() => openAuthModal('sign-in')}
+                  className="rounded-full border-[3px] border-ink bg-white px-6 py-2.5 text-sm font-extrabold text-ink transition-transform hover:-translate-y-0.5"
+                  style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Sign In
+                </button>
+                <Link
+                  to="/"
+                  className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-ink/60 bg-white transition-transform hover:-translate-y-0.5"
+                  style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Come back tomorrow →
+                </Link>
+              </div>
+            </>
+          )}
+
+          {/* Logged in — no bucks */}
+          {user && balance < 1 && (
+            <>
+              <p className="text-sm font-bold text-ink/70 leading-snug">
+                You're out of Jangles Bucks!<br />
+                Go earn more from learning games, then come back.
+              </p>
+              <div
+                className="flex items-center gap-2 rounded-full border-[2px] border-ink/30 bg-yellow-100 px-4 py-2 text-sm font-extrabold text-ink/60"
+              >
+                <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> 0 Jangles Bucks
+              </div>
+              <div className="flex flex-col gap-2 w-full">
+                <Link
+                  to="/"
+                  className="rounded-full border-[3px] border-ink px-6 py-2.5 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                  style={{ background: "#3B82F6", borderBottomWidth: 5, borderRightWidth: 4 }}
+                >
+                  Go earn bucks →
+                </Link>
+              </div>
+            </>
+          )}
+
+          {/* Logged in — has bucks */}
+          {user && balance >= 1 && (
+            <>
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-1.5 rounded-full border-[2px] border-ink bg-yellow-300 px-3 py-1 text-sm font-extrabold"
+                  style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
+                >
+                  <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> {balance} buck{balance !== 1 ? 's' : ''}
+                </div>
+                <span className="text-ink/40 text-sm font-bold">→</span>
+                <div
+                  className="flex items-center gap-1.5 rounded-full border-[2px] border-ink/30 bg-white px-3 py-1 text-sm font-extrabold text-ink/50"
+                >
+                  <img src={asset("/art/jangles-buck.png")} alt="Jangles Buck" className="h-5 w-5 object-contain" /> {balance - 1} left
+                </div>
+              </div>
+              {error && (
+                <p className="text-xs font-bold text-red-500">Something went wrong — try again!</p>
+              )}
+              <button
+                onClick={handlePlay}
+                disabled={spending}
+                className="rounded-full border-[3px] border-ink px-8 py-3 text-base font-extrabold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: "#22C55E", borderBottomWidth: 5, borderRightWidth: 4 }}
+              >
+                {spending ? "Starting…" : "Play Again! (1 Buck)"}
+              </button>
+              <Link
+                to="/"
+                className="text-sm font-bold text-ink/40 hover:text-ink/70 transition-colors"
+              >
+                Go Home →
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // First visit — show normal landing page
   return (
     <div
       className="flex h-full flex-col items-center justify-center px-4"
