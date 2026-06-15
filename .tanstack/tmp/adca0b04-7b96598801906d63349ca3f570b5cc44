@@ -15,6 +15,7 @@ import { Route as GamesWorldAdventureRouteImport } from './routes/games/world-ad
 import { Route as GamesTypeWithCaseyRouteImport } from './routes/games/type-with-casey'
 import { Route as GamesSpotTheDifferenceRouteImport } from './routes/games/spot-the-difference'
 import { Route as GamesSlidingPuzzleRouteImport } from './routes/games/sliding-puzzle'
+import { Route as GamesRacerRouteImport } from './routes/games/racer'
 import { Route as GamesPacmanRouteImport } from './routes/games/pacman'
 import { Route as GamesNameThatCountryRouteImport } from './routes/games/name-that-country'
 import { Route as GamesMusicMatchRouteImport } from './routes/games/music-match'
@@ -35,10 +36,10 @@ import { Route as GamesChessRouteImport } from './routes/games/chess'
 import { Route as GamesCaseyCanSubtractRouteImport } from './routes/games/casey-can-subtract'
 import { Route as GamesCaseyCanSpellRouteImport } from './routes/games/casey-can-spell'
 import { Route as GamesCaseyCanRomanNumeralRouteImport } from './routes/games/casey-can-roman-numeral'
+import { Route as GamesCaseyCanPayRouteImport } from './routes/games/casey-can-pay'
 import { Route as GamesCaseyCanMultiplyRouteImport } from './routes/games/casey-can-multiply'
 import { Route as GamesCaseyCanDivideRouteImport } from './routes/games/casey-can-divide'
 import { Route as GamesCaseyCanCountRouteImport } from './routes/games/casey-can-count'
-import { Route as GamesCaseyCanCostRouteImport } from './routes/games/casey-can-cost'
 import { Route as GamesAirFanteCollectRouteImport } from './routes/games/air-fante-collect'
 
 const CaseyGalleryRoute = CaseyGalleryRouteImport.update({
@@ -69,6 +70,11 @@ const GamesSpotTheDifferenceRoute = GamesSpotTheDifferenceRouteImport.update({
 const GamesSlidingPuzzleRoute = GamesSlidingPuzzleRouteImport.update({
   id: '/games/sliding-puzzle',
   path: '/games/sliding-puzzle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRacerRoute = GamesRacerRouteImport.update({
+  id: '/games/racer',
+  path: '/games/racer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesPacmanRoute = GamesPacmanRouteImport.update({
@@ -172,6 +178,11 @@ const GamesCaseyCanRomanNumeralRoute =
     path: '/games/casey-can-roman-numeral',
     getParentRoute: () => rootRouteImport,
   } as any)
+const GamesCaseyCanPayRoute = GamesCaseyCanPayRouteImport.update({
+  id: '/games/casey-can-pay',
+  path: '/games/casey-can-pay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesCaseyCanMultiplyRoute = GamesCaseyCanMultiplyRouteImport.update({
   id: '/games/casey-can-multiply',
   path: '/games/casey-can-multiply',
@@ -187,11 +198,6 @@ const GamesCaseyCanCountRoute = GamesCaseyCanCountRouteImport.update({
   path: '/games/casey-can-count',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GamesCaseyCanCostRoute = GamesCaseyCanCostRouteImport.update({
-  id: '/games/casey-can-cost',
-  path: '/games/casey-can-cost',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GamesAirFanteCollectRoute = GamesAirFanteCollectRouteImport.update({
   id: '/games/air-fante-collect',
   path: '/games/air-fante-collect',
@@ -202,10 +208,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/casey-gallery': typeof CaseyGalleryRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
-  '/games/casey-can-cost': typeof GamesCaseyCanCostRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
+  '/games/casey-can-pay': typeof GamesCaseyCanPayRoute
   '/games/casey-can-roman-numeral': typeof GamesCaseyCanRomanNumeralRoute
   '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
+  '/games/racer': typeof GamesRacerRoute
   '/games/sliding-puzzle': typeof GamesSlidingPuzzleRoute
   '/games/spot-the-difference': typeof GamesSpotTheDifferenceRoute
   '/games/type-with-casey': typeof GamesTypeWithCaseyRoute
@@ -235,10 +242,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/casey-gallery': typeof CaseyGalleryRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
-  '/games/casey-can-cost': typeof GamesCaseyCanCostRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
+  '/games/casey-can-pay': typeof GamesCaseyCanPayRoute
   '/games/casey-can-roman-numeral': typeof GamesCaseyCanRomanNumeralRoute
   '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
+  '/games/racer': typeof GamesRacerRoute
   '/games/sliding-puzzle': typeof GamesSlidingPuzzleRoute
   '/games/spot-the-difference': typeof GamesSpotTheDifferenceRoute
   '/games/type-with-casey': typeof GamesTypeWithCaseyRoute
@@ -269,10 +277,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/casey-gallery': typeof CaseyGalleryRoute
   '/games/air-fante-collect': typeof GamesAirFanteCollectRoute
-  '/games/casey-can-cost': typeof GamesCaseyCanCostRoute
   '/games/casey-can-count': typeof GamesCaseyCanCountRoute
   '/games/casey-can-divide': typeof GamesCaseyCanDivideRoute
   '/games/casey-can-multiply': typeof GamesCaseyCanMultiplyRoute
+  '/games/casey-can-pay': typeof GamesCaseyCanPayRoute
   '/games/casey-can-roman-numeral': typeof GamesCaseyCanRomanNumeralRoute
   '/games/casey-can-spell': typeof GamesCaseyCanSpellRoute
   '/games/casey-can-subtract': typeof GamesCaseyCanSubtractRoute
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
+  '/games/racer': typeof GamesRacerRoute
   '/games/sliding-puzzle': typeof GamesSlidingPuzzleRoute
   '/games/spot-the-difference': typeof GamesSpotTheDifferenceRoute
   '/games/type-with-casey': typeof GamesTypeWithCaseyRoute
@@ -304,10 +313,10 @@ export interface FileRouteTypes {
     | '/'
     | '/casey-gallery'
     | '/games/air-fante-collect'
-    | '/games/casey-can-cost'
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
+    | '/games/casey-can-pay'
     | '/games/casey-can-roman-numeral'
     | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
@@ -328,6 +337,7 @@ export interface FileRouteTypes {
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
+    | '/games/racer'
     | '/games/sliding-puzzle'
     | '/games/spot-the-difference'
     | '/games/type-with-casey'
@@ -337,10 +347,10 @@ export interface FileRouteTypes {
     | '/'
     | '/casey-gallery'
     | '/games/air-fante-collect'
-    | '/games/casey-can-cost'
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
+    | '/games/casey-can-pay'
     | '/games/casey-can-roman-numeral'
     | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
+    | '/games/racer'
     | '/games/sliding-puzzle'
     | '/games/spot-the-difference'
     | '/games/type-with-casey'
@@ -370,10 +381,10 @@ export interface FileRouteTypes {
     | '/'
     | '/casey-gallery'
     | '/games/air-fante-collect'
-    | '/games/casey-can-cost'
     | '/games/casey-can-count'
     | '/games/casey-can-divide'
     | '/games/casey-can-multiply'
+    | '/games/casey-can-pay'
     | '/games/casey-can-roman-numeral'
     | '/games/casey-can-spell'
     | '/games/casey-can-subtract'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
+    | '/games/racer'
     | '/games/sliding-puzzle'
     | '/games/spot-the-difference'
     | '/games/type-with-casey'
@@ -404,10 +416,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CaseyGalleryRoute: typeof CaseyGalleryRoute
   GamesAirFanteCollectRoute: typeof GamesAirFanteCollectRoute
-  GamesCaseyCanCostRoute: typeof GamesCaseyCanCostRoute
   GamesCaseyCanCountRoute: typeof GamesCaseyCanCountRoute
   GamesCaseyCanDivideRoute: typeof GamesCaseyCanDivideRoute
   GamesCaseyCanMultiplyRoute: typeof GamesCaseyCanMultiplyRoute
+  GamesCaseyCanPayRoute: typeof GamesCaseyCanPayRoute
   GamesCaseyCanRomanNumeralRoute: typeof GamesCaseyCanRomanNumeralRoute
   GamesCaseyCanSpellRoute: typeof GamesCaseyCanSpellRoute
   GamesCaseyCanSubtractRoute: typeof GamesCaseyCanSubtractRoute
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   GamesMusicMatchRoute: typeof GamesMusicMatchRoute
   GamesNameThatCountryRoute: typeof GamesNameThatCountryRoute
   GamesPacmanRoute: typeof GamesPacmanRoute
+  GamesRacerRoute: typeof GamesRacerRoute
   GamesSlidingPuzzleRoute: typeof GamesSlidingPuzzleRoute
   GamesSpotTheDifferenceRoute: typeof GamesSpotTheDifferenceRoute
   GamesTypeWithCaseyRoute: typeof GamesTypeWithCaseyRoute
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/games/sliding-puzzle'
       fullPath: '/games/sliding-puzzle'
       preLoaderRoute: typeof GamesSlidingPuzzleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/racer': {
+      id: '/games/racer'
+      path: '/games/racer'
+      fullPath: '/games/racer'
+      preLoaderRoute: typeof GamesRacerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/pacman': {
@@ -618,6 +638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCaseyCanRomanNumeralRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/casey-can-pay': {
+      id: '/games/casey-can-pay'
+      path: '/games/casey-can-pay'
+      fullPath: '/games/casey-can-pay'
+      preLoaderRoute: typeof GamesCaseyCanPayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/casey-can-multiply': {
       id: '/games/casey-can-multiply'
       path: '/games/casey-can-multiply'
@@ -639,13 +666,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesCaseyCanCountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/games/casey-can-cost': {
-      id: '/games/casey-can-cost'
-      path: '/games/casey-can-cost'
-      fullPath: '/games/casey-can-cost'
-      preLoaderRoute: typeof GamesCaseyCanCostRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/games/air-fante-collect': {
       id: '/games/air-fante-collect'
       path: '/games/air-fante-collect'
@@ -660,10 +680,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CaseyGalleryRoute: CaseyGalleryRoute,
   GamesAirFanteCollectRoute: GamesAirFanteCollectRoute,
-  GamesCaseyCanCostRoute: GamesCaseyCanCostRoute,
   GamesCaseyCanCountRoute: GamesCaseyCanCountRoute,
   GamesCaseyCanDivideRoute: GamesCaseyCanDivideRoute,
   GamesCaseyCanMultiplyRoute: GamesCaseyCanMultiplyRoute,
+  GamesCaseyCanPayRoute: GamesCaseyCanPayRoute,
   GamesCaseyCanRomanNumeralRoute: GamesCaseyCanRomanNumeralRoute,
   GamesCaseyCanSpellRoute: GamesCaseyCanSpellRoute,
   GamesCaseyCanSubtractRoute: GamesCaseyCanSubtractRoute,
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   GamesMusicMatchRoute: GamesMusicMatchRoute,
   GamesNameThatCountryRoute: GamesNameThatCountryRoute,
   GamesPacmanRoute: GamesPacmanRoute,
+  GamesRacerRoute: GamesRacerRoute,
   GamesSlidingPuzzleRoute: GamesSlidingPuzzleRoute,
   GamesSpotTheDifferenceRoute: GamesSpotTheDifferenceRoute,
   GamesTypeWithCaseyRoute: GamesTypeWithCaseyRoute,

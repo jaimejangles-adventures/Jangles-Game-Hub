@@ -105,7 +105,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 type Phase = 'playing' | 'correct' | 'wrong';
 
-export function CaseyCanCostGame({ onComplete }: { onComplete?: () => void } = {}) {
+export function CaseyCanPayGame({ onComplete }: { onComplete?: () => void } = {}) {
   const [round, setRound] = useState<Round>(() => generateRound());
   const [phase, setPhase] = useState<Phase>('playing');
   const [picked, setPicked] = useState<number | null>(null);
@@ -235,7 +235,7 @@ export function CaseyCanCostGame({ onComplete }: { onComplete?: () => void } = {
           {/* Title */}
           <div className="flex flex-col items-center gap-1">
             <span className="text-base font-extrabold tracking-tight" style={{ color: '#1a1a2e' }}>
-              Casey Can Cost! 💰
+              Casey Can Pay! 💰
             </span>
           </div>
 

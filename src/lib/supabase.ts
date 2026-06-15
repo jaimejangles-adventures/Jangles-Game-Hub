@@ -14,6 +14,7 @@ export type Profile = {
   id: string;
   username: string;
   country_code: string;
+  is_admin?: boolean;
 };
 
 export type ScoreRow = {

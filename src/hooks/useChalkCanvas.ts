@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type Tool = 'brush' | 'eraser';
+export type Tool = 'brush' | 'eraser' | 'spray' | 'pencil';
 
 const BOARD_BG = '#1c3d1e';
 
@@ -38,15 +38,46 @@ function chalkDot(
   ctx.globalAlpha = 1;
 }
 
+function sprayDot(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+) {
+  const radius = size * 1.8;
+  const count  = Math.ceil(size * 1.5);
+  ctx.fillStyle = color;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    // Gaussian-ish: cluster more dots near centre
+    const r = radius * Math.pow(Math.random(), 0.6);
+    ctx.globalAlpha = Math.random() * 0.35 + 0.05;
+    ctx.beginPath();
+    ctx.arc(
+      x + Math.cos(angle) * r,
+      y + Math.sin(angle) * r,
+      Math.random() * 1.4 + 0.4,
+      0, Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+const MAX_HISTORY = 30;
+
 export function useChalkCanvas() {
-  // Callback ref: fires whenever the canvas element mounts or unmounts.
-  // This is the key fix — useRef won't re-trigger effects when the canvas
-  // re-mounts (e.g. after a phase change). Storing the element in state does.
   const [drawEl, setDrawEl] = useState<HTMLCanvasElement | null>(null);
   const drawRef = useCallback((el: HTMLCanvasElement | null) => setDrawEl(el), []);
 
-  // Mutable drawing state lives in a ref so event handlers always read
-  // current values without needing to be re-attached on every render.
+  // Undo history
+  const history = useRef<ImageData[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+
+  // Spray interval — fires while mouse/finger held down
+  const sprayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const drawState = useRef({
     isDrawing: false,
     lastX: 0,
@@ -56,10 +87,9 @@ export function useChalkCanvas() {
     color: '#ffffff',
   });
 
-  // React state — drives toolbar UI only
-  const [tool, setToolState]           = useState<Tool>('brush');
+  const [tool, setToolState]       = useState<Tool>('brush');
   const [brushSize, setBrushSizeState] = useState(16);
-  const [color, setColorState]         = useState('#ffffff');
+  const [color, setColorState]     = useState('#ffffff');
 
   // ── Resize observer ────────────────────────────────────────────
   useEffect(() => {
@@ -80,51 +110,103 @@ export function useChalkCanvas() {
     return () => ro.disconnect();
   }, [drawEl]);
 
-  // ── Event listeners — re-attaches whenever drawEl changes ─────
+  // ── Event listeners ────────────────────────────────────────────
   useEffect(() => {
     if (!drawEl) return;
 
+    const ctx = () => drawEl.getContext('2d')!;
+
     const doStroke = (x1: number, y1: number, x2: number, y2: number) => {
-      const ctx = drawEl.getContext('2d')!;
       const { tool: t, brushSize: bs, color: col } = drawState.current;
+      const c = ctx();
 
       if (t === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.lineWidth = bs * 2.6;
-        ctx.lineCap   = 'round';
-        ctx.globalAlpha = 1;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-        ctx.globalCompositeOperation = 'source-over';
+        c.globalCompositeOperation = 'destination-out';
+        c.lineWidth   = bs * 2.6;
+        c.lineCap     = 'round';
+        c.globalAlpha = 1;
+        c.beginPath();
+        c.moveTo(x1, y1);
+        c.lineTo(x2, y2);
+        c.stroke();
+        c.globalCompositeOperation = 'source-over';
         return;
       }
 
+      if (t === 'pencil') {
+        c.globalCompositeOperation = 'source-over';
+        c.strokeStyle = col;
+        c.lineWidth   = Math.max(1, bs * 0.18);
+        c.lineCap     = 'round';
+        c.lineJoin    = 'round';
+        c.globalAlpha = 0.9;
+        c.beginPath();
+        c.moveTo(x1, y1);
+        c.lineTo(x2, y2);
+        c.stroke();
+        c.globalAlpha = 1;
+        return;
+      }
+
+      if (t === 'spray') {
+        // Spray on move handled by interval; just update position here
+        return;
+      }
+
+      // brush (chalk)
       const dist  = Math.hypot(x2 - x1, y2 - y1);
       const steps = Math.max(1, Math.ceil(dist / (bs * 0.28)));
       for (let i = 0; i <= steps; i++) {
         const t2 = i / steps;
-        chalkDot(
-          ctx,
-          x1 + (x2 - x1) * t2,
-          y1 + (y2 - y1) * t2,
-          bs,
-          col,
-          0.72 + Math.random() * 0.24,
-        );
+        chalkDot(c, x1 + (x2 - x1) * t2, y1 + (y2 - y1) * t2, bs, col, 0.72 + Math.random() * 0.24);
       }
+    };
+
+    const saveSnapshot = () => {
+      const snap = ctx().getImageData(0, 0, drawEl.width, drawEl.height);
+      history.current.push(snap);
+      if (history.current.length > MAX_HISTORY) history.current.shift();
+      setCanUndo(true);
+    };
+
+    const stopSpray = () => {
+      if (sprayTimer.current) { clearInterval(sprayTimer.current); sprayTimer.current = null; }
     };
 
     const onDown = (e: MouseEvent | TouchEvent) => {
       if ('touches' in e) e.preventDefault();
+      saveSnapshot();
       drawState.current.isDrawing = true;
       const p = getEventPos(e, drawEl);
       drawState.current.lastX = p.x;
       drawState.current.lastY = p.y;
-      const { brushSize: bs, color: col, tool: t } = drawState.current;
+
+      const { tool: t, brushSize: bs, color: col } = drawState.current;
+
+      if (t === 'spray') {
+        // Continuous spray while held down
+        sprayDot(ctx(), p.x, p.y, bs, col);
+        sprayTimer.current = setInterval(() => {
+          if (!drawState.current.isDrawing) { stopSpray(); return; }
+          sprayDot(ctx(), drawState.current.lastX, drawState.current.lastY, bs, col);
+        }, 30);
+        return;
+      }
+
+      if (t === 'pencil') {
+        // First dot on click
+        const c = ctx();
+        c.fillStyle   = col;
+        c.globalAlpha = 0.9;
+        c.beginPath();
+        c.arc(p.x, p.y, Math.max(0.5, bs * 0.09), 0, Math.PI * 2);
+        c.fill();
+        c.globalAlpha = 1;
+        return;
+      }
+
       if (t !== 'eraser') {
-        chalkDot(drawEl.getContext('2d')!, p.x, p.y, bs, col, 0.85);
+        chalkDot(ctx(), p.x, p.y, bs, col, 0.85);
       }
     };
 
@@ -132,12 +214,22 @@ export function useChalkCanvas() {
       if (!drawState.current.isDrawing) return;
       if ('touches' in e) e.preventDefault();
       const p = getEventPos(e, drawEl);
-      doStroke(drawState.current.lastX, drawState.current.lastY, p.x, p.y);
-      drawState.current.lastX = p.x;
-      drawState.current.lastY = p.y;
+      const { tool: t } = drawState.current;
+      if (t === 'spray') {
+        // Interval already running; just update position
+        drawState.current.lastX = p.x;
+        drawState.current.lastY = p.y;
+      } else {
+        doStroke(drawState.current.lastX, drawState.current.lastY, p.x, p.y);
+        drawState.current.lastX = p.x;
+        drawState.current.lastY = p.y;
+      }
     };
 
-    const onUp = () => { drawState.current.isDrawing = false; };
+    const onUp = () => {
+      drawState.current.isDrawing = false;
+      stopSpray();
+    };
 
     drawEl.addEventListener('mousedown',  onDown as EventListener);
     drawEl.addEventListener('mousemove',  onMove as EventListener);
@@ -155,6 +247,7 @@ export function useChalkCanvas() {
       drawEl.removeEventListener('touchstart', onDown as EventListener);
       drawEl.removeEventListener('touchmove',  onMove as EventListener);
       drawEl.removeEventListener('touchend',   onUp);
+      if (sprayTimer.current) clearInterval(sprayTimer.current);
     };
   }, [drawEl]);
 
@@ -172,13 +265,21 @@ export function useChalkCanvas() {
   const setColor = useCallback((c: string) => {
     drawState.current.color = c;
     setColorState(c);
-    drawState.current.tool = 'brush';
-    setToolState('brush');
+    // Don't reset tool — let user stay on pencil/spray when picking a colour
   }, []);
 
   const clearCanvas = useCallback(() => {
     if (!drawEl) return;
     drawEl.getContext('2d')!.clearRect(0, 0, drawEl.width, drawEl.height);
+    history.current = [];
+    setCanUndo(false);
+  }, [drawEl]);
+
+  const undo = useCallback(() => {
+    if (!drawEl || history.current.length === 0) return;
+    const snap = history.current.pop()!;
+    drawEl.getContext('2d')!.putImageData(snap, 0, 0);
+    setCanUndo(history.current.length > 0);
   }, [drawEl]);
 
   const isBlank = useCallback(() => {
@@ -205,6 +306,7 @@ export function useChalkCanvas() {
     tool, setTool,
     brushSize, setBrushSize,
     color, setColor,
-    clearCanvas, isBlank, getImageDataUrl,
+    clearCanvas, undo, canUndo,
+    isBlank, getImageDataUrl,
   };
 }

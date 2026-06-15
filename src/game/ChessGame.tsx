@@ -27,6 +27,12 @@ interface CastlingRights {
   blackQueenSide: boolean;
 }
 
+interface MoveRecord {
+  label: string;
+  board: Board;
+  lastMove: { from: Square; to: Square };
+}
+
 interface GameState {
   board: Board;
   turn: Color;
@@ -40,6 +46,8 @@ interface GameState {
   winner: Color | null;
   moveHistory: string[];
   promotionPending: { from: Square; to: Square } | null;
+  lastMove: { from: Square; to: Square } | null;
+  boardHistory: MoveRecord[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -194,7 +202,8 @@ function isSquareAttacked(board: Board, sq: Square, byColor: Color): boolean {
 
 function applyMoveOnBoard(board: Board, from: Square, to: Square, enPassantTarget: Square | null): Board {
   const b = cloneBoard(board);
-  const piece = b[from.row][from.col]!;
+  const piece = b[from.row][from.col];
+  if (!piece) return b; // guard: nothing to move (stale move)
   b[to.row][to.col] = piece;
   b[from.row][from.col] = null;
   // En passant capture: remove the captured pawn
@@ -294,7 +303,7 @@ const PIECE_VALUE: Record<PieceType, number> = {
   pawn: 100, knight: 320, bishop: 330, rook: 500, queen: 900, king: 0,
 };
 
-// Simple positional bonus tables (from white's perspective, row 7 = white back rank)
+// Positional bonus tables (from white's perspective, row 7 = white back rank)
 const PAWN_TABLE = [
   [0,  0,  0,  0,  0,  0,  0,  0],
   [50, 50, 50, 50, 50, 50, 50, 50],
@@ -305,6 +314,26 @@ const PAWN_TABLE = [
   [5, 10, 10,-20,-20, 10, 10,  5],
   [0,  0,  0,  0,  0,  0,  0,  0],
 ];
+const KNIGHT_TABLE = [
+  [-50,-40,-30,-30,-30,-30,-40,-50],
+  [-40,-20,  0,  0,  0,  0,-20,-40],
+  [-30,  0, 10, 15, 15, 10,  0,-30],
+  [-30,  5, 15, 20, 20, 15,  5,-30],
+  [-30,  0, 15, 20, 20, 15,  0,-30],
+  [-30,  5, 10, 15, 15, 10,  5,-30],
+  [-40,-20,  0,  5,  5,  0,-20,-40],
+  [-50,-40,-30,-30,-30,-30,-40,-50],
+];
+const BISHOP_TABLE = [
+  [-20,-10,-10,-10,-10,-10,-10,-20],
+  [-10,  0,  0,  0,  0,  0,  0,-10],
+  [-10,  0,  5, 10, 10,  5,  0,-10],
+  [-10,  5,  5, 10, 10,  5,  5,-10],
+  [-10,  0, 10, 10, 10, 10,  0,-10],
+  [-10, 10, 10, 10, 10, 10, 10,-10],
+  [-10,  5,  0,  0,  0,  0,  5,-10],
+  [-20,-10,-10,-10,-10,-10,-10,-20],
+];
 
 function evaluateBoard(board: Board): number {
   let score = 0;
@@ -314,7 +343,10 @@ function evaluateBoard(board: Board): number {
       if (!p) continue;
       const val = PIECE_VALUE[p.type];
       const row = p.color === "white" ? r : 7 - r;
-      const bonus = p.type === "pawn" ? PAWN_TABLE[row][c] : 0;
+      let bonus = 0;
+      if (p.type === "pawn")   bonus = PAWN_TABLE[row][c];
+      if (p.type === "knight") bonus = KNIGHT_TABLE[row][c];
+      if (p.type === "bishop") bonus = BISHOP_TABLE[row][c];
       score += p.color === "white" ? val + bonus : -(val + bonus);
     }
   return score;
@@ -363,7 +395,7 @@ function minimax(
   }
 }
 
-function getBestMove(board: Board, color: Color, ep: Square | null, cr: CastlingRights): MoveOption | null {
+function getBestMove(board: Board, color: Color, ep: Square | null, cr: CastlingRights, aiDepth = 2): MoveOption | null {
   const moves = getAllMoves(board, color, ep, cr);
   if (moves.length === 0) return null;
   const shuffled = [...moves].sort(() => Math.random() - 0.5);
@@ -373,7 +405,7 @@ function getBestMove(board: Board, color: Color, ep: Square | null, cr: Castling
   for (const m of shuffled) {
     const nb = applyMoveOnBoard(board, m.from, m.to, ep);
     const newEp = computeEnPassantTarget(board[m.from.row][m.from.col]!, m.from, m.to);
-    const score = minimax(nb, 2, -Infinity, Infinity, !maximizing, newEp, cr);
+    const score = minimax(nb, aiDepth, -Infinity, Infinity, !maximizing, newEp, cr);
     if (maximizing ? score > bestScore : score < bestScore) {
       bestScore = score;
       bestMove = m;
@@ -427,10 +459,18 @@ function ChessBoard({
           );
           const hasEnemy = isValid && !!piece;
 
-          let bg = light ? "#f0d9b5" : "#b58863";
-          if (isLastMove) bg = light ? "#cdd16c" : "#aaa23a";
-          if (isSelected) bg = "#f6f669";
-          if (isHighlight) bg = light ? "#aee86e" : "#7dc940";
+          // Kid-friendly board colours
+          let bg = light ? "#fde8ff" : "#8b2fc9";
+          if (isLastMove) bg = light ? "#ffd966" : "#e6a800";
+          if (isSelected) bg = "#ffe033";
+          if (isHighlight) bg = light ? "#b8f5a0" : "#3db82a";
+
+          // Circular token colours per side
+          const tokenStyle = piece
+            ? piece.color === "white"
+              ? { bg: "linear-gradient(145deg,#60c8ff,#1d6fd8)", border: "#93c5fd", shadow: "0 3px 10px rgba(29,111,216,0.6)" }
+              : { bg: "linear-gradient(145deg,#ffaa55,#d93a00)", border: "#fca5a5", shadow: "0 3px 10px rgba(217,58,0,0.6)" }
+            : null;
 
           return (
             <div
@@ -443,15 +483,16 @@ function ChessBoard({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "background-color 0.15s",
               }}
             >
               {/* Valid move indicator */}
               {isValid && !hasEnemy && (
                 <div style={{
                   position: "absolute",
-                  width: "33%", height: "33%",
+                  width: "36%", height: "36%",
                   borderRadius: "50%",
-                  backgroundColor: "rgba(0,0,0,0.18)",
+                  backgroundColor: "rgba(0,0,0,0.22)",
                   pointerEvents: "none",
                   zIndex: 1,
                 }} />
@@ -460,33 +501,39 @@ function ChessBoard({
               {isValid && hasEnemy && (
                 <div style={{
                   position: "absolute", inset: 0,
-                  border: "4px solid rgba(0,0,0,0.25)",
+                  border: "5px solid rgba(0,0,0,0.28)",
+                  borderRadius: 2,
                   pointerEvents: "none",
                   zIndex: 1,
                 }} />
               )}
-              {/* Piece */}
-              {piece && (
-                <span style={{
-                  fontSize: "clamp(18px, 4.5vmin, 52px)",
-                  lineHeight: 1,
+              {/* Piece token — coloured disc */}
+              {piece && tokenStyle && (
+                <div style={{
+                  position: "relative", zIndex: 2,
+                  width: "74%", height: "74%",
+                  borderRadius: "50%",
+                  background: tokenStyle.bg,
+                  border: `2.5px solid ${tokenStyle.border}`,
+                  boxShadow: `${tokenStyle.shadow}, inset 0 1px 3px rgba(255,255,255,0.3)`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   userSelect: "none",
-                  position: "relative",
-                  zIndex: 2,
-                  color: piece.color === "white" ? "#fff" : "#1a1a2e",
-                  textShadow: piece.color === "white"
-                    ? "0 0 2px #000, 0 1px 4px rgba(0,0,0,0.9), 0 0 1px #000"
-                    : "0 1px 2px rgba(255,255,255,0.3)",
                 }}>
-                  {PIECE_UNICODE[piece.type][piece.color]}
-                </span>
+                  <span style={{
+                    fontSize: "clamp(13px, 3.8vmin, 40px)",
+                    lineHeight: 1, color: "#fff",
+                    textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                  }}>
+                    {PIECE_UNICODE[piece.type]["white"]}
+                  </span>
+                </div>
               )}
               {/* Rank number (left edge) */}
               {col === 0 && (
                 <span style={{
                   position: "absolute", top: 2, left: 3,
                   fontSize: "clamp(7px, 1.3vmin, 12px)",
-                  fontWeight: 800, color: light ? "#b58863" : "#f0d9b5",
+                  fontWeight: 800, color: light ? "#8b2fc9" : "#fde8ff",
                   lineHeight: 1, pointerEvents: "none", zIndex: 3,
                 }}>
                   {8 - row}
@@ -497,7 +544,7 @@ function ChessBoard({
                 <span style={{
                   position: "absolute", bottom: 2, right: 3,
                   fontSize: "clamp(7px, 1.3vmin, 12px)",
-                  fontWeight: 800, color: light ? "#b58863" : "#f0d9b5",
+                  fontWeight: 800, color: light ? "#8b2fc9" : "#fde8ff",
                   lineHeight: 1, pointerEvents: "none", zIndex: 3,
                 }}>
                   {FILES[col]}
@@ -843,6 +890,8 @@ function initialGameState(): GameState {
     winner: null,
     moveHistory: [],
     promotionPending: null,
+    lastMove: null,
+    boardHistory: [],
   };
 }
 
@@ -869,19 +918,21 @@ function CapturedRow({ pieces, label }: { pieces: Piece[]; label: string }) {
   );
 }
 
-function PlayMode({ onBack }: { onBack: () => void }) {
+function PlayMode({ onBack, difficulty }: { onBack: () => void; difficulty: "rookie" | "master" }) {
   const [gs, setGs] = useState<GameState>(initialGameState);
   const [thinking, setThinking] = useState(false);
   const [yourTurnFlash, setYourTurnFlash] = useState(false);
+  const [viewingIdx, setViewingIdx] = useState<number | null>(null);
   const playerColor: Color = "white";
   const computerColor: Color = "black";
+  const aiDepth = difficulty === "rookie" ? 1 : 3;
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moveListRef = useRef<HTMLDivElement>(null);
 
-  // Scroll move list to bottom whenever it updates
+  // Scroll move list to bottom whenever it updates (only when not rewinding)
   useEffect(() => {
-    if (moveListRef.current) moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
-  }, [gs.moveHistory.length]);
+    if (viewingIdx === null && moveListRef.current) moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
+  }, [gs.moveHistory.length, viewingIdx]);
 
   const handleSquareClick = useCallback((sq: Square) => {
     if (gs.status === "checkmate" || gs.status === "stalemate") return;
@@ -933,11 +984,12 @@ function PlayMode({ onBack }: { onBack: () => void }) {
       const label = `${sqLabel(from.row, from.col)}→${sqLabel(to.row, to.col)}`;
       const nextTurn: Color = "black";
 
+      const rec: MoveRecord = { label, board: newBoard, lastMove: { from, to } };
       if (isPawnPromotion) {
-        return { ...prev, board: newBoard, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, moveHistory: [...prev.moveHistory, label], turn: nextTurn, promotionPending: { from, to } };
+        return { ...prev, board: newBoard, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, moveHistory: [...prev.moveHistory, label], turn: nextTurn, promotionPending: { from, to }, lastMove: { from, to }, boardHistory: [...prev.boardHistory, rec] };
       }
       const { status, winner } = computeGameStatus(newBoard, nextTurn, ep, cr, "white");
-      return { ...prev, board: newBoard, turn: nextTurn, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null };
+      return { ...prev, board: newBoard, turn: nextTurn, selected: null, validMoves: [], capturedWhite, capturedBlack, castlingRights: cr, enPassantTarget: ep, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null, lastMove: { from, to }, boardHistory: [...prev.boardHistory, rec] };
     });
   }, [gs.status, gs.turn, gs.promotionPending, playerColor, thinking]);
 
@@ -963,10 +1015,11 @@ function PlayMode({ onBack }: { onBack: () => void }) {
     const { board, enPassantTarget, castlingRights } = gs;
 
     aiTimerRef.current = setTimeout(() => {
-      const move = getBestMove(board, computerColor, enPassantTarget, castlingRights);
+      const move = getBestMove(board, computerColor, enPassantTarget, castlingRights, aiDepth);
       setGs(prev => {
         if (!move) return prev;
-        const piece = prev.board[move.from.row][move.from.col]!;
+        const piece = prev.board[move.from.row][move.from.col];
+        if (!piece || piece.color !== computerColor) return prev; // stale or wrong piece — skip
         let newBoard = applyMoveOnBoard(prev.board, move.from, move.to, prev.enPassantTarget);
 
         const isPawnPromotion = piece.type === "pawn" && ((piece.color === "white" && move.to.row === 0) || (piece.color === "black" && move.to.row === 7));
@@ -986,8 +1039,8 @@ function PlayMode({ onBack }: { onBack: () => void }) {
 
         const label = `${sqLabel(move.from.row, move.from.col)}→${sqLabel(move.to.row, move.to.col)}`;
         const { status, winner } = computeGameStatus(newBoard, "white", newEp, newCr, "black");
-
-        return { ...prev, board: newBoard, turn: "white", capturedWhite, capturedBlack, castlingRights: newCr, enPassantTarget: newEp, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null };
+        const rec: MoveRecord = { label, board: newBoard, lastMove: { from: move.from, to: move.to } };
+        return { ...prev, board: newBoard, turn: "white", capturedWhite, capturedBlack, castlingRights: newCr, enPassantTarget: newEp, status, winner, moveHistory: [...prev.moveHistory, label], promotionPending: null, lastMove: { from: move.from, to: move.to }, boardHistory: [...prev.boardHistory, rec] };
       });
       setThinking(false);
       setYourTurnFlash(true);
@@ -1000,11 +1053,15 @@ function PlayMode({ onBack }: { onBack: () => void }) {
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     setThinking(false);
     setYourTurnFlash(false);
+    setViewingIdx(null);
     setGs(initialGameState());
   };
 
   const isGameOver = gs.status === "checkmate" || gs.status === "stalemate";
-  const myTurn = gs.turn === playerColor && !isGameOver && !thinking;
+  const myTurn = gs.turn === playerColor && !isGameOver && !thinking && viewingIdx === null;
+  const viewedRecord = viewingIdx !== null ? gs.boardHistory[viewingIdx] : null;
+  const displayBoard = viewedRecord ? viewedRecord.board : gs.board;
+  const displayLastMove = viewedRecord ? viewedRecord.lastMove : gs.lastMove;
 
   return (
     <div style={{
@@ -1017,7 +1074,9 @@ function PlayMode({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} style={{ ...backBtnStyle, background: "rgba(255,255,255,0.12)", color: "#e0e7ff", border: "1.5px solid rgba(255,255,255,0.2)" }}>
           ← Back
         </button>
-        <span style={{ fontSize: 18, fontWeight: 800, color: "#e0e7ff", flex: 1 }}>Chess vs Computer</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: "#e0e7ff", flex: 1 }}>
+          {difficulty === "rookie" ? "🌱 Rookie Mode" : "👑 Jangles Master"}
+        </span>
         <button onClick={resetGame} style={{
           background: "rgba(99,102,241,0.85)", color: "#fff", border: "none",
           borderRadius: 99, padding: "8px 18px", fontWeight: 700, cursor: "pointer", fontSize: 13,
@@ -1030,36 +1089,156 @@ function PlayMode({ onBack }: { onBack: () => void }) {
       {/* Main layout: sidebar left + board center + sidebar right */}
       <div style={{ display: "flex", flex: 1, gap: 0, alignItems: "flex-start", justifyContent: "center", padding: "0 16px 16px", flexWrap: "wrap" }}>
 
-        {/* Left sidebar: move history */}
-        <div style={{ width: 160, flexShrink: 0, marginRight: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ ...sideCard, flex: 1 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Move History</div>
-            <div ref={moveListRef} style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-              {gs.moveHistory.length === 0
-                ? <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>No moves yet</span>
-                : Array.from({ length: Math.ceil(gs.moveHistory.length / 2) }, (_, i) => (
-                    <div key={i} style={{ display: "flex", gap: 4, fontSize: 12, fontFamily: "monospace" }}>
-                      <span style={{ color: "rgba(255,255,255,0.35)", minWidth: 18 }}>{i+1}.</span>
-                      <span style={{ color: "#a5b4fc", flex: 1 }}>{gs.moveHistory[i*2]}</span>
-                      <span style={{ color: "rgba(255,255,255,0.5)" }}>{gs.moveHistory[i*2+1] || ""}</span>
+        {/* Left sidebar: move history with rewind + captured pieces */}
+        <div style={{ width: 168, flexShrink: 0, marginRight: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+
+          {/* Captured pieces + score */}
+          {(() => {
+            const PTS: Record<string, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9 };
+            const compScore = gs.capturedWhite.reduce((s, p) => s + (PTS[p.type] ?? 0), 0);
+            const youScore  = gs.capturedBlack.reduce((s, p) => s + (PTS[p.type] ?? 0), 0);
+            const advantage = youScore - compScore;
+            return (
+              <div style={{ ...sideCard, padding: "10px 12px" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+                  Score
+                </div>
+
+                {/* Score bar */}
+                {(compScore > 0 || youScore > 0) && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#ffb07a" }}>🤖 {compScore}pts</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color:
+                        advantage > 0 ? "#86efac" : advantage < 0 ? "#fca5a5" : "rgba(255,255,255,0.4)"
+                      }}>
+                        {advantage > 0 ? `+${advantage} you` : advantage < 0 ? `+${-advantage} cpu` : "Even"}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#7ac8ff" }}>{youScore}pts ♟</span>
                     </div>
-                  ))}
+                    {/* Visual bar */}
+                    <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.1)", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${Math.max(5, Math.min(95, compScore / (compScore + youScore) * 100))}%`,
+                        background: "linear-gradient(90deg,#d93a00,#ffaa55)",
+                        borderRadius: 3,
+                        transition: "width 0.4s ease",
+                      }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Computer took (white pieces) */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#ffb07a" }}>🤖 Computer took</span>
+                    {compScore > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#ffb07a" }}>{compScore}pts</span>}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, minHeight: 28 }}>
+                    {gs.capturedWhite.length === 0
+                      ? <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>nothing yet</span>
+                      : gs.capturedWhite.map((p, i) => (
+                        <div key={i} title={`${p.type} = ${PTS[p.type]}pt`} style={{
+                          width: 26, height: 26, borderRadius: "50%",
+                          background: "linear-gradient(145deg,#ffaa55,#d93a00)",
+                          border: "2px solid #fca5a5",
+                          boxShadow: "0 2px 5px rgba(217,58,0,0.5)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 13, position: "relative",
+                        }}>
+                          {PIECE_UNICODE[p.type]["white"]}
+                          <span style={{ position: "absolute", bottom: -2, right: -2, fontSize: 7, fontWeight: 800, background: "#1e1b4b", borderRadius: 4, padding: "0 2px", color: "#ffb07a", lineHeight: 1.4 }}>{PTS[p.type]}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+
+                {/* You took (black pieces) */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#7ac8ff" }}>♟ You took</span>
+                    {youScore > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#7ac8ff" }}>{youScore}pts</span>}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, minHeight: 28 }}>
+                    {gs.capturedBlack.length === 0
+                      ? <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>nothing yet</span>
+                      : gs.capturedBlack.map((p, i) => (
+                        <div key={i} title={`${p.type} = ${PTS[p.type]}pt`} style={{
+                          width: 26, height: 26, borderRadius: "50%",
+                          background: "linear-gradient(145deg,#60c8ff,#1d6fd8)",
+                          border: "2px solid #93c5fd",
+                          boxShadow: "0 2px 5px rgba(29,111,216,0.5)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 13, position: "relative",
+                        }}>
+                          {PIECE_UNICODE[p.type]["white"]}
+                          <span style={{ position: "absolute", bottom: -2, right: -2, fontSize: 7, fontWeight: 800, background: "#1e1b4b", borderRadius: 4, padding: "0 2px", color: "#7ac8ff", lineHeight: 1.4 }}>{PTS[p.type]}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={sideCard}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+              {viewingIdx !== null ? `Move ${viewingIdx + 1} of ${gs.boardHistory.length}` : "Move History"}
             </div>
+            <div ref={moveListRef} style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1 }}>
+              {gs.boardHistory.length === 0
+                ? <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>No moves yet</span>
+                : Array.from({ length: Math.ceil(gs.boardHistory.length / 2) }, (_, i) => {
+                    const plyW = i * 2;
+                    const plyB = i * 2 + 1;
+                    const recW = gs.boardHistory[plyW];
+                    const recB = gs.boardHistory[plyB];
+                    return (
+                      <div key={i} style={{ display: "flex", gap: 3, fontSize: 11, fontFamily: "monospace", alignItems: "center" }}>
+                        <span style={{ color: "rgba(255,255,255,0.3)", minWidth: 16, fontSize: 10 }}>{i+1}.</span>
+                        <button onClick={() => setViewingIdx(plyW)} style={{
+                          flex: 1, textAlign: "left", background: viewingIdx === plyW ? "rgba(165,180,252,0.25)" : "transparent",
+                          border: viewingIdx === plyW ? "1px solid rgba(165,180,252,0.5)" : "1px solid transparent",
+                          borderRadius: 5, padding: "2px 5px", color: "#a5b4fc", cursor: "pointer", fontSize: 11, fontFamily: "monospace",
+                        }}>{recW.label}</button>
+                        {recB && <button onClick={() => setViewingIdx(plyB)} style={{
+                          flex: 1, textAlign: "left", background: viewingIdx === plyB ? "rgba(251,191,36,0.2)" : "transparent",
+                          border: viewingIdx === plyB ? "1px solid rgba(251,191,36,0.4)" : "1px solid transparent",
+                          borderRadius: 5, padding: "2px 5px", color: "rgba(255,200,100,0.75)", cursor: "pointer", fontSize: 11, fontFamily: "monospace",
+                        }}>{recB.label}</button>}
+                      </div>
+                    );
+                  })}
+            </div>
+            {/* Rewind controls */}
+            {gs.boardHistory.length > 0 && (
+              <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+                <button onClick={() => setViewingIdx(v => Math.max(0, (v ?? gs.boardHistory.length) - 1))}
+                  style={{ flex: 1, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: "#e0e7ff", cursor: "pointer", padding: "5px 0", fontSize: 16, fontWeight: 700 }}>‹</button>
+                <button onClick={() => setViewingIdx(v => {
+                    const next = (v ?? -1) + 1;
+                    return next >= gs.boardHistory.length ? null : next;
+                  })}
+                  style={{ flex: 1, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: "#e0e7ff", cursor: "pointer", padding: "5px 0", fontSize: 16, fontWeight: 700 }}>›</button>
+              </div>
+            )}
+            {viewingIdx !== null && (
+              <button onClick={() => setViewingIdx(null)} style={{
+                marginTop: 6, width: "100%", background: "rgba(99,102,241,0.3)", border: "1px solid rgba(99,102,241,0.5)",
+                borderRadius: 8, color: "#c7d2fe", cursor: "pointer", padding: "5px 0", fontSize: 11, fontWeight: 700,
+              }}>▶ Back to Live</button>
+            )}
           </div>
         </div>
 
         {/* Center: board + status */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 8 }}>
-          {/* Computer label + captures */}
-          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", minWidth: 70 }}>🤖 Computer</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1 }}>
-              {gs.capturedWhite.map((p, i) => (
-                <span key={i} style={{ fontSize: 16, lineHeight: 1, color: "#fff", textShadow: "0 0 2px #000, 0 1px 3px rgba(0,0,0,0.9)" }}>
-                  {PIECE_UNICODE[p.type][p.color]}
-                </span>
-              ))}
-            </div>
+          {/* Computer row label */}
+          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#ffb07a" }}>🤖 Computer</div>
           </div>
 
           {/* Board */}
@@ -1071,24 +1250,18 @@ function PlayMode({ onBack }: { onBack: () => void }) {
             boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)",
           }}>
             <ChessBoard
-              board={gs.board}
-              selected={gs.selected}
-              validMoves={gs.validMoves}
+              board={displayBoard}
+              selected={viewingIdx === null ? gs.selected : null}
+              validMoves={viewingIdx === null ? gs.validMoves : []}
               onSquareClick={myTurn ? handleSquareClick : undefined}
               interactive={!!myTurn}
+              lastMove={displayLastMove}
             />
           </div>
 
-          {/* Player label + captures */}
-          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", minWidth: 70 }}>♙ You</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1 }}>
-              {gs.capturedBlack.map((p, i) => (
-                <span key={i} style={{ fontSize: 16, lineHeight: 1, color: "#1e1b4b", textShadow: "0 0 2px rgba(255,255,255,0.3)" }}>
-                  {PIECE_UNICODE[p.type][p.color]}
-                </span>
-              ))}
-            </div>
+          {/* Player row label */}
+          <div style={{ width: "min(90vw, 520px)", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#7ac8ff" }}>♟ You</div>
           </div>
 
           {/* Status / Your Turn button */}
@@ -1218,12 +1391,12 @@ function PlayMode({ onBack }: { onBack: () => void }) {
 
 // ─── Menu ─────────────────────────────────────────────────────────────────────
 
-function Menu({ onLesson, onPlay }: { onLesson: () => void; onPlay: () => void }) {
+function Menu({ onLesson, onPlayRookie, onPlayMaster }: { onLesson: () => void; onPlayRookie: () => void; onPlayMaster: () => void }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       minHeight: "100%", background: "linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e3a5f 100%)",
-      padding: "48px 20px", gap: 32, boxSizing: "border-box",
+      padding: "48px 20px", gap: 28, boxSizing: "border-box",
     }}>
       {/* Title */}
       <div style={{ textAlign: "center" }}>
@@ -1235,33 +1408,63 @@ function Menu({ onLesson, onPlay }: { onLesson: () => void; onPlay: () => void }
       </div>
 
       {/* Mode buttons */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 340 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 340 }}>
+        {/* Lesson */}
         {[
-          { icon: "📖", label: "Lesson Mode", sub: "Step-by-step guide to every piece", color: "#818cf8", bg: "rgba(99,102,241,0.15)", border: "rgba(129,140,248,0.4)", onClick: onLesson, enabled: true },
-          { icon: "🤖", label: "Play vs Computer", sub: "Challenge the AI — you play as White ♙", color: "#34d399", bg: "rgba(16,185,129,0.15)", border: "rgba(52,211,153,0.4)", onClick: onPlay, enabled: true },
-          { icon: "🌐", label: "Online Multiplayer", sub: "Coming soon — play friends online!", color: "#9ca3af", bg: "rgba(156,163,175,0.08)", border: "rgba(156,163,175,0.2)", onClick: undefined, enabled: false },
-        ].map(({ icon, label, sub, color, bg, border, onClick, enabled }) => (
-          <button
-            key={label}
-            onClick={onClick}
-            disabled={!enabled}
-            style={{
-              background: bg, border: `1.5px solid ${border}`,
-              borderRadius: 20, padding: "20px 24px",
-              cursor: enabled ? "pointer" : "default",
-              textAlign: "left", opacity: enabled ? 1 : 0.45,
-              backdropFilter: "blur(8px)",
-              boxShadow: enabled ? `0 8px 24px rgba(0,0,0,0.25)` : "none",
-              transition: "transform 0.12s, box-shadow 0.12s",
-            }}
-            onMouseEnter={e => { if (enabled) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 14px 32px rgba(0,0,0,0.35)`; } }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = enabled ? "0 8px 24px rgba(0,0,0,0.25)" : "none"; }}
-          >
-            <div style={{ fontSize: 32, marginBottom: 6 }}>{icon}</div>
-            <div style={{ fontWeight: 800, fontSize: 19, color }}>{label}</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{sub}</div>
+          { icon: "📖", label: "Lesson Mode", sub: "Step-by-step guide to every piece", color: "#818cf8", bg: "rgba(99,102,241,0.15)", border: "rgba(129,140,248,0.4)", onClick: onLesson },
+        ].map(({ icon, label, sub, color, bg, border, onClick }) => (
+          <button key={label} onClick={onClick} style={{
+            background: bg, border: `1.5px solid ${border}`, borderRadius: 20, padding: "18px 24px",
+            cursor: "pointer", textAlign: "left", backdropFilter: "blur(8px)", boxShadow: "0 8px 24px rgba(0,0,0,0.25)", transition: "transform 0.12s",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>{icon}</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color }}>{label}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{sub}</div>
           </button>
         ))}
+
+        {/* Difficulty section */}
+        <div style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "16px 20px" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 12, textAlign: "center" }}>
+            🤖 Play vs Computer
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onPlayRookie} style={{
+              flex: 1, background: "linear-gradient(135deg,rgba(34,197,94,0.2),rgba(16,185,129,0.15))",
+              border: "1.5px solid rgba(52,211,153,0.5)", borderRadius: 16, padding: "16px 10px",
+              cursor: "pointer", textAlign: "center", backdropFilter: "blur(8px)", transition: "transform 0.12s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; }}>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>🌱</div>
+              <div style={{ fontWeight: 900, fontSize: 15, color: "#34d399" }}>Rookie</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 3, lineHeight: 1.4 }}>Just learning — easy AI</div>
+            </button>
+            <button onClick={onPlayMaster} style={{
+              flex: 1, background: "linear-gradient(135deg,rgba(251,191,36,0.2),rgba(245,158,11,0.15))",
+              border: "1.5px solid rgba(251,191,36,0.5)", borderRadius: 16, padding: "16px 10px",
+              cursor: "pointer", textAlign: "center", backdropFilter: "blur(8px)", transition: "transform 0.12s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; }}>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>👑</div>
+              <div style={{ fontWeight: 900, fontSize: 15, color: "#fbbf24" }}>Jangles Master</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 3, lineHeight: 1.4 }}>Real challenge — smart AI</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Coming soon */}
+        <button disabled style={{
+          background: "rgba(156,163,175,0.06)", border: "1.5px solid rgba(156,163,175,0.18)",
+          borderRadius: 20, padding: "16px 24px", cursor: "default", textAlign: "left", opacity: 0.45,
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 4 }}>🌐</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: "#9ca3af" }}>Online Multiplayer</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Coming soon — play friends online!</div>
+        </button>
       </div>
     </div>
   );
@@ -1271,12 +1474,13 @@ function Menu({ onLesson, onPlay }: { onLesson: () => void; onPlay: () => void }
 
 export function ChessGame({ onComplete: _onComplete }: { onComplete?: () => void }) {
   const [mode, setMode] = useState<Mode>("menu");
+  const [difficulty, setDifficulty] = useState<"rookie" | "master">("rookie");
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {mode === "menu"   && <Menu onLesson={() => setMode("lesson")} onPlay={() => setMode("play")} />}
+      {mode === "menu"   && <Menu onLesson={() => setMode("lesson")} onPlayRookie={() => { setDifficulty("rookie"); setMode("play"); }} onPlayMaster={() => { setDifficulty("master"); setMode("play"); }} />}
       {mode === "lesson" && <LessonMode onBack={() => setMode("menu")} />}
-      {mode === "play"   && <PlayMode onBack={() => setMode("menu")} />}
+      {mode === "play"   && <PlayMode onBack={() => setMode("menu")} difficulty={difficulty} />}
     </div>
   );
 }

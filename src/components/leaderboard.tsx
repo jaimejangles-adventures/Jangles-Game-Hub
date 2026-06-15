@@ -173,6 +173,7 @@ export function Leaderboard({ gameSlug, difficulty, limit = 10, previewLimit, th
 const LEADERBOARD_GAMES = [
   'pacman',
   'jangles-ball',
+  'racer',
   'elefante',
   'air-fante-collect',
   'foxer',

@@ -364,6 +364,14 @@ function IntroScreen({
           onClick={() => onStart(name.trim() || 'Friend', true)}
         />
       </div>
+
+      {/* ── Gallery link ── */}
+      <Link
+        to="/casey-gallery"
+        className="text-xs font-semibold text-ink/40 underline underline-offset-2 hover:text-ink/60"
+      >
+        🖼️ View Best Of Gallery
+      </Link>
     </motion.div>
   );
 }
@@ -386,6 +394,11 @@ function CustomInputScreen({
     onStart(trimmed);
   };
 
+  const handleRandom = () => {
+    const pick = WORDS[Math.floor(Math.random() * WORDS.length)];
+    onStart(pick.word);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -406,7 +419,7 @@ function CustomInputScreen({
       />
 
       {/* ── Casey bubble ── */}
-      <CaseyBubble text={`Ooh, ${playerName}! What do you want to draw today? Type it in and I'll set up the chalkboard! 🖊️`} />
+      <CaseyBubble text={`Ooh, ${playerName}! What do you want to draw today? Type it in — or let me surprise you! 🖊️`} />
 
       {/* ── Object input ── */}
       <div className="flex w-full flex-col items-center gap-3">
@@ -424,14 +437,19 @@ function CustomInputScreen({
           className="w-full max-w-xs rounded-xl border-[3px] border-ink bg-white px-4 py-3 text-center text-lg font-bold text-ink outline-none transition-colors focus:border-[#e87fa3]"
           style={{ borderBottomWidth: 4 }}
         />
-        <PillBtn
-          onClick={handleSubmit}
-          accent={objectName.trim() ? '#e87fa3' : '#ccc'}
-          size="lg"
-          className={objectName.trim() ? '' : 'pointer-events-none'}
-        >
-          Let's draw it! 🎨
-        </PillBtn>
+        <div className="flex items-center gap-3">
+          <PillBtn
+            onClick={handleSubmit}
+            accent={objectName.trim() ? '#e87fa3' : '#ccc'}
+            size="lg"
+            className={objectName.trim() ? '' : 'pointer-events-none'}
+          >
+            Let's draw it! 🎨
+          </PillBtn>
+          <PillBtn onClick={handleRandom} accent="#f5c842" dark size="lg">
+            🎲 Surprise me!
+          </PillBtn>
+        </div>
       </div>
 
       {/* ── Back link ── */}
@@ -473,7 +491,7 @@ function GameScreen({
   canvas: ReturnType<typeof useChalkCanvas>;
   customMode: boolean;
 }) {
-  const { drawRef, tool, setTool, brushSize, setBrushSize, color, setColor, clearCanvas } = canvas;
+  const { drawRef, tool, setTool, brushSize, setBrushSize, color, setColor, clearCanvas, undo, canUndo } = canvas;
   const hasTrace = !!GHOST_PATHS[word.word];
   const [palette, setPalette] = useState<'pastel' | 'bold'>('pastel');
   const activeColors = palette === 'pastel' ? CHALK_COLORS : BOLD_COLORS;
@@ -483,224 +501,133 @@ function GameScreen({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 py-3 sm:px-5"
+      className="flex h-full w-full flex-col gap-1.5 px-2 py-2"
     >
-      {/* ── Word header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <img
-            src={asset("/characters/map-casey.png")}
-            alt=""
-            aria-hidden
-            className="h-14 w-auto shrink-0"
-            style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))' }}
-          />
-          <div>
-            <div className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-ink/40">
-              Draw this!
-            </div>
-            <div className="flex items-center gap-2 text-3xl font-extrabold leading-tight text-ink sm:text-4xl">
-              <span>{word.emoji}</span>
-              <span>{word.word}</span>
-            </div>
-          </div>
-        </div>
-
+      {/* ── Header: word + actions ── */}
+      <div className="flex shrink-0 items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
+          <span className="text-2xl leading-none">{word.emoji}</span>
+          <div>
+            <div className="text-[8px] font-extrabold uppercase tracking-widest text-ink/35">Draw this!</div>
+            <div className="text-lg font-extrabold leading-tight text-ink">{word.word}</div>
+          </div>
           {stamps.length > 0 && (
-            <div
-              className="rounded-full border-[3px] border-ink px-3 py-1 text-xs font-extrabold text-ink"
-              style={{ background: '#f5c842', borderBottomWidth: 4 }}
-            >
-              ⭐ {stamps.length} stamp{stamps.length !== 1 ? 's' : ''}
+            <div className="rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-extrabold text-ink"
+              style={{ background: '#f5c842' }}>
+              ⭐ {stamps.length}
             </div>
           )}
-          <PillBtn onClick={onPrint} accent="#fff" dark size="sm">
-            🖨️ Print
+        </div>
+        <div className="flex items-center gap-1.5">
+          <PillBtn onClick={onPrint} accent="#fff" dark size="sm">🖨️</PillBtn>
+          <PillBtn onClick={onDone} accent="#f5c842" dark size="sm">Done! 🎉</PillBtn>
+          <PillBtn onClick={onSkip} accent="#e87fa3" size="sm">
+            {customMode ? 'New 🔀' : 'Skip 🔀'}
           </PillBtn>
         </div>
       </div>
 
-      {/* ── Casey bubble ── */}
-      <CaseyBubble text={caseyText} />
-
-      {/* ── Chalkboard ── */}
+      {/* ── Chalkboard — grows to fill remaining space ── */}
       <div
-        className="relative w-full"
+        className="relative min-h-0 flex-1 w-full"
         style={{
-          aspectRatio: '4 / 3',
           background: '#1c3d1e',
-          border: '10px solid #5c3a1e',
-          borderTop: '14px solid #6b4a28',
+          border: '8px solid #5c3a1e',
+          borderTop: '11px solid #6b4a28',
           borderRadius: 6,
-          boxShadow:
-            '0 0 0 3px #3a2210, 0 10px 30px rgba(0,0,0,0.2), inset 0 0 50px rgba(0,0,0,0.3)',
+          boxShadow: '0 0 0 2px #3a2210, 0 6px 20px rgba(0,0,0,0.2), inset 0 0 40px rgba(0,0,0,0.3)',
         }}
       >
-        {/* Trace canvas — dashed outlines behind drawing */}
         <canvas
           ref={traceRef}
           style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
             pointerEvents: 'none',
             opacity: traceVisible ? 1 : 0,
             transition: 'opacity 0.4s ease',
           }}
         />
-        {/* Drawing canvas — where kids draw (transparent bg, on top) */}
         <canvas
           ref={drawRef}
           style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
             cursor: tool === 'eraser' ? 'cell' : 'crosshair',
             touchAction: 'none',
           }}
         />
       </div>
 
-      {/* ── Tool row ── */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {/* Brush / Eraser */}
-        {(['brush', 'eraser'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTool(t)}
-            className="rounded-full border-[3px] border-ink px-3 py-1.5 text-xs font-extrabold transition-transform hover:-translate-y-0.5"
-            style={{
-              background: tool === t ? (t === 'brush' ? '#4ecdc4' : '#e87fa3') : '#fff',
-              color: tool === t ? '#fff' : '#1a1a1a',
-              borderBottomWidth: 4,
-              borderRightWidth: 3,
-            }}
-          >
-            {t === 'brush' ? '✏️ Chalk' : '🧹 Erase'}
-          </button>
+      {/* ── Tools row ── */}
+      <div className="flex shrink-0 flex-wrap items-center justify-center gap-1.5">
+        {([
+          { id: 'brush',  label: '🖌️ Chalk',  active: '#4ecdc4' },
+          { id: 'pencil', label: '✏️ Pencil', active: '#74b9ff' },
+          { id: 'spray',  label: '🎨 Spray',  active: '#c39bd3' },
+          { id: 'eraser', label: '🧹 Erase',  active: '#e87fa3' },
+        ] as const).map(({ id, label, active }) => (
+          <button key={id} onClick={() => setTool(id)}
+            className="rounded-full border-[2px] border-ink px-2.5 py-1 text-[11px] font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{ background: tool === id ? active : '#fff', color: tool === id ? '#fff' : '#1a1a1a', borderBottomWidth: 3 }}
+          >{label}</button>
         ))}
+
+        <div className="mx-1 h-4 w-px bg-ink/20" />
 
         {/* Size dots */}
         {([8, 16, 28] as const).map(s => (
-          <button
-            key={s}
-            onClick={() => { setBrushSize(s); setTool('brush'); }}
-            title={`Size ${s}`}
-            className="flex items-center justify-center rounded-full border-[3px] border-ink transition-transform hover:-translate-y-0.5"
-            style={{
-              width: 36,
-              height: 36,
-              background: brushSize === s ? '#f5c842' : '#fff',
-              borderBottomWidth: 4,
-            }}
+          <button key={s} onClick={() => setBrushSize(s)} title={`Size ${s}`}
+            className="flex items-center justify-center rounded-full border-[2px] border-ink transition-transform hover:-translate-y-0.5"
+            style={{ width: 28, height: 28, background: brushSize === s ? '#f5c842' : '#fff', borderBottomWidth: 3 }}
           >
-            <span
-              style={{
-                display: 'block',
-                width:  s === 8 ? 6 : s === 16 ? 11 : 18,
-                height: s === 8 ? 6 : s === 16 ? 11 : 18,
-                borderRadius: '50%',
-                background: '#1a1a1a',
-              }}
-            />
+            <span style={{ display: 'block', width: s === 8 ? 5 : s === 16 ? 9 : 14, height: s === 8 ? 5 : s === 16 ? 9 : 14, borderRadius: '50%', background: '#1a1a1a' }} />
           </button>
         ))}
 
-        {/* Clear */}
-        <button
-          onClick={clearCanvas}
-          title="Clear canvas"
-          className="rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-xs font-extrabold text-ink transition-transform hover:-translate-y-0.5"
-          style={{ borderBottomWidth: 4 }}
-        >
-          🗑️ Clear
-        </button>
+        <div className="mx-1 h-4 w-px bg-ink/20" />
 
-        {/* Trace toggle — only shown when trace data exists */}
+        <button onClick={undo} disabled={!canUndo}
+          className="rounded-full border-[2px] border-ink bg-white px-2.5 py-1 text-[11px] font-extrabold text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none"
+          style={{ borderBottomWidth: 3 }}>↩ Undo</button>
+
+        <button onClick={clearCanvas}
+          className="rounded-full border-[2px] border-ink bg-white px-2.5 py-1 text-[11px] font-extrabold text-ink transition-transform hover:-translate-y-0.5"
+          style={{ borderBottomWidth: 3 }}>🗑️ Clear</button>
+
         {hasTrace && (
-          <button
-            onClick={onToggleTrace}
-            className="rounded-full border-[3px] border-ink px-3 py-1.5 text-xs font-extrabold transition-transform hover:-translate-y-0.5"
-            style={{
-              background: traceVisible ? '#a8d8a8' : '#fff',
-              color: '#1a1a1a',
-              borderBottomWidth: 4,
-              borderRightWidth: 3,
-            }}
-          >
-            {traceVisible ? '✖ Remove Trace' : '👁 Show Trace'}
+          <button onClick={onToggleTrace}
+            className="rounded-full border-[2px] border-ink px-2.5 py-1 text-[11px] font-extrabold transition-transform hover:-translate-y-0.5"
+            style={{ background: traceVisible ? '#a8d8a8' : '#fff', borderBottomWidth: 3 }}>
+            {traceVisible ? '✖ Trace' : '👁 Trace'}
           </button>
         )}
       </div>
 
       {/* ── Colour palette ── */}
-      <div className="flex flex-col items-center gap-2">
-        {/* Palette toggle */}
-        <div className="flex rounded-full border-[3px] border-ink overflow-hidden" style={{ borderBottomWidth: 4 }}>
+      <div className="flex shrink-0 items-center justify-center gap-2">
+        {/* Pastel / Bold toggle */}
+        <div className="flex overflow-hidden rounded-full border-[2px] border-ink" style={{ borderBottomWidth: 3 }}>
           {(['pastel', 'bold'] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => setPalette(p)}
-              className="px-4 py-1 text-xs font-extrabold transition-colors"
-              style={{
-                background: palette === p ? '#f5c842' : '#fff',
-                color: '#1a1a1a',
-              }}
-            >
-              {p === 'pastel' ? '🌸 Pastel' : '🎨 Bold'}
+            <button key={p} onClick={() => setPalette(p)}
+              className="px-3 py-0.5 text-[10px] font-extrabold transition-colors"
+              style={{ background: palette === p ? '#f5c842' : '#fff', color: '#1a1a1a' }}>
+              {p === 'pastel' ? '🌸' : '🎨'}
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap justify-center gap-2 px-1">
-          {activeColors.map(({ hex, label }) => (
-            <button
-              key={hex}
-              title={label}
-              onClick={() => setColor(hex)}
-              className="rounded-full border-[3px] transition-all hover:scale-110"
-              style={{
-                width: 32,
-                height: 32,
-                background: hex,
-                borderColor: color === hex ? '#1a1a1a' : 'rgba(0,0,0,0.12)',
-                transform: color === hex ? 'scale(1.25)' : undefined,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-              }}
-            />
-          ))}
-        </div>
+        {/* Swatches */}
+        {activeColors.map(({ hex, label }) => (
+          <button key={hex} title={label} onClick={() => setColor(hex)}
+            className="rounded-full border-[2px] transition-all hover:scale-110"
+            style={{
+              width: 24, height: 24,
+              background: hex,
+              borderColor: color === hex ? '#1a1a1a' : 'rgba(0,0,0,0.12)',
+              transform: color === hex ? 'scale(1.3)' : undefined,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+            }}
+          />
+        ))}
       </div>
-
-      {/* ── Action buttons ── */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <PillBtn onClick={onDone} accent="#f5c842" dark size="lg">
-          I'm done! 🎉
-        </PillBtn>
-        <PillBtn onClick={onSkip} accent="#e87fa3">
-          {customMode ? 'Draw something else 🔀' : 'Different word 🔀'}
-        </PillBtn>
-      </div>
-
-      {/* ── Stamp shelf ── */}
-      {stamps.length > 0 ? (
-        <div
-          className="flex flex-wrap justify-center gap-2 rounded-2xl border-[3px] border-dashed border-ink/15 bg-ink/[0.03] px-4 py-3"
-          style={{ minHeight: 70 }}
-        >
-          {stamps.map((s, i) => (
-            <Stamp key={`${s.word}-${i}`} emoji={s.emoji} word={s.word} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center justify-center rounded-2xl border-[3px] border-dashed border-ink/12 px-4 py-4">
-          <span className="text-xs font-medium text-ink/30">
-            Your sticker stamps will appear here! 🌟
-          </span>
-        </div>
-      )}
     </motion.div>
   );
 }
@@ -891,6 +818,8 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
   const [stamps, setStamps]         = useState<Word[]>([]);
   const [caseyText, setCaseyText]   = useState('');
   const [traceVisible, setTraceVisible] = useState(false);
+  // Snapshot of the drawing captured just before the canvas unmounts
+  const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
 
   const canvas = useChalkCanvas();
 
@@ -949,12 +878,14 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
   // ── Done ──────────────────────────────────────────────────────
   const handleDone = useCallback(() => {
     if (!currentWord) return;
+    // Snapshot the drawing NOW — before the canvas unmounts on phase change
+    setPendingImageUrl(canvas.getImageDataUrl());
     setStamps(prev => [...prev, currentWord]);
     setPhase('pass');
     onComplete?.();
     burstCorrect();
     setTimeout(burstFinale, 300);
-  }, [currentWord]);
+  }, [currentWord, canvas]);
 
   // ── Skip ─────────────────────────────────────────────────────
   const handleSkip = useCallback(() => {
@@ -980,12 +911,11 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
       console.error('[casey-gallery] blocked: user=%o word=%o configured=%o', user, currentWord, isSupabaseConfigured);
       return { success: false };
     }
-    const dataUrl = canvas.getImageDataUrl();
-    if (!dataUrl) {
-      console.error('[casey-gallery] getImageDataUrl returned empty');
+    if (!pendingImageUrl) {
+      console.error('[casey-gallery] no image snapshot available');
       return { success: false };
     }
-    const imageUrl = await uploadDrawing(dataUrl, user.id);
+    const imageUrl = await uploadDrawing(pendingImageUrl, user.id);
     if (!imageUrl) return { success: false };
     const { error } = await supabase.from('casey_gallery').insert({
       user_id: user.id,
@@ -995,7 +925,7 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
     });
     if (error) console.error('[casey-gallery] insert failed:', error);
     return { success: !error };
-  }, [user, currentWord, canvas]);
+  }, [user, currentWord, pendingImageUrl]);
 
   // ── Print ─────────────────────────────────────────────────────
   const handlePrint = useCallback(() => {
@@ -1059,7 +989,7 @@ export function DrawWithCaseyGame({ onComplete }: { onComplete?: () => void } = 
         )}
 
         {phase === 'drawing' && currentWord && (
-          <motion.div key={`drawing-${wordIdx}`} className="w-full overflow-y-auto">
+          <motion.div key={`drawing-${wordIdx}`} className="flex h-full w-full flex-col">
             <GameScreen
               playerName={playerName}
               word={currentWord}

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { GAME_MANIFEST, CATEGORY_MANIFEST } from "@/lib/game-manifest";
 import { asset } from "@/lib/asset";
 import { HallOfFame } from "@/components/leaderboard";
@@ -21,6 +22,157 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
+
+// ── Scrollable row with Netflix-style fade + arrow indicators ──────────────
+function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+
+  const check = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Check immediately, then after a frame so layout is fully resolved
+    check();
+    const raf = requestAnimationFrame(check);
+    el.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", check);
+      ro.disconnect();
+    };
+  }, [check]);
+
+  const scroll = (dir: "left" | "right") => {
+    ref.current?.scrollBy({ left: dir === "right" ? 260 : -260, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative">
+      {/* Card row */}
+      <div
+        ref={ref}
+        className="flex gap-3 overflow-x-auto pb-3 pt-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {games.map((game) => (
+          <Link
+            key={game.slug}
+            to={game.href}
+            className="group flex shrink-0 flex-col overflow-hidden rounded-[1.75rem] border-[3px] border-ink transition-transform hover:-translate-y-1"
+            style={{
+              background: "#fff",
+              borderBottomWidth: 6,
+              borderRightWidth: 5,
+              textDecoration: "none",
+              width: "13rem",
+            }}
+          >
+            {/* Image banner */}
+            <div
+              className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
+              style={{
+                background: game.accent + "33",
+                height: "6rem",
+                padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
+              }}
+            >
+              <img
+                src={game.image}
+                alt={game.title}
+                className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
+                style={{
+                  maxWidth: "100%",
+                  mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
+                  objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
+                  objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
+                  maskImage:
+                    game.slug === "fly-the-flag"
+                      ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                      : game.slug === "world-adventure"
+                      ? "linear-gradient(to right, transparent 0%, black 22%)"
+                      : undefined,
+                  WebkitMaskImage:
+                    game.slug === "fly-the-flag"
+                      ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                      : game.slug === "world-adventure"
+                      ? "linear-gradient(to right, transparent 0%, black 22%)"
+                      : undefined,
+                }}
+              />
+            </div>
+
+            {/* Content */}
+            <div className="flex flex-1 flex-col px-3 pt-2 pb-3">
+              <div className="text-[0.58rem] uppercase tracking-[0.22em] text-ink/50 font-bold">
+                {game.eyebrow}
+              </div>
+              <h2 className="mt-0.5 text-sm font-extrabold leading-tight">{game.title}</h2>
+              <p className="mt-1 flex-1 text-[0.68rem] text-ink/65 leading-relaxed line-clamp-2">
+                {game.description}
+              </p>
+              <div className="mt-2.5 flex justify-center">
+                <span
+                  className="rounded-full border-[3px] border-ink px-5 py-1 text-sm font-extrabold transition-all group-hover:scale-105"
+                  style={{
+                    background: game.accent,
+                    borderBottomWidth: 5,
+                    borderRightWidth: 4,
+                  }}
+                >
+                  Play →
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Left fade + arrow */}
+      {canScrollLeft && (
+        <div
+          className="pointer-events-none absolute left-0 top-0 bottom-3 w-16 z-10 flex items-center"
+          style={{ background: "linear-gradient(to right, #FFFBF0 35%, transparent)" }}
+        >
+          <button
+            className="pointer-events-auto ml-1 flex h-9 w-9 items-center justify-center rounded-full border-[2.5px] border-ink bg-white text-lg font-extrabold shadow-sm transition-transform hover:scale-110 active:scale-95"
+            style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
+            onClick={() => scroll("left")}
+            aria-label="Scroll left"
+          >
+            ‹
+          </button>
+        </div>
+      )}
+
+      {/* Right fade + arrow */}
+      {canScrollRight && (
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-3 w-20 z-10 flex items-center justify-end"
+          style={{ background: "linear-gradient(to left, #FFFBF0 35%, transparent)" }}
+        >
+          <button
+            className="pointer-events-auto mr-1 flex h-9 w-9 items-center justify-center rounded-full border-[2.5px] border-ink bg-white text-lg font-extrabold shadow-sm transition-transform hover:scale-110 active:scale-95"
+            style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
+            onClick={() => scroll("right")}
+            aria-label="Scroll right"
+          >
+            ›
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Index() {
   return (
@@ -153,86 +305,8 @@ function Index() {
                 </div>
               )}
 
-              {/* Horizontal scroll row */}
-              <div
-                className="flex gap-3 overflow-x-auto pb-3 pt-2"
-                style={{
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                }}
-              >
-                {games.map((game) => (
-                  <Link
-                    key={game.slug}
-                    to={game.href}
-                    className="group flex shrink-0 flex-col overflow-hidden rounded-[1.75rem] border-[3px] border-ink transition-transform hover:-translate-y-1"
-                    style={{
-                      background: "#fff",
-                      borderBottomWidth: 6,
-                      borderRightWidth: 5,
-                      textDecoration: "none",
-                      width: "13rem",
-                    }}
-                  >
-                    {/* Image banner */}
-                    <div
-                      className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
-                      style={{
-                        background: game.accent + "33",
-                        height: "6rem",
-                        padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
-                      }}
-                    >
-                      <img
-                        src={game.image}
-                        alt={game.title}
-                        className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
-                        style={{
-                          maxWidth: "100%",
-                          mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
-                          objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
-                          objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
-                          maskImage:
-                            game.slug === "fly-the-flag"
-                              ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                              : game.slug === "world-adventure"
-                              ? "linear-gradient(to right, transparent 0%, black 22%)"
-                              : undefined,
-                          WebkitMaskImage:
-                            game.slug === "fly-the-flag"
-                              ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                              : game.slug === "world-adventure"
-                              ? "linear-gradient(to right, transparent 0%, black 22%)"
-                              : undefined,
-                        }}
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex flex-1 flex-col px-3 pt-2 pb-3">
-                      <div className="text-[0.58rem] uppercase tracking-[0.22em] text-ink/50 font-bold">
-                        {game.eyebrow}
-                      </div>
-                      <h2 className="mt-0.5 text-sm font-extrabold leading-tight">{game.title}</h2>
-                      <p className="mt-1 flex-1 text-[0.68rem] text-ink/65 leading-relaxed line-clamp-2">
-                        {game.description}
-                      </p>
-                      <div className="mt-2.5 flex justify-center">
-                        <span
-                          className="rounded-full border-[3px] border-ink px-5 py-1 text-sm font-extrabold transition-all group-hover:scale-105"
-                          style={{
-                            background: game.accent,
-                            borderBottomWidth: 5,
-                            borderRightWidth: 4,
-                          }}
-                        >
-                          Play →
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              {/* Horizontal scroll row with indicators */}
+              <ScrollRow games={games} />
             </section>
           );
         })}
