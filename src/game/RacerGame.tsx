@@ -27,116 +27,136 @@ const INVINCIBLE_FRAMES = 90;
 const OBS_COLORS = ["#ff3333", "#3399ff", "#ff9900", "#ff33ff", "#33ff99"];
 const LANES = [-0.55, 0, 0.55];
 
-// Book 3 pages 3-24 excluding 14 (21 total)
-const BG_PAGES = [3,4,5,6,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,23,24];
-
-// ── Level color themes ─────────────────────────────────────────────────────
-// One theme per BG_PAGES entry, colors pulled from each page's illustration.
+// ── Level themes ───────────────────────────────────────────────────────────
 interface LevelTheme {
-  skyTop: string;   // top of sky gradient
-  skyBot: string;   // bottom of sky gradient (near horizon)
-  grass1: string;   // lighter grass stripe
-  grass2: string;   // darker grass stripe
-  road1: string;    // lighter road stripe
-  road2: string;    // darker road stripe
-  curb: string;     // alternating curb color A
-  stripe: string;   // alternating curb color B
-  glow: string;     // horizon glow (rgba string)
+  skyTop: string;
+  skyBot: string;
+  grass1: string;
+  grass2: string;
+  road1: string;
+  road2: string;
+  curb: string;
+  stripe: string;
+  glow: string;
+  country: string;
+  // Three flag stripe colors (top→bottom) for the collectible ball
+  ball: [string, string, string];
 }
 
-// Indexed in the same order as BG_PAGES
+// One entry per book page (pages 3-24, skipping 14 = 21 total)
 const LEVEL_THEMES: LevelTheme[] = [
-  // pg 3 – New Orleans night jazz: deep navy, gold lamplight, warm amber road
+  // pg 3  New Orleans / USA
   { skyTop:"#0d1a3e", skyBot:"#1a2855", grass1:"#1a3a2a", grass2:"#0d2218",
     road1:"#2a2535", road2:"#1e1a28", curb:"#cc3322", stripe:"#f0c060",
-    glow:"rgba(240,180,60,0.40)" },
-  // pg 4 – Mexico beach: bright blue sky, vivid green palms, sandy tan road
+    glow:"rgba(240,180,60,0.40)", country:"USA",
+    ball:["#b22234","#ffffff","#3c3b6e"] },
+  // pg 4  Mexico
   { skyTop:"#1a7ab5", skyBot:"#4fb8e8", grass1:"#2a8a2a", grass2:"#1a6a1a",
     road1:"#c8a870", road2:"#a88850", curb:"#dd2222", stripe:"#ffffff",
-    glow:"rgba(80,200,100,0.32)" },
-  // pg 5 – Jamaica beach: sky blue, bright green, sandy road, Jamaican flag blacks
+    glow:"rgba(80,200,100,0.32)", country:"Mexico",
+    ball:["#006847","#ffffff","#ce1126"] },
+  // pg 5  Jamaica
   { skyTop:"#1a8cc0", skyBot:"#5ad0f0", grass1:"#2a7a2a", grass2:"#1a5a1a",
     road1:"#d4b878", road2:"#b09050", curb:"#111111", stripe:"#228b22",
-    glow:"rgba(34,180,34,0.30)" },
-  // pg 6 – Barbados: turquoise water sky, sandy-tan ground, purple-blue house accent
+    glow:"rgba(34,180,34,0.30)", country:"Jamaica",
+    ball:["#000000","#ffd700","#007847"] },
+  // pg 6  Barbados
   { skyTop:"#1a9aaa", skyBot:"#4ad8e8", grass1:"#e8c87a", grass2:"#c8a850",
     road1:"#c0b090", road2:"#a09070", curb:"#5544aa", stripe:"#ffffff",
-    glow:"rgba(80,220,230,0.36)" },
-  // pg 7 – Peru/Machu Picchu: muted blue-gray sky, deep green mountains, terracotta ruins
+    glow:"rgba(80,220,230,0.36)", country:"Barbados",
+    ball:["#00267f","#ffc726","#00267f"] },
+  // pg 7  Peru
   { skyTop:"#4a7ab0", skyBot:"#8abadc", grass1:"#4a6a2a", grass2:"#2a4a1a",
     road1:"#9a7050", road2:"#7a5030", curb:"#aa3333", stripe:"#ddccaa",
-    glow:"rgba(150,100,60,0.30)" },
-  // pg 8 – Buenos Aires: light blue sky, Argentine blue/white, gray street
+    glow:"rgba(150,100,60,0.30)", country:"Peru",
+    ball:["#d91023","#ffffff","#d91023"] },
+  // pg 8  Argentina
   { skyTop:"#6ab0d8", skyBot:"#a0d0ee", grass1:"#3a7a3a", grass2:"#2a5a2a",
     road1:"#606070", road2:"#484858", curb:"#5599dd", stripe:"#ffffff",
-    glow:"rgba(80,150,230,0.30)" },
-  // pg 9 – Antarctica: pale icy blue sky, white/blue ice floes, dark polar water
+    glow:"rgba(80,150,230,0.30)", country:"Argentina",
+    ball:["#74acdf","#ffffff","#74acdf"] },
+  // pg 9  Antarctica
   { skyTop:"#8ac8e8", skyBot:"#c0e4f4", grass1:"#a0c8d8", grass2:"#80a8c0",
     road1:"#c0d8e8", road2:"#a0b8cc", curb:"#e0eeee", stripe:"#b0d4ec",
-    glow:"rgba(180,220,240,0.42)" },
-  // pg 10 – London: steel blue sky, warm gray stone, red British accent
+    glow:"rgba(180,220,240,0.42)", country:"Antarctica",
+    ball:["#ffffff","#aaddee","#ffffff"] },
+  // pg 10 UK
   { skyTop:"#6090b0", skyBot:"#90b8cc", grass1:"#3a6030", grass2:"#2a4820",
     road1:"#787060", road2:"#585048", curb:"#cc2222", stripe:"#f0f0f0",
-    glow:"rgba(160,140,100,0.30)" },
-  // pg 11 – Spain/La Tomatina: bright blue sky, purple/pink buildings, tomato red
+    glow:"rgba(160,140,100,0.30)", country:"UK",
+    ball:["#cc0000","#ffffff","#00247d"] },
+  // pg 11 Spain
   { skyTop:"#3888cc", skyBot:"#70b8e8", grass1:"#c07870", grass2:"#a05850",
     road1:"#c8bca0", road2:"#a89c80", curb:"#cc2222", stripe:"#f8f0e0",
-    glow:"rgba(220,80,80,0.36)" },
-  // pg 12 – Paris: sky blue, golden amber (Eiffel + boat), pink Parisian accent
+    glow:"rgba(220,80,80,0.36)", country:"Spain",
+    ball:["#c60b1e","#f1bf00","#c60b1e"] },
+  // pg 12 France
   { skyTop:"#5090c0", skyBot:"#90c0e0", grass1:"#2a7030", grass2:"#1a5020",
     road1:"#b89a70", road2:"#987850", curb:"#f8a0b0", stripe:"#f0e0c0",
-    glow:"rgba(240,160,80,0.36)" },
-  // pg 13 – Italy: sky blue, terracotta Colosseum, bright green lawn
+    glow:"rgba(240,160,80,0.36)", country:"France",
+    ball:["#002395","#ffffff","#ed2939"] },
+  // pg 13 Italy
   { skyTop:"#5088c0", skyBot:"#88b8dc", grass1:"#3a8030", grass2:"#2a6020",
     road1:"#c8a870", road2:"#a88850", curb:"#cc2222", stripe:"#f0e8d0",
-    glow:"rgba(200,160,80,0.30)" },
-  // pg 15 – Sri Lanka market: purple drapes, warm fruit tones, colorful
+    glow:"rgba(200,160,80,0.30)", country:"Italy",
+    ball:["#009246","#ffffff","#ce2b37"] },
+  // pg 15 Sri Lanka
   { skyTop:"#6050a0", skyBot:"#9080c0", grass1:"#a0c850", grass2:"#80a830",
     road1:"#c89860", road2:"#a87840", curb:"#cc44aa", stripe:"#ffee88",
-    glow:"rgba(200,100,220,0.36)" },
-  // pg 16 – Japan sushi bar: pale mint, aquarium teal, red Japanese flag
+    glow:"rgba(200,100,220,0.36)", country:"Sri Lanka",
+    ball:["#8d153a","#f5af00","#8d153a"] },
+  // pg 16 Japan
   { skyTop:"#88b8c8", skyBot:"#b8d8e0", grass1:"#2a7888", grass2:"#1a5868",
     road1:"#506878", road2:"#384858", curb:"#cc2222", stripe:"#f0f0f0",
-    glow:"rgba(80,180,200,0.36)" },
-  // pg 17 – Switzerland skiing: icy blue sky, white snow, colorful ski rack
+    glow:"rgba(80,180,200,0.36)", country:"Japan",
+    ball:["#ffffff","#bc002d","#ffffff"] },
+  // pg 17 Switzerland
   { skyTop:"#88b8d8", skyBot:"#c0dced", grass1:"#e8f0f8", grass2:"#c8d8e8",
     road1:"#e8e0d8", road2:"#c8c0b8", curb:"#cc2222", stripe:"#ffffff",
-    glow:"rgba(180,220,240,0.42)" },
-  // pg 18 – Kenya/Masai Mara savanna: bright blue sky, golden-green grass, warm earth
+    glow:"rgba(180,220,240,0.42)", country:"Switzerland",
+    ball:["#ff0000","#ffffff","#ff0000"] },
+  // pg 18 Kenya
   { skyTop:"#38a0d8", skyBot:"#70c8e8", grass1:"#90b840", grass2:"#70981a",
     road1:"#c8a050", road2:"#a88030", curb:"#cc6622", stripe:"#f8e880",
-    glow:"rgba(240,180,40,0.36)" },
-  // pg 19 – Cape Town: bright sky, rainbow tones, turquoise water, colorful huts
+    glow:"rgba(240,180,40,0.36)", country:"Kenya",
+    ball:["#006600","#cc0000","#000000"] },
+  // pg 19 South Africa
   { skyTop:"#38a8e0", skyBot:"#70d0f0", grass1:"#2a9060", grass2:"#1a7040",
     road1:"#d8c8a0", road2:"#b8a880", curb:"#cc4488", stripe:"#ffee44",
-    glow:"rgba(120,220,180,0.36)" },
-  // pg 20 – Ghana market: multicolor kente streamers, blue ocean, warm sand
+    glow:"rgba(120,220,180,0.36)", country:"South Africa",
+    ball:["#007749","#ffb81c","#de3831"] },
+  // pg 20 Ghana
   { skyTop:"#3890c8", skyBot:"#60b8e0", grass1:"#e89030", grass2:"#c87010",
     road1:"#c8a060", road2:"#a88040", curb:"#dd4422", stripe:"#88cc44",
-    glow:"rgba(240,140,40,0.42)" },
-  // pg 21 – Korea mask market: periwinkle/lavender blue, dark teal, warm brick
+    glow:"rgba(240,140,40,0.42)", country:"Ghana",
+    ball:["#006b3f","#fcd116","#ce1126"] },
+  // pg 21 South Korea
   { skyTop:"#8880c0", skyBot:"#b0a8d8", grass1:"#6888a8", grass2:"#485888",
     road1:"#706080", road2:"#504060", curb:"#cc4444", stripe:"#f0e8e0",
-    glow:"rgba(160,120,200,0.36)" },
-  // pg 22 – Nepal/Everest: pale mountain sky, snow white, burnt orange suits
+    glow:"rgba(160,120,200,0.36)", country:"South Korea",
+    ball:["#c60c30","#ffffff","#003478"] },
+  // pg 22 Nepal
   { skyTop:"#70b8e8", skyBot:"#a8d8f4", grass1:"#f0f0f8", grass2:"#d0d8e8",
     road1:"#d0c0a8", road2:"#b0a088", curb:"#cc5522", stripe:"#ffffff",
-    glow:"rgba(180,220,240,0.42)" },
-  // pg 23 – Indonesia beach cove: turquoise water, warm brown cliff, sandy road
+    glow:"rgba(180,220,240,0.42)", country:"Nepal",
+    ball:["#003893","#dc143c","#003893"] },
+  // pg 23 Indonesia
   { skyTop:"#3898d0", skyBot:"#60c0e8", grass1:"#9a6030", grass2:"#7a4020",
     road1:"#d4b878", road2:"#b49858", curb:"#cc2222", stripe:"#f8f0d0",
-    glow:"rgba(60,180,220,0.36)" },
-  // pg 24 – Australia tennis: dark stadium blue, court blue, bright white lines
+    glow:"rgba(60,180,220,0.36)", country:"Indonesia",
+    ball:["#ce1126","#ce1126","#ffffff"] },
+  // pg 24 Australia
   { skyTop:"#1a2a60", skyBot:"#2a3a80", grass1:"#2a5080", grass2:"#1a3868",
     road1:"#3868a0", road2:"#285888", curb:"#ffffff", stripe:"#55aaff",
-    glow:"rgba(60,120,220,0.42)" },
+    glow:"rgba(60,120,220,0.42)", country:"Australia",
+    ball:["#00008b","#cc0000","#ffffff"] },
 ];
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Phase = "title" | "playing" | "levelup" | "gameover";
 
 interface Obstacle { depth: number; laneX: number; color: string; id: number; }
-interface Flag     { depth: number; laneX: number; id: number; }
+interface Ball     { depth: number; laneX: number; id: number; }
 
 interface GameState {
   phase: Phase;
@@ -147,17 +167,17 @@ interface GameState {
   bestScore: number;
   lives: number;
   level: number;
-  flagsCollected: number;
-  flags: Flag[];
+  ballsCollected: number;
+  balls: Ball[];
   obstacles: Obstacle[];
-  bgOrder: number[];      // shuffled indices into LEVEL_THEMES
+  bgOrder: number[];
   nextId: number;
   leftDown: boolean;
   rightDown: boolean;
   touchX: number | null;
   tick: number;
   spawnIn: number;
-  flagSpawnIn: number;
+  ballSpawnIn: number;
   invincible: number;
   levelFlash: number;
   scoreSubmitted: boolean;
@@ -191,8 +211,8 @@ function makeInitialState(bestScore = 0): GameState {
     bestScore,
     lives: MAX_LIVES,
     level: 1,
-    flagsCollected: 0,
-    flags: [],
+    ballsCollected: 0,
+    balls: [],
     obstacles: [],
     bgOrder: shuffle(LEVEL_THEMES.map((_, i) => i)),
     nextId: 0,
@@ -201,7 +221,7 @@ function makeInitialState(bestScore = 0): GameState {
     touchX: null,
     tick: 0,
     spawnIn: 40,
-    flagSpawnIn: 30,
+    ballSpawnIn: 30,
     invincible: 0,
     levelFlash: 0,
     scoreSubmitted: false,
@@ -216,7 +236,6 @@ function drawSky(ctx: CanvasRenderingContext2D, theme: LevelTheme) {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, HORIZON_Y);
 
-  // horizon glow
   const glow = ctx.createLinearGradient(0, HORIZON_Y - 22, 0, HORIZON_Y);
   glow.addColorStop(0, "rgba(0,0,0,0)");
   glow.addColorStop(1, theme.glow);
@@ -257,46 +276,59 @@ function drawRoad(ctx: CanvasRenderingContext2D, trackPos: number, carX: number,
   }
 }
 
-// ── Draw: flag item ────────────────────────────────────────────────────────
-function drawFlag(
+// ── Draw: flag ball collectible ────────────────────────────────────────────
+function drawFlagBall(
   ctx: CanvasRenderingContext2D,
-  sx: number, sy: number, scale: number, tick: number, id: number
+  sx: number, sy: number, scale: number,
+  tick: number, id: number,
+  colors: [string, string, string]
 ) {
-  const poleH = Math.round(40 * scale);
-  const flagW  = Math.round(22 * scale);
-  const flagH  = Math.round(16 * scale);
-  if (poleH < 3) return;
-
-  const px = Math.round(sx);
-  const py = Math.round(sy);
+  const r = Math.max(2, Math.round(18 * scale));
+  // gentle vertical bob
+  const bob = Math.sin(tick * 0.14 + id * 0.9) * 4 * scale;
+  const cx = Math.round(sx);
+  const cy = Math.round(sy - r + bob);
 
   ctx.save();
-  ctx.shadowColor = "#ffff00";
-  ctx.shadowBlur = 8 * scale;
 
-  ctx.fillStyle = "#cccccc";
-  ctx.fillRect(px - 1, py - poleH, 2, poleH);
+  // outer glow
+  ctx.shadowColor = colors[1];
+  ctx.shadowBlur = 10 * scale;
 
-  if (flagW >= 4 && flagH >= 3) {
-    const cells = 3;
-    const cellW = Math.max(1, Math.floor(flagW / cells));
-    const cellH = Math.max(1, Math.floor(flagH / 2));
-    for (let row = 0; row < 2; row++) {
-      for (let col = 0; col < cells; col++) {
-        ctx.fillStyle = (row + col) % 2 === 0 ? "#000000" : "#ffffff";
-        ctx.fillRect(px, py - poleH + row * cellH, cellW, cellH);
-      }
-    }
-  }
+  // clip circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
 
-  const spark = 0.5 + 0.5 * Math.sin(tick * 0.15 + id * 1.3);
-  ctx.globalAlpha = spark * 0.7 * scale;
-  ctx.fillStyle = "#ffff00";
-  ctx.fillRect(px - 3, py - poleH - 3, 3, 3);
-  ctx.fillRect(px + flagW, py - poleH - 3, 3, 3);
+  // three horizontal flag stripes
+  const sh = Math.ceil((r * 2) / 3) + 1;
+  ctx.fillStyle = colors[0];
+  ctx.fillRect(cx - r, cy - r, r * 2, sh);
+  ctx.fillStyle = colors[1];
+  ctx.fillRect(cx - r, cy - r + sh, r * 2, sh);
+  ctx.fillStyle = colors[2];
+  ctx.fillRect(cx - r, cy - r + sh * 2, r * 2, sh + 2);
 
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
+  // spherical highlight
+  const shine = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+  shine.addColorStop(0, "rgba(255,255,255,0.50)");
+  shine.addColorStop(0.45, "rgba(255,255,255,0.05)");
+  shine.addColorStop(1, "rgba(0,0,0,0.38)");
+  ctx.fillStyle = shine;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  ctx.restore();
+
+  // sparkle dots around ball
+  const spark = 0.3 + 0.7 * Math.abs(Math.sin(tick * 0.18 + id * 1.4));
+  ctx.save();
+  ctx.globalAlpha = spark * Math.min(1, scale * 1.4);
+  ctx.fillStyle = colors[1];
+  const starD = r + Math.round(5 * scale);
+  ctx.fillRect(cx - 1, cy - starD - 1, 2, 2);
+  ctx.fillRect(cx - 1, cy + starD - 1, 2, 2);
+  ctx.fillRect(cx - starD - 1, cy - 1, 2, 2);
+  ctx.fillRect(cx + starD - 1, cy - 1, 2, 2);
   ctx.restore();
 }
 
@@ -375,10 +407,11 @@ function drawPlayerCar(ctx: CanvasRenderingContext2D, invincible: number) {
 function drawHUD(
   ctx: CanvasRenderingContext2D,
   score: number, lives: number, level: number,
-  flagsCollected: number, bestScore: number
+  ballsCollected: number, bestScore: number, theme: LevelTheme
 ) {
   ctx.save();
 
+  // score box
   ctx.fillStyle = "rgba(0,0,0,0.68)";
   ctx.fillRect(8, 8, 160, 62);
   ctx.strokeStyle = "#ff9900";
@@ -396,31 +429,52 @@ function drawHUD(
   ctx.font = "bold 10px 'Baloo 2', monospace";
   ctx.fillText(`BEST  ${String(Math.floor(bestScore)).padStart(6, "0")}`, 16, 54);
 
+  // country + progress box
   ctx.fillStyle = "rgba(0,0,0,0.68)";
-  ctx.fillRect(180, 8, 130, 62);
-  ctx.strokeStyle = "#ff9900";
+  ctx.fillRect(180, 8, 150, 62);
+  ctx.strokeStyle = theme.ball[1];
   ctx.lineWidth = 2;
-  ctx.strokeRect(180, 8, 130, 62);
-  ctx.fillStyle = "#ffcc00";
-  ctx.font = "bold 11px 'Baloo 2', monospace";
+  ctx.strokeRect(180, 8, 150, 62);
+  ctx.fillStyle = theme.ball[1];
+  ctx.font = "bold 10px 'Baloo 2', monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText(`LEVEL ${level}`, 188, 14);
-  const barW = 110;
-  const pct = flagsCollected / FLAGS_PER_LEVEL;
+  ctx.fillText(theme.country.toUpperCase(), 188, 14);
+
+  // mini flag ball in HUD
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(320, 24, 8, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = theme.ball[0];
+  ctx.fillRect(312, 16, 16, 6);
+  ctx.fillStyle = theme.ball[1];
+  ctx.fillRect(312, 22, 16, 5);
+  ctx.fillStyle = theme.ball[2];
+  ctx.fillRect(312, 27, 16, 5);
+  ctx.restore();
+
+  // progress bar
+  const barW = 130;
+  const pct = ballsCollected / FLAGS_PER_LEVEL;
   ctx.fillStyle = "#333344";
   ctx.fillRect(188, 32, barW, 12);
-  ctx.fillStyle = "#ffcc00";
-  ctx.fillRect(188, 32, Math.round(barW * pct), 12);
-  ctx.strokeStyle = "#ff9900";
+  ctx.fillStyle = theme.ball[0];
+  ctx.fillRect(188, 32, Math.round(barW * pct * 0.5), 12);
+  ctx.fillStyle = theme.ball[1];
+  ctx.fillRect(188 + Math.round(barW * pct * 0.5), 32, Math.round(barW * pct * 0.3), 12);
+  ctx.fillStyle = theme.ball[2];
+  ctx.fillRect(188 + Math.round(barW * pct * 0.8), 32, Math.round(barW * pct * 0.2), 12);
+  ctx.strokeStyle = theme.ball[1];
   ctx.lineWidth = 1.5;
   ctx.strokeRect(188, 32, barW, 12);
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 10px 'Baloo 2', monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(`${flagsCollected}/${FLAGS_PER_LEVEL} FLAGS`, 188 + barW / 2, 38);
+  ctx.fillText(`${ballsCollected}/${FLAGS_PER_LEVEL}`, 188 + barW / 2, 38);
 
+  // hearts
   const heartSize = 18;
   for (let i = 0; i < MAX_LIVES; i++) {
     ctx.font = `${heartSize}px monospace`;
@@ -464,7 +518,7 @@ function drawTitleScreen(
 
   ctx.fillStyle = "#ffffff88";
   ctx.font = "13px 'Baloo 2', monospace";
-  ctx.fillText("COLLECT FLAGS  •  AVOID CARS  •  3 LIVES", W / 2, 262);
+  ctx.fillText("COLLECT FLAG BALLS • AVOID CARS • 3 LIVES", W / 2, 262);
 
   if (bestScore > 0) {
     ctx.fillStyle = "#ffcc00";
@@ -489,7 +543,10 @@ function drawTitleScreen(
 }
 
 // ── Draw: level up overlay ─────────────────────────────────────────────────
-function drawLevelUp(ctx: CanvasRenderingContext2D, level: number, flash: number) {
+function drawLevelUp(
+  ctx: CanvasRenderingContext2D,
+  flash: number, nextTheme: LevelTheme
+) {
   const alpha = Math.min(1, flash / 20) * 0.88;
   ctx.fillStyle = `rgba(5,2,20,${alpha})`;
   ctx.fillRect(0, 0, W, H);
@@ -502,12 +559,15 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, level: number, flash: number
   ctx.fillStyle = "#ffff00";
   ctx.shadowColor = "#ffff00";
   ctx.shadowBlur = 30;
-  ctx.font = "bold 48px 'Baloo 2', monospace";
-  ctx.fillText("LEVEL UP!", W / 2, H / 2 - 30);
+  ctx.font = "bold 44px 'Baloo 2', monospace";
+  ctx.fillText("NEXT STOP!", W / 2, H / 2 - 46);
   ctx.shadowBlur = 0;
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px 'Baloo 2', monospace";
-  ctx.fillText(`LEVEL ${level}`, W / 2, H / 2 + 24);
+  ctx.font = "bold 32px 'Baloo 2', monospace";
+  ctx.fillText(nextTheme.country.toUpperCase(), W / 2, H / 2 + 8);
+  ctx.fillStyle = nextTheme.ball[1];
+  ctx.font = "bold 14px 'Baloo 2', monospace";
+  ctx.fillText("▸ COLLECT 5 FLAG BALLS ◂", W / 2, H / 2 + 48);
   ctx.globalAlpha = 1;
   ctx.restore();
 }
@@ -515,7 +575,7 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, level: number, flash: number
 // ── Draw: game over ────────────────────────────────────────────────────────
 function drawGameOver(
   ctx: CanvasRenderingContext2D,
-  score: number, bestScore: number, level: number, tick: number
+  score: number, bestScore: number, level: number, tick: number, theme: LevelTheme
 ) {
   ctx.fillStyle = "rgba(5,2,20,0.86)";
   ctx.fillRect(0, 0, W, H);
@@ -534,9 +594,9 @@ function drawGameOver(
   ctx.fillStyle = "#ffff00";
   ctx.font = "bold 18px 'Baloo 2', monospace";
   ctx.fillText(`SCORE: ${Math.floor(score)}`, W / 2, 255);
-  ctx.fillStyle = "#ff9900";
+  ctx.fillStyle = theme.ball[1];
   ctx.font = "bold 16px 'Baloo 2', monospace";
-  ctx.fillText(`REACHED LEVEL ${level}`, W / 2, 285);
+  ctx.fillText(`MADE IT TO ${theme.country.toUpperCase()}`, W / 2, 285);
 
   if (score >= bestScore && score > 0) {
     const pulse = 0.65 + 0.35 * Math.sin(tick * 0.12);
@@ -585,6 +645,11 @@ export function RacerGame() {
     return LEVEL_THEMES[idx] ?? LEVEL_THEMES[0];
   }, []);
 
+  const getNextTheme = useCallback((s: GameState): LevelTheme => {
+    const idx = s.bgOrder[s.level % s.bgOrder.length];
+    return LEVEL_THEMES[idx] ?? LEVEL_THEMES[0];
+  }, []);
+
   const tick = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -614,43 +679,47 @@ export function RacerGame() {
       if (s.levelFlash > 0) {
         s.levelFlash--;
         const theme = getTheme(s);
+        const nextTheme = getNextTheme(s);
         rafRef.current = requestAnimationFrame(tick);
         drawSky(ctx, theme);
         drawRoad(ctx, s.trackPos, s.carX, theme);
         drawPlayerCar(ctx, s.invincible);
-        drawHUD(ctx, s.score, s.lives, s.level, s.flagsCollected, s.bestScore);
-        drawLevelUp(ctx, s.level, s.levelFlash);
+        drawHUD(ctx, s.score, s.lives, s.level, s.ballsCollected, s.bestScore, theme);
+        drawLevelUp(ctx, s.levelFlash, nextTheme);
         return;
       }
 
       for (const obs of s.obstacles) obs.depth += s.speed;
-      for (const flag of s.flags)    flag.depth += s.speed;
+      for (const ball of s.balls)    ball.depth += s.speed;
 
       s.obstacles = s.obstacles.filter((o) => o.depth < 1.06);
-      s.flags     = s.flags.filter((f) => f.depth < 1.06);
+      s.balls     = s.balls.filter((b) => b.depth < 1.06);
 
-      const collected = s.flags.filter(
-        (f) => f.depth >= COLLECT_DEPTH && Math.abs(f.laneX - s.carX) < COLLECT_WIDTH
+      // collect balls
+      const collected = s.balls.filter(
+        (b) => b.depth >= COLLECT_DEPTH && Math.abs(b.laneX - s.carX) < COLLECT_WIDTH
       );
-      for (const f of collected) {
-        s.flags = s.flags.filter((x) => x.id !== f.id);
-        s.flagsCollected++;
+      for (const b of collected) {
+        s.balls = s.balls.filter((x) => x.id !== b.id);
+        s.ballsCollected++;
         s.score += 100;
       }
 
-      if (s.flagsCollected >= FLAGS_PER_LEVEL) {
+      // level up
+      if (s.ballsCollected >= FLAGS_PER_LEVEL) {
         s.level++;
-        s.flagsCollected = 0;
+        s.ballsCollected = 0;
         s.speed = levelSpeed(s.level);
-        s.flags = [];
+        s.balls = [];
         s.obstacles = [];
-        s.levelFlash = 90;
+        s.levelFlash = 120;
         s.spawnIn = 40;
-        s.flagSpawnIn = 25;
+        s.ballSpawnIn = 25;
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
 
+      // obstacle collision
       if (s.invincible === 0) {
         const hit = s.obstacles.find(
           (o) => o.depth >= HIT_DEPTH && Math.abs(o.laneX - s.carX) < HIT_WIDTH
@@ -670,6 +739,7 @@ export function RacerGame() {
         }
       }
 
+      // spawn obstacles
       s.spawnIn--;
       if (s.spawnIn <= 0) {
         const laneX = LANES[Math.floor(Math.random() * LANES.length)];
@@ -679,14 +749,15 @@ export function RacerGame() {
         s.spawnIn = Math.max(30, iv);
       }
 
-      s.flagSpawnIn--;
-      if (s.flagSpawnIn <= 0) {
+      // spawn balls
+      s.ballSpawnIn--;
+      if (s.ballSpawnIn <= 0) {
         const laneX = LANES[Math.floor(Math.random() * LANES.length)];
-        const occupied = s.flags.some((f) => f.laneX === laneX && f.depth < 0.3);
+        const occupied = s.balls.some((b) => b.laneX === laneX && b.depth < 0.3);
         if (!occupied) {
-          s.flags.push({ depth: 0, laneX, id: s.nextId++ });
+          s.balls.push({ depth: 0, laneX, id: s.nextId++ });
         }
-        s.flagSpawnIn = 45 + Math.round(Math.random() * 30);
+        s.ballSpawnIn = 45 + Math.round(Math.random() * 30);
       }
     }
 
@@ -702,15 +773,17 @@ export function RacerGame() {
 
       const curve = getCurve(s.trackPos);
 
-      const sortedFlags = [...s.flags].sort((a, b) => a.depth - b.depth);
-      for (const f of sortedFlags) {
-        const t = 1 - f.depth;
+      // balls far→near
+      const sortedBalls = [...s.balls].sort((a, b) => a.depth - b.depth);
+      for (const b of sortedBalls) {
+        const t = 1 - b.depth;
         const curveOffset = curve * CURVE_STR * t;
-        const sx = W / 2 + (f.laneX - s.carX) * BASE_HW * f.depth + curveOffset;
-        const sy = HORIZON_Y + f.depth * N_ROWS;
-        drawFlag(ctx, sx, sy, f.depth, s.tick, f.id);
+        const sx = W / 2 + (b.laneX - s.carX) * BASE_HW * b.depth + curveOffset;
+        const sy = HORIZON_Y + b.depth * N_ROWS;
+        drawFlagBall(ctx, sx, sy, b.depth, s.tick, b.id, theme.ball);
       }
 
+      // obstacles far→near
       const sortedObs = [...s.obstacles].sort((a, b) => a.depth - b.depth);
       for (const obs of sortedObs) {
         const t = 1 - obs.depth;
@@ -721,7 +794,7 @@ export function RacerGame() {
       }
 
       drawPlayerCar(ctx, s.invincible);
-      drawHUD(ctx, s.score, s.lives, s.level, s.flagsCollected, s.bestScore);
+      drawHUD(ctx, s.score, s.lives, s.level, s.ballsCollected, s.bestScore, theme);
 
       if (s.invincible > INVINCIBLE_FRAMES - 15) {
         const flashAlpha = ((s.invincible - (INVINCIBLE_FRAMES - 15)) / 15) * 0.55;
@@ -732,11 +805,11 @@ export function RacerGame() {
       const theme = getTheme(s);
       drawSky(ctx, theme);
       drawRoad(ctx, s.trackPos, s.carX, theme);
-      drawGameOver(ctx, s.score, s.bestScore, s.level, s.tick);
+      drawGameOver(ctx, s.score, s.bestScore, s.level, s.tick, theme);
     }
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [getTheme]);
+  }, [getTheme, getNextTheme]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(tick);
@@ -820,7 +893,7 @@ export function RacerGame() {
         style={{ border:"3px solid rgba(255,102,0,0.3)", borderRadius:"0.75rem", boxShadow:"0 0 40px rgba(255,102,0,0.15), 0 0 80px rgba(255,50,50,0.08)", maxWidth:"100%", maxHeight:"calc(100dvh - 120px)", touchAction:"none", cursor:"default", display:"block" }}
       />
       <p style={{ marginTop:"0.75rem", fontSize:"0.7rem", color:"#ffffff44", fontFamily:"'Baloo 2', sans-serif", letterSpacing:"0.1em" }}>
-        ← → ARROW KEYS · COLLECT FLAGS · AVOID CARS
+        ← → ARROW KEYS · COLLECT FLAG BALLS · AVOID CARS
       </p>
     </div>
   );
