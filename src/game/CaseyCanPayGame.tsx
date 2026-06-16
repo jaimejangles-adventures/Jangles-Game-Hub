@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from '@tanstack/react-router';
 import { burstCorrect, burstFinale } from '@/game/confetti';
@@ -6,22 +6,30 @@ import { playCorrectExclamation, playIncorrectExclamation } from '@/game/exclama
 import { cn } from '@/lib/utils';
 import { asset } from '@/lib/asset';
 
-const SHOP_ITEMS = [
-  { src: asset('/count-objects/elephant.png'),          label: 'elephant'    },
-  { src: asset('/count-objects/flying-fish.png'),       label: 'flying fish' },
-  { src: asset('/count-objects/octapus.png'),           label: 'octopus'     },
-  { src: asset('/count-objects/south-africa-penguin.png'), label: 'penguin'  },
-  { src: asset('/count-objects/mexico-hat.png'),        label: 'sombrero'    },
-  { src: asset('/count-objects/trombone.png'),          label: 'trombone'    },
-  { src: asset('/count-objects/peru-pan-flute.png'),    label: 'pan flute'   },
-  { src: asset('/count-objects/jamaica-steel-drum.png'),label: 'steel drum'  },
-  { src: asset('/count-objects/pizza.png'),             label: 'pizza'       },
-  { src: asset('/count-objects/korea-mask.png'),        label: 'mask'        },
-  { src: asset('/count-objects/swiss-skiis.png'),       label: 'skis'        },
-  { src: asset('/count-objects/spain-tomato.png'),      label: 'tomato'      },
-  { src: asset('/count-objects/france-eiffel.png'),     label: 'Eiffel Tower'},
-  { src: asset('/count-objects/tuba.png'),              label: 'tuba'        },
-  { src: asset('/count-objects/compass.png'),           label: 'compass'     },
+type ShopItem = {
+  src: string;
+  label: string;
+  country: string;
+  flag: string;
+  music: string;
+};
+
+const SHOP_ITEMS: ShopItem[] = [
+  { src: asset('/count-objects/elephant.png'),             label: 'elephant',     country: 'Kenya',        flag: '🇰🇪', music: 'KENYA.wav'                        },
+  { src: asset('/count-objects/flying-fish.png'),          label: 'flying fish',  country: 'Barbados',     flag: '🇧🇧', music: 'BARBADOS_2.wav'                    },
+  { src: asset('/count-objects/octapus.png'),              label: 'octopus',      country: 'Japan',        flag: '🇯🇵', music: 'JAPAN.wav'                         },
+  { src: asset('/count-objects/south-africa-penguin.png'), label: 'penguin',      country: 'South Africa', flag: '🇿🇦', music: 'SOUTH AFRICA_1.2.wav'              },
+  { src: asset('/count-objects/mexico-hat.png'),           label: 'sombrero',     country: 'Mexico',       flag: '🇲🇽', music: 'MEXICO.wav'                        },
+  { src: asset('/count-objects/trombone.png'),             label: 'trombone',     country: 'USA',          flag: '🇺🇸', music: 'NEW ORLEANS.wav'                   },
+  { src: asset('/count-objects/peru-pan-flute.png'),       label: 'pan flute',    country: 'Peru',         flag: '🇵🇪', music: 'PERU.wav'                          },
+  { src: asset('/count-objects/jamaica-steel-drum.png'),   label: 'steel drum',   country: 'Jamaica',      flag: '🇯🇲', music: 'JAMAICA.wav'                       },
+  { src: asset('/count-objects/pizza.png'),                label: 'pizza',        country: 'Italy',        flag: '🇮🇹', music: 'ITALY.wav'                         },
+  { src: asset('/count-objects/korea-mask.png'),           label: 'mask',         country: 'South Korea',  flag: '🇰🇷', music: 'SOUTH KOREA.wav'                   },
+  { src: asset('/count-objects/swiss-skiis.png'),          label: 'skis',         country: 'Switzerland',  flag: '🇨🇭', music: 'SWITZERLAND.wav'                   },
+  { src: asset('/count-objects/spain-tomato.png'),         label: 'tomato',       country: 'Spain',        flag: '🇪🇸', music: 'SPAIN1.2.wav'                      },
+  { src: asset('/count-objects/france-eiffel.png'),        label: 'Eiffel Tower', country: 'France',       flag: '🇫🇷', music: 'FRANCE.wav'                        },
+  { src: asset('/count-objects/tuba.png'),                 label: 'tuba',         country: 'England',      flag: '🇬🇧', music: 'ENGLAND.wav'                       },
+  { src: asset('/count-objects/compass.png'),              label: 'compass',      country: 'Argentina',    flag: '🇦🇷', music: 'ARGENTINA DRUMS AND HORNS_1.2.wav' },
 ];
 
 const BUTTON_PALETTE = ['#F9A8D4','#86EFAC','#67E8F9','#FCD34D','#C4B5FD','#FCA5A5','#93C5FD'];
@@ -43,14 +51,14 @@ type Round = {
   wallet: number;
   price1: number;
   price2?: number;
-  item1: typeof SHOP_ITEMS[0];
-  item2?: typeof SHOP_ITEMS[0];
+  item1: ShopItem;
+  item2?: ShopItem;
   answer: number;
   choices: number[];
   question: string;
 };
 
-function pickItem(exclude?: number): { item: typeof SHOP_ITEMS[0]; idx: number } {
+function pickItem(exclude?: number): { item: ShopItem; idx: number } {
   let idx: number;
   do { idx = Math.floor(Math.random() * SHOP_ITEMS.length); } while (idx === exclude);
   return { item: SHOP_ITEMS[idx], idx };
@@ -103,6 +111,47 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
+// ── 8-bit audio chain ─────────────────────────────────────────────────────────
+function makeAudioCtx(): AudioContext | null {
+  try {
+    return new (window.AudioContext || (window as any).webkitAudioContext)();
+  } catch { return null; }
+}
+
+/** Build the bit-crusher → low-pass → gain chain once per audio element. */
+function buildChitpuneChain(audio: HTMLAudioElement, ctx: AudioContext): GainNode {
+  const source = ctx.createMediaElementSource(audio);
+
+  // Bit crusher: quantise to ~4 bits for that crunchy chiptune texture
+  const crusher = ctx.createWaveShaper();
+  const steps = 12; // small = crunchier; 12 keeps melody recognisable but lo-fi
+  const n = 256;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / n - 1;
+    curve[i] = Math.round(x * steps) / steps;
+  }
+  crusher.curve = curve;
+  crusher.oversample = 'none'; // no interpolation = harder edges
+
+  // Low-pass filter: roll off above ~3.5 kHz (Game Boy speakers vibes)
+  const lpf = ctx.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.value = 3500;
+  lpf.Q.value = 0.7;
+
+  // Master gain for background music volume
+  const gain = ctx.createGain();
+  gain.gain.value = 0.45;
+
+  source.connect(crusher);
+  crusher.connect(lpf);
+  lpf.connect(gain);
+  gain.connect(ctx.destination);
+
+  return gain;
+}
+
 type Phase = 'playing' | 'correct' | 'wrong';
 
 export function CaseyCanPayGame({ onComplete }: { onComplete?: () => void } = {}) {
@@ -114,11 +163,61 @@ export function CaseyCanPayGame({ onComplete }: { onComplete?: () => void } = {}
   const [caseyMsg, setCaseyMsg] = useState(() => pick(MSGS.intro));
   const [muted, setMuted] = useState(false);
 
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  // 8-bit audio refs
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioElRef  = useRef<HTMLAudioElement | null>(null);
+  const gainRef     = useRef<GainNode | null>(null);
+  const chainBuilt  = useRef(false);
 
-  function stopMusic() {
-    if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; musicRef.current = null; }
-  }
+  // Play (or switch) country music with 8-bit filter
+  const playMusic = useCallback((musicFile: string) => {
+    // Lazily create AudioContext (must happen after a user gesture)
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = makeAudioCtx();
+    }
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    // Lazily create the audio element
+    if (!audioElRef.current) {
+      const el = new Audio();
+      el.loop = true;
+      el.crossOrigin = 'anonymous';
+      audioElRef.current = el;
+    }
+    const audio = audioElRef.current;
+
+    // Build chiptune chain only once (MediaElementSource can't be re-created)
+    if (!chainBuilt.current) {
+      gainRef.current = buildChitpuneChain(audio, ctx);
+      chainBuilt.current = true;
+    }
+
+    // Switch track
+    audio.pause();
+    audio.src = `/music/${encodeURI(musicFile)}`;
+    audio.load();
+
+    if (ctx.state === 'suspended') ctx.resume();
+    audio.play().catch(() => {/* autoplay may be blocked – user gesture will unlock */});
+  }, []);
+
+  // React to round changes & mute toggle
+  useEffect(() => {
+    if (muted) {
+      audioElRef.current?.pause();
+    } else {
+      playMusic(round.item1.music);
+    }
+  }, [round.item1.music, muted, playMusic]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioElRef.current?.pause();
+      audioCtxRef.current?.close().catch(() => {});
+    };
+  }, []);
 
   function speak(text: string) {
     if (muted || !window.speechSynthesis) return;
@@ -142,10 +241,9 @@ export function CaseyCanPayGame({ onComplete }: { onComplete?: () => void } = {}
       playIncorrectExclamation();
       setPhase('wrong');
     }
-  }, [phase, round.answer, roundNum, muted]);
+  }, [phase, round.answer, roundNum, onComplete]);
 
   const nextRound = useCallback(() => {
-    stopMusic();
     setRound(generateRound());
     setPhase('playing');
     setPicked(null);
@@ -232,11 +330,25 @@ export function CaseyCanPayGame({ onComplete }: { onComplete?: () => void } = {}
             <img src={asset('/characters/casey-pointing.png')} alt="Casey" className="h-32 w-auto object-contain" />
           </div>
 
-          {/* Title */}
-          <div className="flex flex-col items-center gap-1">
+          {/* Title + now-playing country chip */}
+          <div className="flex flex-col items-center gap-1.5">
             <span className="text-base font-extrabold tracking-tight" style={{ color: '#1a1a2e' }}>
               Casey Can Pay! 💰
             </span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={item1.country}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-1 rounded-full border-[2px] border-ink/25 bg-amber-50 px-2.5 py-0.5"
+                style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.05em' }}
+              >
+                <span>{item1.flag}</span>
+                <span className="text-ink/55">♪ {item1.country}</span>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Shop display */}
@@ -332,8 +444,8 @@ function ShopDisplay({ type, wallet, price1, price2, item1, item2 }: {
   wallet: number;
   price1: number;
   price2?: number;
-  item1: typeof SHOP_ITEMS[0];
-  item2?: typeof SHOP_ITEMS[0];
+  item1: ShopItem;
+  item2?: ShopItem;
 }) {
   if (type === 'total' && item2 && price2 !== undefined) {
     return (
@@ -385,7 +497,7 @@ function ShopDisplay({ type, wallet, price1, price2, item1, item2 }: {
   );
 }
 
-function ShopItem({ item, price, color }: { item: typeof SHOP_ITEMS[0]; price: number; color: string }) {
+function ShopItem({ item, price, color }: { item: ShopItem; price: number; color: string }) {
   return (
     <div
       className="flex flex-col items-center gap-1 rounded-2xl border-[4px] border-ink px-3 py-2 shadow-md"

@@ -59,8 +59,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "racer";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/racer";
+  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp";
+  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp";
   title: string;
   eyebrow: string;
   description: string;
@@ -382,7 +382,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     emoji: "🎨",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
-    category: "learning",
+    category: "music-arts",
   },
   {
     slug: "jangles-pong",
@@ -437,6 +437,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     category: "math-games",
   },
   {
+    slug: "checkers",
+    href: "/games/checkers",
+    title: "Jangles Checkers!",
+    eyebrow: "Jump, capture & crown kings",
+    description:
+      "Colourful checkers with kings, chain jumps, and a computer opponent! Jump over enemy pieces to capture them — reach the back row to crown a king!",
+    accent: "#F43F5E",
+    emoji: "🔴",
+    image: asset("/characters/jangles-pac-thumb.png"),
+    status: "live",
+    category: "puzzles",
+  },
+  {
     slug: "chess",
     href: "/games/chess",
     title: "Chess",
@@ -458,6 +471,32 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Hit the gas in this F-Zero style 8-bit racer! Steer your F1 car, dodge oncoming traffic, and survive as long as you can.",
     accent: "#FB923C",
     emoji: "🏎️",
+    image: asset("/characters/jangles-ball-thumb.png"),
+    status: "live",
+    category: "arcade-adventures",
+  },
+  {
+    slug: "jang-lang",
+    href: "/games/jang-lang",
+    title: "Jang-Lang",
+    eyebrow: "Spanish · Portuguese · Italian · French · Chinese · English",
+    description:
+      "Learn simple words and sayings in four languages — with help from the Jangles crew! Pick a language and match the translations.",
+    accent: "#58CC02",
+    emoji: "🌍",
+    image: asset("/characters/map-casey.png"),
+    status: "live",
+    category: "learning",
+  },
+  {
+    slug: "jangles-gp",
+    href: "/games/jangles-gp",
+    title: "Jangles GP",
+    eyebrow: "Race against 5 AI rivals",
+    description:
+      "Line up on the grid and race 3 laps against 5 AI opponents! Steer your F1 car, overtake rivals, avoid collisions, and fight for the top spot on the GP podium.",
+    accent: "#FF3333",
+    emoji: "🏆",
     image: asset("/characters/jangles-ball-thumb.png"),
     status: "live",
     category: "arcade-adventures",

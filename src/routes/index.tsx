@@ -3,6 +3,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { GAME_MANIFEST, CATEGORY_MANIFEST } from "@/lib/game-manifest";
 import { asset } from "@/lib/asset";
 import { HallOfFame } from "@/components/leaderboard";
+import { JanglesTimer } from "@/components/jangles-timer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -196,57 +197,63 @@ function Index() {
             Your world tour starts here —<br /> pick a game and jump in!
           </h1>
           <p className="mt-1.5 max-w-lg text-xs text-ink/65 leading-relaxed sm:text-sm">
-            Music, mysteries, and map adventures with Jaime &amp; Jeff. Choose a game below and start exploring the world!
+            Music, mysteries, and map adventures with Jaime &amp; Jeff.<br />
+            Choose a game below and start exploring the world!
           </p>
         </div>
 
-        {/* Character asides */}
-        <div className="flex flex-col gap-2.5">
-          <aside
-            className="flex flex-1 items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
-            style={{ background: "#FFF0F8", borderBottomWidth: 5, borderRightWidth: 4 }}
-          >
-            <img
-              src={asset("/characters/guitar-jaime-jeff.png")}
-              alt="Jaime and Jeff"
-              className="h-full w-auto max-w-[38%] self-end object-contain"
-            />
-            <div className="flex-1 py-3 pr-4">
-              <div
-                className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
-                style={{ background: "#FF4EAB", borderBottomWidth: 3, borderRightWidth: 2, color: "#fff" }}
-              >
-                Meet the crew
-              </div>
-              <p className="text-xs text-ink/80 leading-relaxed">
-                Jaime and Jeff travel the world making music, chasing adventure, and discovering amazing places!
-              </p>
-            </div>
-          </aside>
-
-          <aside
-            className="flex flex-1 items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
-            style={{ background: "#F0F8FF", borderBottomWidth: 5, borderRightWidth: 4 }}
-          >
-            <img
-              src={asset("/characters/map-casey.png")}
-              alt="Casey Bea"
-              className="h-full w-auto max-w-[38%] self-end object-contain"
-              style={{ mixBlendMode: "multiply" }}
-            />
-            <div className="flex-1 py-3 pr-4">
-              <div
-                className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
-                style={{ background: "#60C8FF", borderBottomWidth: 3, borderRightWidth: 2 }}
-              >
-                The mastermind
-              </div>
-              <p className="text-xs text-ink/80 leading-relaxed">
-                Casey Bea sends Jaime and Jeff on every adventure — and always makes sure Fante comes along!
-              </p>
-            </div>
-          </aside>
+        {/* Timer in top right */}
+        <div className="flex flex-col">
+          <JanglesTimer />
         </div>
+      </section>
+
+      {/* ── Character asides (centered below hero) ── */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <aside
+          className="flex items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
+          style={{ background: "#FFF0F8", borderBottomWidth: 5, borderRightWidth: 4 }}
+        >
+          <img
+            src={asset("/characters/guitar-jaime-jeff.png")}
+            alt="Jaime and Jeff"
+            className="h-full w-auto max-w-[38%] self-end object-contain"
+          />
+          <div className="flex-1 py-3 pr-4">
+            <div
+              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+              style={{ background: "#FF4EAB", borderBottomWidth: 3, borderRightWidth: 2, color: "#fff" }}
+            >
+              Meet the crew
+            </div>
+            <p className="text-xs text-ink/80 leading-relaxed">
+              Jaime and Jeff travel the world making music, chasing adventure, and discovering amazing places!
+            </p>
+          </div>
+        </aside>
+
+        <aside
+          className="flex items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
+          style={{ background: "#F0F8FF", borderBottomWidth: 5, borderRightWidth: 4 }}
+        >
+          <img
+            src={asset("/characters/map-casey.png")}
+            alt="Casey Bea"
+            className="h-full w-auto max-w-[38%] self-end object-contain"
+            style={{ mixBlendMode: "multiply" }}
+          />
+          <div className="flex-1 py-3 pr-4">
+            <div
+              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+              style={{ background: "#60C8FF", borderBottomWidth: 3, borderRightWidth: 2 }}
+            >
+              The mastermind
+            </div>
+            <p className="text-xs text-ink/80 leading-relaxed">
+              Casey Bea sends Jaime and Jeff on every adventure — and always makes sure Fante comes along!
+            </p>
+          </div>
+        </aside>
       </section>
 
       {/* ── Hall of Fame ── */}

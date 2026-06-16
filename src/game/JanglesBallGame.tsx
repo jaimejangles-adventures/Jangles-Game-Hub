@@ -587,18 +587,18 @@ export function JanglesBallGame() {
     };
 
     // Button rects on the title screen (centred at W/2)
-    const MASTER_Y  = H/2 + 60;
-    const ROOKIE_Y  = H/2 + 118;
+    const MASTER_Y  = H/2 + 80;
+    const ROOKIE_Y  = H/2 + 158;
 
     const advance = (clickX?: number, clickY?: number) => {
       if (s.phase==="title") {
         if (clickX !== undefined && clickY !== undefined) {
           // Did they click Jangles Master? (top, wide button)
-          if (Math.abs(clickX - W/2) <= 120 && Math.abs(clickY - MASTER_Y) <= 22) {
+          if (Math.abs(clickX - W/2) <= 150 && Math.abs(clickY - MASTER_Y) <= 30) {
             s.difficulty = "master"; startLevel(1); return;
           }
-          // Did they click Rookie? (smaller button below)
-          if (Math.abs(clickX - W/2) <= 90 && Math.abs(clickY - ROOKIE_Y) <= 19) {
+          // Did they click Rookie? (button below)
+          if (Math.abs(clickX - W/2) <= 130 && Math.abs(clickY - ROOKIE_Y) <= 28) {
             s.difficulty = "rookie"; startLevel(1); return;
           }
           // Clicked somewhere else — do nothing (force them to choose a button)
@@ -666,45 +666,51 @@ export function JanglesBallGame() {
         c.shadowBlur=0;
 
         // difficulty label
-        c.font="bold 11px 'Courier New', monospace"; c.fillStyle="#555";
-        c.fillText("— SELECT DIFFICULTY —",W/2,H/2+36);
+        c.font="bold 12px 'Courier New', monospace"; c.fillStyle="#666";
+        c.fillText("— SELECT DIFFICULTY —",W/2,H/2+46);
 
-        const masterY = H/2 + 60;
-        const rookieY = H/2 + 118;
+        const masterY = H/2 + 80;
+        const rookieY = H/2 + 158;
         const mx = s.paddleTarget; const my = s.mouseY;
-        const overMaster = Math.abs(mx-W/2)<=120 && Math.abs(my-masterY)<=22;
-        const overRookie = Math.abs(mx-W/2)<=90  && Math.abs(my-rookieY)<=19;
+        const overMaster = Math.abs(mx-W/2)<=150 && Math.abs(my-masterY)<=30;
+        const overRookie = Math.abs(mx-W/2)<=130 && Math.abs(my-rookieY)<=28;
 
         // ── JANGLES MASTER — big primary button ──
         {
-          const bw=240; const bh=44; const bx=W/2-bw/2; const by=masterY-bh/2;
-          c.shadowColor="#00d4ff"; c.shadowBlur= overMaster ? 28 : 14;
+          const bw=300; const bh=60; const bx=W/2-bw/2; const by=masterY-bh/2;
+          c.shadowColor="#00d4ff"; c.shadowBlur= overMaster ? 36 : 18;
           roundRect(c,bx,by,bw,bh,bh/2);
-          c.fillStyle = overMaster ? "#00d4ff" : "rgba(0,30,50,0.85)"; c.fill();
-          c.strokeStyle="#00d4ff"; c.lineWidth=2.5;
+          c.fillStyle = overMaster ? "#00d4ff" : "rgba(0,30,50,0.9)"; c.fill();
+          c.strokeStyle="#00d4ff"; c.lineWidth=3;
           roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
           c.shadowBlur=0;
-          c.font="bold 16px 'Courier New', monospace";
+          c.font="bold 18px 'Courier New', monospace";
           c.fillStyle = overMaster ? "#000" : "#00d4ff";
-          c.fillText("JANGLES MASTER ★", W/2, masterY+6);
+          c.fillText("JANGLES MASTER ★", W/2, masterY+7);
+          c.font="bold 10px 'Courier New', monospace";
+          c.fillStyle = overMaster ? "rgba(0,0,0,0.6)" : "rgba(0,212,255,0.5)";
+          c.fillText("FULL SPEED · FULL GLORY", W/2, masterY+22);
         }
 
-        // ── ROOKIE — smaller secondary button ──
+        // ── ROOKIE — same-width button below ──
         {
-          const bw=180; const bh=36; const bx=W/2-bw/2; const by=rookieY-bh/2;
-          if (overRookie) { c.shadowColor="#44ff88"; c.shadowBlur=18; }
+          const bw=260; const bh=56; const bx=W/2-bw/2; const by=rookieY-bh/2;
+          c.shadowColor="#44ff88"; c.shadowBlur= overRookie ? 28 : 10;
           roundRect(c,bx,by,bw,bh,bh/2);
-          c.fillStyle = overRookie ? "#44ff88" : "rgba(0,0,0,0.5)"; c.fill();
-          c.strokeStyle="#44ff88"; c.lineWidth=1.5;
+          c.fillStyle = overRookie ? "#44ff88" : "rgba(0,20,10,0.85)"; c.fill();
+          c.strokeStyle="#44ff88"; c.lineWidth=2.5;
           roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
           c.shadowBlur=0;
-          c.font="bold 13px 'Courier New', monospace";
+          c.font="bold 18px 'Courier New', monospace";
           c.fillStyle = overRookie ? "#000" : "#44ff88";
-          c.fillText("ROOKIE", W/2, rookieY+5);
+          c.fillText("ROOKIE", W/2, rookieY+7);
+          c.font="bold 10px 'Courier New', monospace";
+          c.fillStyle = overRookie ? "rgba(0,0,0,0.6)" : "rgba(68,255,136,0.5)";
+          c.fillText("SLOWER BALL · EASY MODE", W/2, rookieY+22);
         }
 
         c.font="bold 10px 'Courier New', monospace"; c.fillStyle="#333";
-        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [G]RIP [M]ULTI",W/2,H/2+162);
+        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [G]RIP [M]ULTI",W/2,H/2+220);
         return;
       }
 
@@ -962,12 +968,19 @@ export function JanglesBallGame() {
       }
 
       if (s.ball.y-s.ball.r>H+20) {
-        s.lives--;
-        if (s.lives<=0) {
-          s.phase="game-over";
-          if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score, s.difficulty); }
+        if (s.extraBalls.length > 0) {
+          // Promote the first surviving extra ball to main ball — no life lost
+          const promoted = s.extraBalls.shift()!;
+          s.ball.x = promoted.x; s.ball.y = promoted.y;
+          s.ball.vx = promoted.vx; s.ball.vy = promoted.vy;
+        } else {
+          s.lives--;
+          if (s.lives<=0) {
+            s.phase="game-over";
+            if (user && !scoreSavedRef.current) { scoreSavedRef.current = true; saveScoreRef.current(s.score, s.difficulty); }
+          }
+          else { s.phase="ball-lost"; s.ballLostTimer=80; }
         }
-        else { s.phase="ball-lost"; s.ballLostTimer=80; }
       }
 
       // ── Brick collisions ───────────────────────────────────────────────────

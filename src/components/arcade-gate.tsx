@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, Fragment, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -42,6 +42,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   const { user, openAuthModal } = useAuth();
   const { balance, spendBuck } = useBucksContext();
   const [sessionActive, setSessionActive] = useState(isDev);
+  const [sessionKey, setSessionKey] = useState(0);
 
   useEffect(() => {
     sessionStorage.setItem(LAST_GAME_KEY, gameSlug);
@@ -52,6 +53,7 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   const [guestPlays, setGuestPlays] = useState(getGuestPlays);
 
   const endSession = useCallback(() => {
+    setSessionKey(k => k + 1);
     setSessionActive(isDev);
     setHasPlayed(true);
     setGuestPlays(getGuestPlays());
@@ -60,7 +62,9 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   if (sessionActive) {
     return (
       <ArcadeSessionContext.Provider value={{ endSession }}>
-        {children}
+        <Fragment key={sessionKey}>
+          {children}
+        </Fragment>
       </ArcadeSessionContext.Provider>
     );
   }

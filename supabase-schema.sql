@@ -58,11 +58,6 @@ create table public.bucks_log (
   created_at timestamptz default now() not null
 );
 
--- Once per game per calendar day (server-enforced, can't be gamed from client)
-create unique index bucks_log_daily_earn_idx
-  on public.bucks_log (user_id, game_slug, earn_date)
-  where action = 'earn';
-
 -- Derived balance view — balance = sum(earns) - sum(spends)
 create or replace view public.bucks_balance as
 select

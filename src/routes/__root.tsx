@@ -8,6 +8,7 @@ import {
 import { PortalShell } from "@/components/portal-shell";
 import { AuthProvider } from "@/lib/auth-context";
 import { BucksProvider } from "@/lib/bucks-context";
+import { TimerProvider } from "@/lib/timer-context";
 
 function NotFoundComponent() {
   return (
@@ -79,9 +80,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BucksProvider>
-          <PortalShell>
-            <Outlet />
-          </PortalShell>
+          <TimerProvider>
+            <PortalShell>
+              <Outlet />
+            </PortalShell>
+          </TimerProvider>
         </BucksProvider>
       </AuthProvider>
     </QueryClientProvider>

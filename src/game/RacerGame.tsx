@@ -39,9 +39,12 @@ interface LevelTheme {
   stripe: string;
   glow: string;
   country: string;
+  music: string; // filename inside /music/
   // Three flag stripe colors (top→bottom) for the collectible ball
   ball: [string, string, string];
 }
+
+const TITLE_MUSIC = "/music/THEME_003_1.1.wav";
 
 // One entry per book page (pages 3-24, skipping 14 = 21 total)
 const LEVEL_THEMES: LevelTheme[] = [
@@ -49,106 +52,127 @@ const LEVEL_THEMES: LevelTheme[] = [
   { skyTop:"#0d1a3e", skyBot:"#1a2855", grass1:"#1a3a2a", grass2:"#0d2218",
     road1:"#2a2535", road2:"#1e1a28", curb:"#cc3322", stripe:"#f0c060",
     glow:"rgba(240,180,60,0.40)", country:"USA",
+    music:"NEW ORLEANS.wav",
     ball:["#b22234","#ffffff","#3c3b6e"] },
   // pg 4  Mexico
   { skyTop:"#1a7ab5", skyBot:"#4fb8e8", grass1:"#2a8a2a", grass2:"#1a6a1a",
     road1:"#c8a870", road2:"#a88850", curb:"#dd2222", stripe:"#ffffff",
     glow:"rgba(80,200,100,0.32)", country:"Mexico",
+    music:"MEXICO.wav",
     ball:["#006847","#ffffff","#ce1126"] },
   // pg 5  Jamaica
   { skyTop:"#1a8cc0", skyBot:"#5ad0f0", grass1:"#2a7a2a", grass2:"#1a5a1a",
     road1:"#d4b878", road2:"#b09050", curb:"#111111", stripe:"#228b22",
     glow:"rgba(34,180,34,0.30)", country:"Jamaica",
+    music:"JAMAICA.wav",
     ball:["#000000","#ffd700","#007847"] },
   // pg 6  Barbados
   { skyTop:"#1a9aaa", skyBot:"#4ad8e8", grass1:"#e8c87a", grass2:"#c8a850",
     road1:"#c0b090", road2:"#a09070", curb:"#5544aa", stripe:"#ffffff",
     glow:"rgba(80,220,230,0.36)", country:"Barbados",
+    music:"BARBADOS_2.wav",
     ball:["#00267f","#ffc726","#00267f"] },
   // pg 7  Peru
   { skyTop:"#4a7ab0", skyBot:"#8abadc", grass1:"#4a6a2a", grass2:"#2a4a1a",
     road1:"#9a7050", road2:"#7a5030", curb:"#aa3333", stripe:"#ddccaa",
     glow:"rgba(150,100,60,0.30)", country:"Peru",
+    music:"PERU.wav",
     ball:["#d91023","#ffffff","#d91023"] },
   // pg 8  Argentina
   { skyTop:"#6ab0d8", skyBot:"#a0d0ee", grass1:"#3a7a3a", grass2:"#2a5a2a",
     road1:"#606070", road2:"#484858", curb:"#5599dd", stripe:"#ffffff",
     glow:"rgba(80,150,230,0.30)", country:"Argentina",
+    music:"ARGENTINA DRUMS AND HORNS_1.2.wav",
     ball:["#74acdf","#ffffff","#74acdf"] },
   // pg 9  Antarctica
   { skyTop:"#8ac8e8", skyBot:"#c0e4f4", grass1:"#a0c8d8", grass2:"#80a8c0",
     road1:"#c0d8e8", road2:"#a0b8cc", curb:"#e0eeee", stripe:"#b0d4ec",
     glow:"rgba(180,220,240,0.42)", country:"Antarctica",
+    music:"THEME_003_1.1.wav",
     ball:["#ffffff","#aaddee","#ffffff"] },
   // pg 10 UK
   { skyTop:"#6090b0", skyBot:"#90b8cc", grass1:"#3a6030", grass2:"#2a4820",
     road1:"#787060", road2:"#585048", curb:"#cc2222", stripe:"#f0f0f0",
     glow:"rgba(160,140,100,0.30)", country:"UK",
+    music:"UK.wav",
     ball:["#cc0000","#ffffff","#00247d"] },
   // pg 11 Spain
   { skyTop:"#3888cc", skyBot:"#70b8e8", grass1:"#c07870", grass2:"#a05850",
     road1:"#c8bca0", road2:"#a89c80", curb:"#cc2222", stripe:"#f8f0e0",
     glow:"rgba(220,80,80,0.36)", country:"Spain",
+    music:"SPAIN1.2.wav",
     ball:["#c60b1e","#f1bf00","#c60b1e"] },
   // pg 12 France
   { skyTop:"#5090c0", skyBot:"#90c0e0", grass1:"#2a7030", grass2:"#1a5020",
     road1:"#b89a70", road2:"#987850", curb:"#f8a0b0", stripe:"#f0e0c0",
     glow:"rgba(240,160,80,0.36)", country:"France",
+    music:"FRANCE.wav",
     ball:["#002395","#ffffff","#ed2939"] },
   // pg 13 Italy
   { skyTop:"#5088c0", skyBot:"#88b8dc", grass1:"#3a8030", grass2:"#2a6020",
     road1:"#c8a870", road2:"#a88850", curb:"#cc2222", stripe:"#f0e8d0",
     glow:"rgba(200,160,80,0.30)", country:"Italy",
+    music:"ITALY.wav",
     ball:["#009246","#ffffff","#ce2b37"] },
   // pg 15 Sri Lanka
   { skyTop:"#6050a0", skyBot:"#9080c0", grass1:"#a0c850", grass2:"#80a830",
     road1:"#c89860", road2:"#a87840", curb:"#cc44aa", stripe:"#ffee88",
     glow:"rgba(200,100,220,0.36)", country:"Sri Lanka",
+    music:"SRI LANKA_1.1.wav",
     ball:["#8d153a","#f5af00","#8d153a"] },
   // pg 16 Japan
   { skyTop:"#88b8c8", skyBot:"#b8d8e0", grass1:"#2a7888", grass2:"#1a5868",
     road1:"#506878", road2:"#384858", curb:"#cc2222", stripe:"#f0f0f0",
     glow:"rgba(80,180,200,0.36)", country:"Japan",
+    music:"JAPAN.wav",
     ball:["#ffffff","#bc002d","#ffffff"] },
   // pg 17 Switzerland
   { skyTop:"#88b8d8", skyBot:"#c0dced", grass1:"#e8f0f8", grass2:"#c8d8e8",
     road1:"#e8e0d8", road2:"#c8c0b8", curb:"#cc2222", stripe:"#ffffff",
     glow:"rgba(180,220,240,0.42)", country:"Switzerland",
+    music:"SWITZERLAND.wav",
     ball:["#ff0000","#ffffff","#ff0000"] },
   // pg 18 Kenya
   { skyTop:"#38a0d8", skyBot:"#70c8e8", grass1:"#90b840", grass2:"#70981a",
     road1:"#c8a050", road2:"#a88030", curb:"#cc6622", stripe:"#f8e880",
     glow:"rgba(240,180,40,0.36)", country:"Kenya",
+    music:"KENYA.wav",
     ball:["#006600","#cc0000","#000000"] },
   // pg 19 South Africa
   { skyTop:"#38a8e0", skyBot:"#70d0f0", grass1:"#2a9060", grass2:"#1a7040",
     road1:"#d8c8a0", road2:"#b8a880", curb:"#cc4488", stripe:"#ffee44",
     glow:"rgba(120,220,180,0.36)", country:"South Africa",
+    music:"SOUTH AFRICA_1.2.wav",
     ball:["#007749","#ffb81c","#de3831"] },
   // pg 20 Ghana
   { skyTop:"#3890c8", skyBot:"#60b8e0", grass1:"#e89030", grass2:"#c87010",
     road1:"#c8a060", road2:"#a88040", curb:"#dd4422", stripe:"#88cc44",
     glow:"rgba(240,140,40,0.42)", country:"Ghana",
+    music:"GHANA.wav",
     ball:["#006b3f","#fcd116","#ce1126"] },
   // pg 21 South Korea
   { skyTop:"#8880c0", skyBot:"#b0a8d8", grass1:"#6888a8", grass2:"#485888",
     road1:"#706080", road2:"#504060", curb:"#cc4444", stripe:"#f0e8e0",
     glow:"rgba(160,120,200,0.36)", country:"South Korea",
+    music:"SOUTH KOREA.wav",
     ball:["#c60c30","#ffffff","#003478"] },
   // pg 22 Nepal
   { skyTop:"#70b8e8", skyBot:"#a8d8f4", grass1:"#f0f0f8", grass2:"#d0d8e8",
     road1:"#d0c0a8", road2:"#b0a088", curb:"#cc5522", stripe:"#ffffff",
     glow:"rgba(180,220,240,0.42)", country:"Nepal",
+    music:"NEPAL.wav",
     ball:["#003893","#dc143c","#003893"] },
   // pg 23 Indonesia
   { skyTop:"#3898d0", skyBot:"#60c0e8", grass1:"#9a6030", grass2:"#7a4020",
     road1:"#d4b878", road2:"#b49858", curb:"#cc2222", stripe:"#f8f0d0",
     glow:"rgba(60,180,220,0.36)", country:"Indonesia",
+    music:"INDONESIA.wav",
     ball:["#ce1126","#ce1126","#ffffff"] },
   // pg 24 Australia
   { skyTop:"#1a2a60", skyBot:"#2a3a80", grass1:"#2a5080", grass2:"#1a3868",
     road1:"#3868a0", road2:"#285888", curb:"#ffffff", stripe:"#55aaff",
     glow:"rgba(60,120,220,0.42)", country:"Australia",
+    music:"Jamie Jangles_Daniel_Australia.wav",
     ball:["#00008b","#cc0000","#ffffff"] },
 ];
 
@@ -556,15 +580,12 @@ function drawLevelUp(
   ctx.textBaseline = "middle";
   const fade = Math.min(1, flash / 20);
   ctx.globalAlpha = fade;
-  ctx.fillStyle = "#ffff00";
+  ctx.fillStyle = "#ffffff";
   ctx.shadowColor = "#ffff00";
   ctx.shadowBlur = 30;
-  ctx.font = "bold 44px 'Baloo 2', monospace";
-  ctx.fillText("NEXT STOP!", W / 2, H / 2 - 46);
+  ctx.font = "bold 54px 'Baloo 2', monospace";
+  ctx.fillText(nextTheme.country.toUpperCase(), W / 2, H / 2);
   ctx.shadowBlur = 0;
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 32px 'Baloo 2', monospace";
-  ctx.fillText(nextTheme.country.toUpperCase(), W / 2, H / 2 + 8);
   ctx.fillStyle = nextTheme.ball[1];
   ctx.font = "bold 14px 'Baloo 2', monospace";
   ctx.fillText("▸ COLLECT 5 FLAG BALLS ◂", W / 2, H / 2 + 48);
@@ -628,9 +649,12 @@ function drawGameOver(
 
 // ── Component ──────────────────────────────────────────────────────────────
 export function RacerGame() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef  = useRef<GameState>(makeInitialState());
-  const rafRef    = useRef<number>(0);
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const stateRef        = useRef<GameState>(makeInitialState());
+  const rafRef          = useRef<number>(0);
+
+  const audioRef      = useRef<HTMLAudioElement | null>(null);
+  const lastMusicRef  = useRef<string>("");
 
   const { endSession } = useArcadeSession();
   const endSessionRef  = useRef(endSession);
@@ -639,6 +663,32 @@ export function RacerGame() {
   const { saveScore } = useScore("racer");
   const saveScoreRef  = useRef(saveScore);
   useEffect(() => { saveScoreRef.current = saveScore; }, [saveScore]);
+
+  // ── Music helpers ──────────────────────────────────────────────────────
+  const stopMusic = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    lastMusicRef.current = "";
+  }, []);
+
+  const playMusic = useCallback((filename: string) => {
+    if (lastMusicRef.current === filename) return;
+    lastMusicRef.current = filename;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    const a = new Audio(`/music/${encodeURIComponent(filename)}`);
+    a.loop = true;
+    a.volume = 0.55;
+    a.play().catch(() => {});
+    audioRef.current = a;
+  }, []);
+
+  // Stop music on unmount
+  useEffect(() => () => { stopMusic(); }, [stopMusic]);
 
   const getTheme = useCallback((s: GameState): LevelTheme => {
     const idx = s.bgOrder[(s.level - 1) % s.bgOrder.length];
@@ -659,6 +709,13 @@ export function RacerGame() {
 
     s.tick++;
 
+    // ── Music cues (phase / level transitions) ─────────────────────────
+    if (s.phase === "title") {
+      playMusic("THEME_003_1.1.wav");
+    } else if (s.phase === "gameover") {
+      stopMusic();
+    }
+
     // ── Update ──────────────────────────────────────────────────────────
 
     if (s.phase === "playing") {
@@ -666,7 +723,10 @@ export function RacerGame() {
         const target = ((s.touchX / W) * 2 - 1) * CAR_MAX_X;
         s.carX += Math.sign(target - s.carX) * Math.min(Math.abs(target - s.carX), CAR_STEER * 1.4);
       } else {
-        if (s.leftDown)  s.carX -= CAR_STEER;
+        // Start country music when entering playing phase
+      playMusic(getTheme(s).music);
+
+      if (s.leftDown)  s.carX -= CAR_STEER;
         if (s.rightDown) s.carX += CAR_STEER;
       }
       s.carX -= getCurve(s.trackPos) * DRIFT;
@@ -679,13 +739,12 @@ export function RacerGame() {
       if (s.levelFlash > 0) {
         s.levelFlash--;
         const theme = getTheme(s);
-        const nextTheme = getNextTheme(s);
         rafRef.current = requestAnimationFrame(tick);
         drawSky(ctx, theme);
         drawRoad(ctx, s.trackPos, s.carX, theme);
         drawPlayerCar(ctx, s.invincible);
         drawHUD(ctx, s.score, s.lives, s.level, s.ballsCollected, s.bestScore, theme);
-        drawLevelUp(ctx, s.levelFlash, nextTheme);
+        drawLevelUp(ctx, s.levelFlash, theme);
         return;
       }
 
@@ -715,6 +774,8 @@ export function RacerGame() {
         s.levelFlash = 120;
         s.spawnIn = 40;
         s.ballSpawnIn = 25;
+        // Switch to new country's music
+        playMusic(getTheme(s).music);
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
@@ -809,7 +870,7 @@ export function RacerGame() {
     }
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [getTheme, getNextTheme]);
+  }, [getTheme, playMusic, stopMusic]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(tick);

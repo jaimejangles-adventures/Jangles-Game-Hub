@@ -7,6 +7,7 @@ import { isMuted, setMuted } from "@/lib/sound";
 import { useAuth } from "@/lib/auth-context";
 import { flagEmoji } from "@/lib/countries";
 import { useBucksContext } from "@/lib/bucks-context";
+import { useTimer } from "@/lib/timer-context";
 
 type EarnerEntry = { emoji: string; title: string; difficulty: 1 | 2 | 3 | 4 };
 
@@ -44,7 +45,7 @@ type PortalShellProps = {
   children: ReactNode;
 };
 
-const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong", "/games/color-mix", "/games/casey-can-roman-numeral", "/games/casey-can-pay", "/games/chess"];
+const FULL_BLEED_ROUTES = ["/games/find-foxy", "/games/world-adventure", "/games/fly-the-flag", "/games/name-that-country", "/games/music-match", "/games/draw-with-casey", "/games/casey-can-count", "/games/count-with-jaime", "/games/casey-can-subtract", "/games/casey-can-multiply", "/games/casey-can-divide", "/games/jangles-ball", "/games/elefante", "/games/air-fante-collect", "/games/sliding-puzzle", "/games/foxer", "/games/mastermind", "/games/pacman", "/games/jangles-kong", "/games/casey-can-spell", "/games/foxy-word-scramble", "/games/jangles-pong", "/games/color-mix", "/games/casey-can-roman-numeral", "/games/casey-can-pay", "/games/chess", "/games/jang-lang", "/games/racer", "/games/jangles-gp"];
 
 export function PortalShell({ children }: PortalShellProps) {
   const pathname = useRouterState({
@@ -428,6 +429,9 @@ export function PortalShell({ children }: PortalShellProps) {
       {/* Jangles Bucks info modal */}
       {showBucksModal && <JanglesBucksModal onClose={() => setShowBucksModal(false)} balance={balance} />}
 
+      {/* Floating timer widget */}
+      <FloatingTimer />
+
       {/* Escape → Game Hub prompt */}
       {showEscapePrompt && (
         <div
@@ -485,6 +489,195 @@ export function PortalShell({ children }: PortalShellProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Floating timer widget (visible on every page) ───────────────────────────
+const TIMER_ACCENTS: Record<number, string> = { 5: "#60C8FF", 10: "#FBBF24", 15: "#FF4EAB", 20: "#A78BFA" };
+
+function FloatingTimer() {
+  const { state, secondsLeft, totalSeconds, selectedMinutes, startTimer, pause, resume, reset } = useTimer();
+  const [expanded, setExpanded] = useState(false);
+  const TIMER_OPTIONS = [
+    { label: "5 min", minutes: 5 },
+    { label: "10 min", minutes: 10 },
+    { label: "15 min", minutes: 15 },
+    { label: "20 min", minutes: 20 },
+  ];
+
+  if (state === "idle") return null;
+
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const timeStr = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  const isLow = secondsLeft > 0 && secondsLeft <= 60;
+  const isDone = state === "done";
+  const accent = selectedMinutes ? (TIMER_ACCENTS[selectedMinutes] ?? "#FBBF24") : "#FBBF24";
+  const progress = totalSeconds > 0 ? (totalSeconds - secondsLeft) / totalSeconds : 1;
+  const circumference = 2 * Math.PI * 14;
+
+  return (
+    <>
+      <style>{`
+        @keyframes floatPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+        @keyframes doneFlash { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        @keyframes timerBounce { from { transform: scale(1); } to { transform: scale(1.2); } }
+      `}</style>
+
+      {/* Expanded panel */}
+      {expanded && (
+        <div
+          className="fixed bottom-20 right-4 z-50 rounded-[1.75rem] border-[3px] border-ink shadow-2xl"
+          style={{
+            background: isDone ? "#FFF0C8" : "#fff",
+            borderBottomWidth: 6,
+            borderRightWidth: 5,
+            width: "15rem",
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div
+              className="inline-flex items-center gap-1 rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.55rem] font-extrabold uppercase tracking-[0.2em]"
+              style={{ background: isDone ? "#FBBF24" : accent, borderBottomWidth: 3, borderRightWidth: 2 }}
+            >
+              ⏱ Jangles Timer
+            </div>
+            <button
+              onClick={() => setExpanded(false)}
+              className="text-[0.6rem] font-bold text-ink/40 hover:text-ink/70"
+            >
+              ✕
+            </button>
+          </div>
+
+          {isDone ? (
+            <div className="text-center px-4 pb-4">
+              <div className="text-3xl mb-1" style={{ display: "inline-block", animation: "timerBounce 0.6s infinite alternate" }}>⏰</div>
+              <div className="font-extrabold text-base mb-0.5">Time's up!</div>
+              <p className="text-[0.65rem] text-ink/60 mb-3 leading-relaxed">
+                Parents — playtime is over! 🎉
+              </p>
+              <div className="flex flex-col gap-2">
+                {TIMER_OPTIONS.map((o) => (
+                  <button
+                    key={o.minutes}
+                    onClick={() => { startTimer(o.minutes); setExpanded(false); }}
+                    className="w-full rounded-full border-[2.5px] border-ink py-1.5 text-xs font-extrabold hover:scale-105 transition-transform"
+                    style={{ background: TIMER_ACCENTS[o.minutes], borderBottomWidth: 4, borderRightWidth: 3 }}
+                  >
+                    New {o.label} timer
+                  </button>
+                ))}
+                <button
+                  onClick={() => { reset(); setExpanded(false); }}
+                  className="w-full rounded-full border-[2.5px] border-ink py-1.5 text-xs font-extrabold hover:scale-105 transition-transform"
+                  style={{ background: "#F3F4F6", borderBottomWidth: 4, borderRightWidth: 3 }}
+                >
+                  Done for now
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 pb-4 flex flex-col items-center gap-3">
+              {/* Big ring */}
+              <div className="relative" style={{ width: 88, height: 88 }}>
+                <svg width="88" height="88" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="44" cy="44" r="36" fill="none" stroke="#e5e5e5" strokeWidth="7" />
+                  <circle
+                    cx="44" cy="44" r="36" fill="none"
+                    stroke={isLow ? "#EF4444" : accent}
+                    strokeWidth="7" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 36}
+                    strokeDashoffset={2 * Math.PI * 36 * (1 - progress)}
+                    style={{ transition: "stroke-dashoffset 0.9s linear, stroke 0.3s" }}
+                  />
+                </svg>
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center font-extrabold leading-none"
+                  style={{ fontSize: "1.5rem", color: isLow ? "#EF4444" : "#1a1a1a" }}
+                >
+                  {timeStr}
+                </div>
+              </div>
+              <p className="text-[0.6rem] text-ink/50 font-medium">
+                {state === "paused" ? "⏸ Paused" : `${selectedMinutes} min session`}
+              </p>
+              <div className="flex w-full gap-2">
+                {state === "running" ? (
+                  <button
+                    onClick={pause}
+                    className="flex-1 rounded-full border-[2.5px] border-ink py-1.5 text-xs font-extrabold hover:scale-105 transition-transform"
+                    style={{ background: "#FFF0C8", borderBottomWidth: 4, borderRightWidth: 3 }}
+                  >
+                    ⏸ Pause
+                  </button>
+                ) : (
+                  <button
+                    onClick={resume}
+                    className="flex-1 rounded-full border-[2.5px] border-ink py-1.5 text-xs font-extrabold hover:scale-105 transition-transform"
+                    style={{ background: "#D1FAE5", borderBottomWidth: 4, borderRightWidth: 3 }}
+                  >
+                    ▶ Resume
+                  </button>
+                )}
+                <button
+                  onClick={() => { reset(); setExpanded(false); }}
+                  className="rounded-full border-[2.5px] border-ink px-3 py-1.5 text-xs font-extrabold hover:scale-105 transition-transform"
+                  style={{ background: "#F3F4F6", borderBottomWidth: 4, borderRightWidth: 3 }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating pill / chip */}
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border-[3px] border-ink shadow-xl font-extrabold transition-transform hover:-translate-y-0.5"
+        style={{
+          background: isDone ? "#FFF0C8" : "#fff",
+          borderBottomWidth: 5,
+          borderRightWidth: 4,
+          paddingLeft: "0.6rem",
+          paddingRight: "0.85rem",
+          paddingTop: "0.4rem",
+          paddingBottom: "0.4rem",
+          animation: isDone ? "doneFlash 1s ease infinite" : state === "running" ? "floatPulse 3s ease infinite" : "none",
+        }}
+        aria-label="Jangles Timer"
+      >
+        {/* Mini ring */}
+        <svg width="32" height="32" style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
+          <circle cx="16" cy="16" r="14" fill="none" stroke={isDone ? "#FBBF24" : "#e5e5e5"} strokeWidth="3.5" />
+          {!isDone && (
+            <circle
+              cx="16" cy="16" r="14" fill="none"
+              stroke={isLow ? "#EF4444" : accent}
+              strokeWidth="3.5" strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - progress)}
+              style={{ transition: "stroke-dashoffset 0.9s linear, stroke 0.3s" }}
+            />
+          )}
+          {isDone && <text x="16" y="20" textAnchor="middle" fontSize="14" style={{ transform: "rotate(90deg)", transformOrigin: "16px 16px" }}>⏰</text>}
+        </svg>
+
+        <span
+          className="text-sm leading-none"
+          style={{ color: isDone ? "#B45309" : isLow ? "#EF4444" : "#1a1a1a" }}
+        >
+          {isDone ? "Time's up!" : timeStr}
+        </span>
+
+        {state === "paused" && (
+          <span className="text-[0.55rem] font-bold text-ink/40 ml-0.5">⏸</span>
+        )}
+      </button>
+    </>
   );
 }
 

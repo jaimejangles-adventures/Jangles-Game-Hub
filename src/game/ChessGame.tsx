@@ -424,6 +424,7 @@ function ChessBoard({
   onSquareClick,
   interactive = true,
   lastMove,
+  targetSquare,
 }: {
   board: Board;
   selected: Square | null;
@@ -432,6 +433,7 @@ function ChessBoard({
   onSquareClick?: (sq: Square) => void;
   interactive?: boolean;
   lastMove?: { from: Square; to: Square } | null;
+  targetSquare?: Square | null;
 }) {
   return (
     <div style={{
@@ -507,6 +509,17 @@ function ChessBoard({
                   zIndex: 1,
                 }} />
               )}
+              {/* Target square 🎯 */}
+              {targetSquare && targetSquare.row === row && targetSquare.col === col && (
+                <div style={{
+                  position: "absolute", inset: 0, zIndex: 3,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  pointerEvents: "none",
+                  fontSize: "clamp(16px, 4.5vmin, 38px)",
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
+                  animation: "targetPulse 1.2s ease-in-out infinite",
+                }}>🎯</div>
+              )}
               {/* Piece token — coloured disc */}
               {piece && tokenStyle && (
                 <div style={{
@@ -558,15 +571,35 @@ function ChessBoard({
   );
 }
 
-// ─── Lesson Data ──────────────────────────────────────────────────────────────
+// ─── Lesson Data (interactive modules) ───────────────────────────────────────
 
+interface LessonTask {
+  type: "learn" | "try" | "quiz";
+  title: string;
+  text: string;
+  board: Board;
+  highlights?: Square[];
+  movePiece?: Square;      // which piece the learner drags/clicks
+  targetSquare?: Square;   // quiz only — must land exactly here
+  successMsg: string;
+}
+
+interface PieceModule {
+  key: LessonPiece;
+  name: string;
+  emoji: string;
+  color: string;
+  tagline: string;
+  tasks: LessonTask[];
+}
+
+// Legacy shape kept so nothing else breaks
 interface LessonStep {
   title: string;
   description: string;
   board: Board;
   highlights: Square[];
 }
-
 const LESSONS: Record<LessonPiece, LessonStep[]> = {
   overview: [
     {
@@ -719,6 +752,362 @@ const LESSONS: Record<LessonPiece, LessonStep[]> = {
   ],
 };
 
+// ─── Interactive Piece Modules ────────────────────────────────────────────────
+
+const Q = (
+  title: string, text: string,
+  board: Board,
+  movePiece: Square,
+  targetSquare: Square,
+  successMsg: string,
+): LessonTask => ({ type: "quiz", title, text, board, movePiece, targetSquare, successMsg });
+
+const PIECE_MODULES: PieceModule[] = [
+  // ─── PAWN ──────────────────────────────────────────────────────────────────
+  {
+    key: "pawn", name: "Pawn", emoji: "♟", color: "#16a34a", tagline: "Baby steps become big power!",
+    tasks: [
+      {
+        type: "learn", title: "Pawns March Forward!", successMsg: "",
+        text: "Pawns move straight forward — one square at a time. But on their very FIRST move they can leap ahead TWO squares! They can NEVER go backwards.",
+        board: (() => { let b = placePiece(emptyBoard(), 5, 4, "pawn", "white"); return b; })(),
+        highlights: [{ row: 4, col: 4 }, { row: 3, col: 4 }],
+      },
+      {
+        type: "learn", title: "Pawns Attack Diagonally!", successMsg: "",
+        text: "Pawns capture enemy pieces one square DIAGONALLY in front of them. They CANNOT capture pieces straight ahead — only diagonals! Both black pawns can be captured here.",
+        board: (() => { let b = placePiece(emptyBoard(), 4, 4, "pawn", "white"); b = placePiece(b, 3, 3, "pawn", "black"); b = placePiece(b, 3, 5, "pawn", "black"); return b; })(),
+        highlights: [{ row: 3, col: 3 }, { row: 3, col: 5 }],
+      },
+      {
+        type: "try", title: "Try It! Move Your Pawn 🌱", successMsg: "Awesome! You moved the pawn! Pawns slowly march to the other side.",
+        text: "Click the white pawn, then click a green square to move it. It can go 1 OR 2 squares forward from its starting spot!",
+        board: placePiece(emptyBoard(), 6, 4, "pawn", "white"),
+        movePiece: { row: 6, col: 4 },
+      },
+      Q("Challenge 1 — March Forward! 🎯","Move your pawn one square forward to the 🎯!",
+        placePiece(emptyBoard(), 4, 3, "pawn", "white"),
+        {row:4,col:3},{row:3,col:3},"⭐ Step by step — that's how pawns conquer the board!"),
+      Q("Challenge 2 — Double Step! 🎯","It's this pawn's first move! Jump TWO squares to the 🎯!",
+        placePiece(emptyBoard(), 6, 2, "pawn", "white"),
+        {row:6,col:2},{row:4,col:2},"🚀 Two squares on the first move — a great opening trick!"),
+      Q("Challenge 3 — Capture Left! 🎯","Diagonal attack! Capture the black pawn to the left at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "pawn", "white"); b = placePiece(b, 3, 3, "pawn", "black"); return b; })(),
+        {row:4,col:4},{row:3,col:3},"👈 Left diagonal capture — got it!"),
+      Q("Challenge 4 — Capture Right! 🎯","Diagonal attack! Capture the black pawn to the right at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 3, "pawn", "white"); b = placePiece(b, 3, 4, "pawn", "black"); return b; })(),
+        {row:4,col:3},{row:3,col:4},"👉 Right diagonal capture — sneaky!"),
+      Q("Challenge 5 — Capture the Knight! 🎯","Knights beware! Your pawn can capture diagonally at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 2, "pawn", "white"); b = placePiece(b, 4, 3, "knight", "black"); return b; })(),
+        {row:5,col:2},{row:4,col:3},"🐴 Got the knight! Pawns can take any piece diagonally!"),
+      Q("Challenge 6 — Capture the Rook! 🎯","A powerful piece is in range! Grab the black rook at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 3, 5, "pawn", "white"); b = placePiece(b, 2, 4, "rook", "black"); return b; })(),
+        {row:3,col:5},{row:2,col:4},"🏰 Pawn takes rook — that's a great trade!"),
+      Q("Challenge 7 — Capture the Bishop! 🎯","The bishop is one diagonal step away — take it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 1, "pawn", "white"); b = placePiece(b, 4, 2, "bishop", "black"); return b; })(),
+        {row:5,col:1},{row:4,col:2},"♝ Captured the bishop! Pawns punch above their weight!"),
+      Q("Challenge 8 — Advance Fast! 🎯","Push your pawn two squares to gain space at 🎯!",
+        placePiece(emptyBoard(), 6, 6, "pawn", "white"),
+        {row:6,col:6},{row:4,col:6},"💨 Fast advance! Controlling space is key in chess!"),
+      Q("Challenge 9 — Capture the Queen! 🎯","Incredible — your tiny pawn can take the queen! Move to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 0, "pawn", "white"); b = placePiece(b, 3, 1, "queen", "black"); return b; })(),
+        {row:4,col:0},{row:3,col:1},"😱 Pawn beats queen! Anything can happen in chess!"),
+      Q("Challenge 10 — March to Glory! 🎯","One more step and this pawn will become a QUEEN! Move to 🎯!",
+        placePiece(emptyBoard(), 2, 3, "pawn", "white"),
+        {row:2,col:3},{row:1,col:3},"👑 Almost there! One more step = promotion to queen!"),
+    ],
+  },
+
+  // ─── ROOK ──────────────────────────────────────────────────────────────────
+  {
+    key: "rook", name: "Rook", emoji: "♜", color: "#dc2626", tagline: "Rules every row and column!",
+    tasks: [
+      {
+        type: "learn", title: "Rooks Rule Straight Lines!", successMsg: "",
+        text: "The Rook slides any number of squares in a straight line — left, right, up, or down. It controls whole rows (ranks) and columns (files)! It CANNOT jump over other pieces.",
+        board: placePiece(emptyBoard(), 4, 4, "rook", "white"),
+        highlights: [
+          ...[0,1,2,3,5,6,7].map(r => ({ row: r, col: 4 })),
+          ...[0,1,2,3,5,6,7].map(c => ({ row: 4, col: c })),
+        ],
+      },
+      {
+        type: "learn", title: "Rooks Stop at Other Pieces", successMsg: "",
+        text: "The Rook cannot pass through pieces. It stops before a friendly piece and stops AFTER capturing an enemy piece. It can still slide up and down freely here!",
+        board: (() => { let b = placePiece(emptyBoard(), 4, 4, "rook", "white"); b = placePiece(b, 4, 6, "pawn", "black"); b = placePiece(b, 4, 1, "pawn", "white"); return b; })(),
+        highlights: [{ row:4,col:2},{row:4,col:3},{row:4,col:5},{row:4,col:6}, ...[0,1,2,3,5,6,7].map(r => ({ row: r, col: 4 }))],
+      },
+      {
+        type: "try", title: "Try It! Slide Your Rook 🏰", successMsg: "Brilliant! The rook is a powerhouse along rows and columns!",
+        text: "Click the white rook, then move it anywhere along its row or column. The green squares show all the places it can go!",
+        board: placePiece(emptyBoard(), 4, 4, "rook", "white"),
+        movePiece: { row: 4, col: 4 },
+      },
+      Q("Challenge 1 — Slide Right! 🎯","Slide your rook RIGHT along the row to reach 🎯!",
+        placePiece(emptyBoard(), 4, 0, "rook", "white"),
+        {row:4,col:0},{row:4,col:5},"➡️ The rook zooms across the entire row in one move!"),
+      Q("Challenge 2 — Slide Left! 🎯","Slide your rook LEFT along the row to reach 🎯!",
+        placePiece(emptyBoard(), 5, 7, "rook", "white"),
+        {row:5,col:7},{row:5,col:2},"⬅️ Rooks can slide any distance — left or right!"),
+      Q("Challenge 3 — Move Up the Column! 🎯","Slide your rook UP the file to reach 🎯!",
+        placePiece(emptyBoard(), 7, 3, "rook", "white"),
+        {row:7,col:3},{row:2,col:3},"⬆️ Straight up the column — rooks love open files!"),
+      Q("Challenge 4 — Move Down! 🎯","Slide your rook DOWN to reach 🎯!",
+        placePiece(emptyBoard(), 1, 5, "rook", "white"),
+        {row:1,col:5},{row:6,col:5},"⬇️ Down the file in one shot!"),
+      Q("Challenge 5 — Capture the Pawn! 🎯","Slide right and take the black pawn at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 3, 0, "rook", "white"); b = placePiece(b, 3, 5, "pawn", "black"); return b; })(),
+        {row:3,col:0},{row:3,col:5},"💥 Pawn captured! Rooks love open ranks!"),
+      Q("Challenge 6 — Capture the Knight! 🎯","The knight is up the column — take it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 2, "rook", "white"); b = placePiece(b, 1, 2, "knight", "black"); return b; })(),
+        {row:6,col:2},{row:1,col:2},"🐴 Knight captured! Rooks dominate open files!"),
+      Q("Challenge 7 — Capture the Bishop! 🎯","Slide your rook left to snatch the bishop at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 7, "rook", "white"); b = placePiece(b, 4, 1, "bishop", "black"); return b; })(),
+        {row:4,col:7},{row:4,col:1},"♝ Bishop down! Nothing escapes a rook on an open rank!"),
+      Q("Challenge 8 — Capture the Queen! 🎯","The most valuable target! Slide up and take the queen at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 7, 4, "rook", "white"); b = placePiece(b, 0, 4, "queen", "black"); return b; })(),
+        {row:7,col:4},{row:0,col:4},"👑 You captured the queen! That's a massive win!"),
+      Q("Challenge 9 — Capture the Rook! 🎯","Enemy rook on the same file — take it first at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 7, 0, "rook", "white"); b = placePiece(b, 2, 0, "rook", "black"); return b; })(),
+        {row:7,col:0},{row:2,col:0},"♖ Rook takes rook! Whoever goes first wins the exchange!"),
+      Q("Challenge 10 — Long Slide Capture! 🎯","Slide all the way across to grab the pawn at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 7, "rook", "white"); b = placePiece(b, 6, 0, "pawn", "black"); return b; })(),
+        {row:6,col:7},{row:6,col:0},"🚀 Full rank in one move — that's rook power!"),
+    ],
+  },
+
+  // ─── KNIGHT ────────────────────────────────────────────────────────────────
+  {
+    key: "knight", name: "Knight", emoji: "♞", color: "#ea580c", tagline: "The only piece that can leap!",
+    tasks: [
+      {
+        type: "learn", title: "Knights Jump in an L-Shape!", successMsg: "",
+        text: "The Knight moves in an L: 2 squares one direction, then 1 square sideways (or vice versa). It is the ONLY piece that can jump OVER other pieces!",
+        board: placePiece(emptyBoard(), 4, 4, "knight", "white"),
+        highlights: [{row:2,col:3},{row:2,col:5},{row:3,col:2},{row:3,col:6},{row:5,col:2},{row:5,col:6},{row:6,col:3},{row:6,col:5}],
+      },
+      {
+        type: "learn", title: "Knights Leap Over Anything!", successMsg: "",
+        text: "The knight is completely surrounded by pawns but can STILL jump to all 8 squares! No other piece can do this sneaky trick.",
+        board: (() => { let b = placePiece(emptyBoard(), 4, 4, "knight", "white"); for (const [r,c] of [[3,3],[3,4],[3,5],[4,3],[4,5],[5,3],[5,4],[5,5]]) b = placePiece(b, r, c, "pawn", "white"); return b; })(),
+        highlights: [{row:2,col:3},{row:2,col:5},{row:3,col:2},{row:3,col:6},{row:5,col:2},{row:5,col:6},{row:6,col:3},{row:6,col:5}],
+      },
+      {
+        type: "try", title: "Try It! Make an L-Move 🐴", successMsg: "Yee-haw! That's the L-shape! Knights are tricky to stop!",
+        text: "Click the knight to see all 8 landing spots, then click any green square to leap!",
+        board: placePiece(emptyBoard(), 4, 4, "knight", "white"),
+        movePiece: { row: 4, col: 4 },
+      },
+      Q("Challenge 1 — Jump Up-Right! 🎯","Make an L: 2 up + 1 right to reach 🎯!",
+        placePiece(emptyBoard(), 5, 3, "knight", "white"),
+        {row:5,col:3},{row:3,col:4},"↗️ 2 up, 1 right — classic knight leap!"),
+      Q("Challenge 2 — Jump Up-Left! 🎯","Make an L: 2 up + 1 left to reach 🎯!",
+        placePiece(emptyBoard(), 5, 4, "knight", "white"),
+        {row:5,col:4},{row:3,col:3},"↖️ 2 up, 1 left — got it!"),
+      Q("Challenge 3 — Jump Right-Up! 🎯","Make an L: 1 up + 2 right to reach 🎯!",
+        placePiece(emptyBoard(), 4, 3, "knight", "white"),
+        {row:4,col:3},{row:3,col:5},"↗️ 1 up, 2 right — the other L!"),
+      Q("Challenge 4 — Jump Left-Down! 🎯","Make an L: 1 down + 2 left to reach 🎯!",
+        placePiece(emptyBoard(), 3, 5, "knight", "white"),
+        {row:3,col:5},{row:4,col:3},"↙️ Going down-left the L way!"),
+      Q("Challenge 5 — Capture the Pawn! 🎯","L-jump to grab the black pawn at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 2, "knight", "white"); b = placePiece(b, 3, 3, "pawn", "black"); return b; })(),
+        {row:5,col:2},{row:3,col:3},"🌱 Pawn captured with the L-jump!"),
+      Q("Challenge 6 — Leap Over & Capture! 🎯","Jump OVER the pawns to grab the black piece at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 3, "knight", "white"); b = placePiece(b, 4, 3, "pawn", "white"); b = placePiece(b, 4, 4, "pawn", "white"); b = placePiece(b, 3, 2, "bishop", "black"); return b; })(),
+        {row:5,col:3},{row:3,col:2},"🦘 Leaped right over the pawns — knights are amazing!"),
+      Q("Challenge 7 — Capture the Bishop! 🎯","L-jump onto the black bishop at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "knight", "white"); b = placePiece(b, 2, 3, "bishop", "black"); return b; })(),
+        {row:4,col:4},{row:2,col:3},"♝ Bishop taken by the sneaky knight!"),
+      Q("Challenge 8 — Capture the Rook! 🎯","The rook can't stop a leaping knight — grab it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 2, "knight", "white"); b = placePiece(b, 2, 3, "rook", "black"); return b; })(),
+        {row:4,col:2},{row:2,col:3},"🏰 Knight beats rook — great move!"),
+      Q("Challenge 9 — Corner Jump! 🎯","Knights can reach tricky corner squares — make the leap to 🎯!",
+        placePiece(emptyBoard(), 4, 5, "knight", "white"),
+        {row:4,col:5},{row:6,col:6},"🎯 Corner squares are hard — you found it!"),
+      Q("Challenge 10 — Capture the Queen! 🎯","Incredible! Your knight can take the queen — jump to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "knight", "white"); b = placePiece(b, 2, 5, "queen", "black"); return b; })(),
+        {row:4,col:4},{row:2,col:5},"👑 Knight takes queen! The L-shape is unstoppable!"),
+    ],
+  },
+
+  // ─── BISHOP ────────────────────────────────────────────────────────────────
+  {
+    key: "bishop", name: "Bishop", emoji: "♝", color: "#9333ea", tagline: "Diagonal darter!",
+    tasks: [
+      {
+        type: "learn", title: "Bishops Glide Diagonally!", successMsg: "",
+        text: "The Bishop slides any number of squares diagonally. Notice it always stays on the SAME colour square! Each player has one light-square bishop and one dark-square bishop forever.",
+        board: placePiece(emptyBoard(), 4, 4, "bishop", "white"),
+        highlights: [
+          ...[1,2,3].flatMap(d => [
+            {row:4-d,col:4-d},{row:4-d,col:4+d},{row:4+d,col:4-d},{row:4+d,col:4+d},
+          ]).filter(s => inBounds(s.row, s.col)),
+        ],
+      },
+      {
+        type: "learn", title: "Bishops Stay on Their Colour!", successMsg: "",
+        text: "The bishop on a LIGHT square will ALWAYS stay on light squares. The bishop on a DARK square will ALWAYS stay on dark squares. That's why having BOTH bishops is so powerful!",
+        board: (() => { let b = placePiece(emptyBoard(), 7, 2, "bishop", "white"); b = placePiece(b, 7, 5, "bishop", "white"); return b; })(),
+        highlights: [
+          ...[1,2,3,4,5].flatMap(d => [{row:7-d,col:2-d},{row:7-d,col:2+d}]).filter(s=>inBounds(s.row,s.col)),
+          ...[1,2,3,4,5].flatMap(d => [{row:7-d,col:5-d},{row:7-d,col:5+d}]).filter(s=>inBounds(s.row,s.col)),
+        ],
+      },
+      {
+        type: "try", title: "Try It! Slide Diagonally 💜", successMsg: "Diagonal master! The bishop can cover a whole diagonal in one move!",
+        text: "Click the bishop and glide it along any diagonal. Notice it always stays on the same colour!",
+        board: placePiece(emptyBoard(), 4, 3, "bishop", "white"),
+        movePiece: { row: 4, col: 3 },
+      },
+      Q("Challenge 1 — Diagonal Up-Right! 🎯","Slide diagonally up and right to 🎯!",
+        placePiece(emptyBoard(), 5, 2, "bishop", "white"),
+        {row:5,col:2},{row:2,col:5},"↗️ Long diagonal up-right — bishops love open boards!"),
+      Q("Challenge 2 — Diagonal Up-Left! 🎯","Slide diagonally up and left to 🎯!",
+        placePiece(emptyBoard(), 5, 5, "bishop", "white"),
+        {row:5,col:5},{row:2,col:2},"↖️ Up-left diagonal — same colour all the way!"),
+      Q("Challenge 3 — Diagonal Down-Right! 🎯","Slide diagonally DOWN and to the right to reach 🎯!",
+        placePiece(emptyBoard(), 2, 2, "bishop", "white"),
+        {row:2,col:2},{row:5,col:5},"↘️ Down-right diagonal — bishops can go both ways!"),
+      Q("Challenge 4 — Short Diagonal! 🎯","Just one diagonal step to 🎯 — short but sharp!",
+        placePiece(emptyBoard(), 4, 4, "bishop", "white"),
+        {row:4,col:4},{row:3,col:5},"⚡ Short and sweet — bishops can move just one too!"),
+      Q("Challenge 5 — Capture the Pawn! 🎯","Slide to take the black pawn at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 1, "bishop", "white"); b = placePiece(b, 2, 4, "pawn", "black"); return b; })(),
+        {row:5,col:1},{row:2,col:4},"🌱 Pawn captured diagonally!"),
+      Q("Challenge 6 — Capture the Knight! 🎯","The knight can't outrun a bishop on an open diagonal — take it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 0, "bishop", "white"); b = placePiece(b, 3, 3, "knight", "black"); return b; })(),
+        {row:6,col:0},{row:3,col:3},"🐴 Bishop takes knight — great diagonal shot!"),
+      Q("Challenge 7 — Capture the Rook! 🎯","Bishops can snipe rooks from far away — grab it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 1, "bishop", "white"); b = placePiece(b, 2, 5, "rook", "black"); return b; })(),
+        {row:6,col:1},{row:2,col:5},"🏰 Rook captured from across the board!"),
+      Q("Challenge 8 — Cross-Board Strike! 🎯","Long range attack — slide the full diagonal to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 7, 0, "bishop", "white"); b = placePiece(b, 0, 7, "pawn", "black"); return b; })(),
+        {row:7,col:0},{row:0,col:7},"💥 Full diagonal — corner to corner in one move!"),
+      Q("Challenge 9 — Capture the Queen! 🎯","The queen is on your diagonal — snatch it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 0, "bishop", "white"); b = placePiece(b, 3, 2, "queen", "black"); return b; })(),
+        {row:5,col:0},{row:3,col:2},"👑 Bishop takes queen — incredible value!"),
+      Q("Challenge 10 — Change Direction! 🎯","Now go the OTHER diagonal direction to reach 🎯!",
+        placePiece(emptyBoard(), 4, 4, "bishop", "white"),
+        {row:4,col:4},{row:6,col:2},"🔄 Down-left diagonal — bishops can change direction each move!"),
+    ],
+  },
+
+  // ─── QUEEN ─────────────────────────────────────────────────────────────────
+  {
+    key: "queen", name: "Queen", emoji: "♛", color: "#db2777", tagline: "The most powerful piece!",
+    tasks: [
+      {
+        type: "learn", title: "The Queen Goes Everywhere!", successMsg: "",
+        text: "The Queen is a Rook AND a Bishop combined! She slides any number of squares in ALL 8 directions. She is by far the strongest piece — protect her at all costs!",
+        board: placePiece(emptyBoard(), 4, 4, "queen", "white"),
+        highlights: [
+          ...[0,1,2,3,5,6,7].map(r => ({ row: r, col: 4 })),
+          ...[0,1,2,3,5,6,7].map(c => ({ row: 4, col: c })),
+          ...[1,2,3].flatMap(d => [{row:4-d,col:4-d},{row:4-d,col:4+d},{row:4+d,col:4-d},{row:4+d,col:4+d}]).filter(s=>inBounds(s.row,s.col)),
+        ],
+      },
+      {
+        type: "learn", title: "Queens Are Stopped by Pieces", successMsg: "",
+        text: "Like rooks and bishops, the queen cannot jump over other pieces. She stops before a friendly piece or stops AFTER capturing an enemy piece. Always use her safely!",
+        board: (() => { let b = placePiece(emptyBoard(), 4, 4, "queen", "white"); b = placePiece(b, 4, 6, "pawn", "black"); b = placePiece(b, 2, 2, "pawn", "white"); return b; })(),
+        highlights: [{row:4,col:5},{row:4,col:6},...[0,1,2,3,5,6,7].map(r=>({row:r,col:4})),...[0,1,2,3,5].map(c=>({row:4,col:c})),...[1].flatMap(d=>[{row:4-d,col:4-d},{row:4-d,col:4+d},{row:4+d,col:4-d},{row:4+d,col:4+d}]).filter(s=>inBounds(s.row,s.col))],
+      },
+      {
+        type: "try", title: "Try It! Unleash the Queen 👸", successMsg: "Powerful! The queen controls the whole board from one move!",
+        text: "Click the queen — she can go almost anywhere! Pick any green square and watch her zoom there!",
+        board: placePiece(emptyBoard(), 4, 4, "queen", "white"),
+        movePiece: { row: 4, col: 4 },
+      },
+      Q("Challenge 1 — Slide Right! 🎯","Slide the queen horizontally to the right to reach 🎯!",
+        placePiece(emptyBoard(), 4, 0, "queen", "white"),
+        {row:4,col:0},{row:4,col:6},"➡️ Queens slide like rooks across the whole rank!"),
+      Q("Challenge 2 — Slide Up! 🎯","Move the queen straight up the column to 🎯!",
+        placePiece(emptyBoard(), 7, 3, "queen", "white"),
+        {row:7,col:3},{row:1,col:3},"⬆️ Straight up the file — rook power!"),
+      Q("Challenge 3 — Diagonal Strike! 🎯","Slide the queen diagonally to reach 🎯!",
+        placePiece(emptyBoard(), 6, 1, "queen", "white"),
+        {row:6,col:1},{row:2,col:5},"↗️ Diagonal like a bishop — the queen does it all!"),
+      Q("Challenge 4 — Capture the Pawn! 🎯","Grab the black pawn at 🎯 with your queen!",
+        (() => { let b = placePiece(emptyBoard(), 4, 0, "queen", "white"); b = placePiece(b, 4, 5, "pawn", "black"); return b; })(),
+        {row:4,col:0},{row:4,col:5},"💥 Pawn captured horizontally!"),
+      Q("Challenge 5 — Capture Vertically! 🎯","Slide up the column to take the black knight at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 4, "queen", "white"); b = placePiece(b, 1, 4, "knight", "black"); return b; })(),
+        {row:6,col:4},{row:1,col:4},"🐴 Queen slides straight up to take the knight!"),
+      Q("Challenge 6 — Capture Diagonally! 🎯","Strike diagonally to take the black bishop at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 0, "queen", "white"); b = placePiece(b, 2, 3, "bishop", "black"); return b; })(),
+        {row:5,col:0},{row:2,col:3},"♝ Diagonal capture — bishop beaten!"),
+      Q("Challenge 7 — Check from Distance! 🎯","Move the queen to 🎯 to put the black king in CHECK!",
+        (() => { let b = placePiece(emptyBoard(), 7, 0, "queen", "white"); b = placePiece(b, 0, 4, "king", "black"); b = placePiece(b, 7, 4, "king", "white"); return b; })(),
+        {row:7,col:0},{row:0,col:0},"⚠️ Check! The queen controls the whole column!"),
+      Q("Challenge 8 — Check Diagonally! 🎯","Move the queen to 🎯 to threaten the black king diagonally!",
+        (() => { let b = placePiece(emptyBoard(), 7, 0, "queen", "white"); b = placePiece(b, 4, 3, "king", "black"); b = placePiece(b, 7, 4, "king", "white"); return b; })(),
+        {row:7,col:0},{row:5,col:2},"↗️ Diagonal check — the king is in trouble!"),
+      Q("Challenge 9 — Capture the Rook! 🎯","The rook is valuable — slide the queen to take it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 3, 3, "queen", "white"); b = placePiece(b, 3, 7, "rook", "black"); return b; })(),
+        {row:3,col:3},{row:3,col:7},"🏰 Queen takes rook — a great trade!"),
+      Q("Challenge 10 — Capture the Queen! 🎯","Take the enemy queen before she causes trouble — move to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 6, 2, "queen", "white"); b = placePiece(b, 1, 7, "queen", "black"); return b; })(),
+        {row:6,col:2},{row:1,col:7},"👑 Queen takes queen — now YOU have the advantage!"),
+    ],
+  },
+
+  // ─── KING ──────────────────────────────────────────────────────────────────
+  {
+    key: "king", name: "King", emoji: "♚", color: "#ca8a04", tagline: "The most important piece!",
+    tasks: [
+      {
+        type: "learn", title: "The King Takes One Step", successMsg: "",
+        text: "The King moves exactly ONE square in any of the 8 directions. He is the most important piece — if he's captured (checkmated), the game ends! Never walk your King into danger.",
+        board: placePiece(emptyBoard(), 4, 4, "king", "white"),
+        highlights: [{row:3,col:3},{row:3,col:4},{row:3,col:5},{row:4,col:3},{row:4,col:5},{row:5,col:3},{row:5,col:4},{row:5,col:5}],
+      },
+      {
+        type: "learn", title: "Check! You MUST Escape!", successMsg: "",
+        text: "When your King is attacked, that's CHECK ⚠️ — you MUST get him to safety immediately! If there is NO escape, that's CHECKMATE and the game is over.",
+        board: (() => { let b = placePiece(emptyBoard(), 0, 4, "king", "black"); b = placePiece(b, 7, 4, "king", "white"); b = placePiece(b, 1, 1, "queen", "white"); return b; })(),
+        highlights: [{ row: 0, col: 4 }],
+      },
+      {
+        type: "try", title: "Try It! Move the King 👑", successMsg: "Great! Remember — one careful step at a time for the King!",
+        text: "Click the King and move him one square in any direction. He's slow but the most important!",
+        board: placePiece(emptyBoard(), 4, 4, "king", "white"),
+        movePiece: { row: 4, col: 4 },
+      },
+      Q("Challenge 1 — Step Right! 🎯","Move the king one square to the RIGHT to reach 🎯!",
+        placePiece(emptyBoard(), 4, 3, "king", "white"),
+        {row:4,col:3},{row:4,col:4},"➡️ One step right — the king moves one square at a time!"),
+      Q("Challenge 2 — Step Up! 🎯","Move the king one square FORWARD to reach 🎯!",
+        placePiece(emptyBoard(), 5, 4, "king", "white"),
+        {row:5,col:4},{row:4,col:4},"⬆️ One step forward — slowly but surely!"),
+      Q("Challenge 3 — Diagonal Step! 🎯","Move the king diagonally (up-right) to 🎯!",
+        placePiece(emptyBoard(), 5, 3, "king", "white"),
+        {row:5,col:3},{row:4,col:4},"↗️ Diagonal step — kings can go in all 8 directions!"),
+      Q("Challenge 4 — Step Left! 🎯","Move the king one square to the LEFT to 🎯!",
+        placePiece(emptyBoard(), 4, 5, "king", "white"),
+        {row:4,col:5},{row:4,col:4},"⬅️ One step left — the king keeps careful control!"),
+      Q("Challenge 5 — Escape the Rook! 🎯","Your king is in CHECK from the rook! Step to the safe 🎯 square!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "king", "white"); b = placePiece(b, 4, 0, "rook", "black"); b = placePiece(b, 0, 7, "king", "black"); return b; })(),
+        {row:4,col:4},{row:3,col:4},"✅ Safe! Always escape check on your very next move!"),
+      Q("Challenge 6 — Escape Diagonally! 🎯","The rook controls the whole rank! Step off it diagonally to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 5, 3, "king", "white"); b = placePiece(b, 5, 7, "rook", "black"); b = placePiece(b, 0, 7, "king", "black"); return b; })(),
+        {row:5,col:3},{row:4,col:4},"↗️ Step off the rank — the king escapes diagonally!"),
+      Q("Challenge 7 — Capture the Pawn! 🎯","The black pawn is right next to the king — take it at 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "king", "white"); b = placePiece(b, 3, 5, "pawn", "black"); b = placePiece(b, 0, 0, "king", "black"); return b; })(),
+        {row:4,col:4},{row:3,col:5},"🌱 King captures pawn! The king can take adjacent enemy pieces!"),
+      Q("Challenge 8 — Capture the Knight! 🎯","The knight is one step away — kings can capture too! Move to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "king", "white"); b = placePiece(b, 4, 5, "knight", "black"); b = placePiece(b, 0, 0, "king", "black"); return b; })(),
+        {row:4,col:4},{row:4,col:5},"🐴 King takes knight — but only if it's safe to do so!"),
+      Q("Challenge 9 — Step Down to Safety! 🎯","Dodge the check by stepping DOWN one square to 🎯!",
+        (() => { let b = placePiece(emptyBoard(), 3, 4, "king", "white"); b = placePiece(b, 0, 4, "rook", "black"); b = placePiece(b, 0, 0, "king", "black"); return b; })(),
+        {row:3,col:4},{row:4,col:4},"⬇️ Stepped out of the rook's column — safe!"),
+      Q("Challenge 10 — Tricky Escape! 🎯","The bishop has your king in check! The ONLY safe square is 🎯 — find it!",
+        (() => { let b = placePiece(emptyBoard(), 4, 4, "king", "white"); b = placePiece(b, 0, 0, "bishop", "black"); b = placePiece(b, 7, 7, "king", "black"); return b; })(),
+        {row:4,col:4},{row:4,col:5},"🎉 You found the escape! Always look for the safe square!"),
+    ],
+  },
+];
+
 // ─── Keyframe injection ──────────────────────────────────────────────────────
 
 const PULSE_CSS = `
@@ -735,6 +1124,22 @@ const PULSE_CSS = `
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes targetPulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+@keyframes wrongShake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+@keyframes successPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
 `;
 if (typeof document !== "undefined" && !document.getElementById("chess-keyframes")) {
   const s = document.createElement("style");
@@ -745,92 +1150,275 @@ if (typeof document !== "undefined" && !document.getElementById("chess-keyframes
 
 // ─── Lesson Mode ──────────────────────────────────────────────────────────────
 
-const LESSON_TABS: { key: LessonPiece; label: string; emoji: string; color: string }[] = [
-  { key: "overview", label: "Overview",  emoji: "♟", color: "#6366f1" },
-  { key: "pawn",     label: "Pawn",      emoji: "♙", color: "#22c55e" },
-  { key: "rook",     label: "Rook",      emoji: "♖", color: "#ef4444" },
-  { key: "knight",   label: "Knight",    emoji: "♘", color: "#f97316" },
-  { key: "bishop",   label: "Bishop",    emoji: "♗", color: "#a855f7" },
-  { key: "queen",    label: "Queen",     emoji: "♕", color: "#ec4899" },
-  { key: "king",     label: "King",      emoji: "♔", color: "#eab308" },
-];
-
 function LessonMode({ onBack }: { onBack: () => void }) {
-  const [activePiece, setActivePiece] = useState<LessonPiece>("overview");
-  const [stepIdx, setStepIdx] = useState(0);
+  const [activeModule, setActiveModule] = useState<PieceModule | null>(null);
+  const [taskIdx, setTaskIdx] = useState(0);
+  const [selected, setSelected] = useState<Square | null>(null);
+  const [taskBoard, setTaskBoard] = useState<Board | null>(null);
+  const [taskDone, setTaskDone] = useState(false);
+  const [wrongFlash, setWrongFlash] = useState(false);
+  const [completedPieces, setCompletedPieces] = useState<Set<string>>(new Set());
 
-  const steps = LESSONS[activePiece];
-  const step = steps[stepIdx];
-  const tab = LESSON_TABS.find(t => t.key === activePiece)!;
+  const task = activeModule ? activeModule.tasks[taskIdx] : null;
+  const displayBoard = taskBoard ?? task?.board ?? emptyBoard();
+  const color = activeModule?.color ?? "#6366f1";
 
-  function selectPiece(key: LessonPiece) { setActivePiece(key); setStepIdx(0); }
+  // Which moves are valid from the movePiece square
+  const validMoves: Square[] = (task?.movePiece && !taskDone && selected)
+    ? rawMoves(displayBoard, task.movePiece, null, NO_CASTLING)
+    : [];
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "linear-gradient(135deg,#f0f4ff 0%,#faf5ff 100%)", overflow: "auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px 0" }}>
-        <button onClick={onBack} style={backBtnStyle}>← Back</button>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e1b4b" }}>Chess Lessons</h2>
-      </div>
+  function openModule(mod: PieceModule) {
+    setActiveModule(mod);
+    setTaskIdx(0);
+    setSelected(null);
+    setTaskBoard(null);
+    setTaskDone(false);
+    setWrongFlash(false);
+  }
 
-      {/* Piece tabs */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "14px 20px 0" }}>
-        {LESSON_TABS.map(({ key, label, emoji, color }) => (
-          <button key={key} onClick={() => selectPiece(key)} style={{
-            background: activePiece === key ? color : "rgba(255,255,255,0.8)",
-            color: activePiece === key ? "#fff" : "#374151",
-            border: `2px solid ${activePiece === key ? color : "rgba(0,0,0,0.1)"}`,
-            borderRadius: 99, padding: "6px 14px",
-            fontWeight: 700, cursor: "pointer", fontSize: 13,
-            boxShadow: activePiece === key ? `0 4px 12px ${color}55` : "0 1px 3px rgba(0,0,0,0.08)",
-            transition: "all 0.15s",
-          }}>
-            {emoji} {label}
-          </button>
-        ))}
-      </div>
+  function goToTask(idx: number) {
+    setTaskIdx(idx);
+    setSelected(null);
+    setTaskBoard(null);
+    setTaskDone(false);
+    setWrongFlash(false);
+  }
 
-      {/* Main area */}
-      <div style={{ display: "flex", gap: 20, flex: 1, flexWrap: "wrap", alignItems: "flex-start", padding: "16px 20px 20px" }}>
-        {/* Board */}
-        <div style={{ width: "min(100%, 420px)", aspectRatio: "1", flexShrink: 0, borderRadius: 16, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.18)" }}>
-          <ChessBoard board={step.board} selected={null} validMoves={[]} highlights={step.highlights} interactive={false} />
-        </div>
+  function nextTask() {
+    if (!activeModule) return;
+    if (taskIdx < activeModule.tasks.length - 1) {
+      goToTask(taskIdx + 1);
+    } else {
+      // Module complete!
+      setCompletedPieces(prev => new Set([...prev, activeModule.key]));
+      setActiveModule(null);
+    }
+  }
 
-        {/* Info card */}
-        <div style={{ flex: "1 1 220px" }}>
-          <div style={glassCard}>
-            {steps.length > 1 && (
-              <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
-                {steps.map((_, i) => (
-                  <button key={i} onClick={() => setStepIdx(i)} style={{
-                    width: i === stepIdx ? 24 : 8, height: 8, borderRadius: 99, border: "none",
-                    background: i === stepIdx ? tab.color : "#e5e7eb",
-                    cursor: "pointer", padding: 0, transition: "all 0.2s",
-                  }} />
-                ))}
-              </div>
-            )}
-            <div style={{ fontSize: 11, fontWeight: 700, color: tab.color, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>
-              {tab.emoji} {tab.label}
-            </div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 10px", color: "#1e1b4b", lineHeight: 1.3 }}>
-              {step.title}
-            </h3>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: "#4b5563", margin: "0 0 16px" }}>
-              {step.description}
-            </p>
-            <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "9px 14px", fontSize: 12, color: "#15803d", fontWeight: 600 }}>
-              🟢 Green squares = where this piece can move or capture
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setStepIdx(i => Math.max(0, i - 1))} disabled={stepIdx === 0}
-                style={navBtnStyle(stepIdx === 0, tab.color)}>← Prev</button>
-              <button onClick={() => setStepIdx(i => Math.min(steps.length - 1, i + 1))} disabled={stepIdx === steps.length - 1}
-                style={navBtnStyle(stepIdx === steps.length - 1, tab.color)}>Next →</button>
-            </div>
+  function handleBoardClick(sq: Square) {
+    if (!task || !task.movePiece || taskDone) return;
+
+    if (!selected) {
+      // Select the piece
+      if (sq.row === task.movePiece.row && sq.col === task.movePiece.col) {
+        setSelected(sq);
+      }
+      return;
+    }
+
+    // Try to move
+    const moves = rawMoves(displayBoard, task.movePiece, null, NO_CASTLING);
+    const isValid = moves.some(m => m.row === sq.row && m.col === sq.col);
+
+    if (!isValid) {
+      // Re-click piece = deselect; other invalid = shake
+      if (sq.row === task.movePiece.row && sq.col === task.movePiece.col) {
+        setSelected(null);
+      } else {
+        setWrongFlash(true);
+        setTimeout(() => setWrongFlash(false), 500);
+      }
+      return;
+    }
+
+    // For quiz: must hit the target square
+    if (task.type === "quiz" && task.targetSquare) {
+      if (sq.row !== task.targetSquare.row || sq.col !== task.targetSquare.col) {
+        setWrongFlash(true);
+        setTimeout(() => setWrongFlash(false), 500);
+        setSelected(null);
+        return;
+      }
+    }
+
+    // Success — apply move
+    const newBoard = applyMoveOnBoard(displayBoard, task.movePiece, sq, null);
+    setTaskBoard(newBoard);
+    setSelected(null);
+    setTaskDone(true);
+  }
+
+  // ── Hub screen ───────────────────────────────────────────────────────────────
+  if (!activeModule) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4c1d95 100%)", overflow: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 22px 0" }}>
+          <button onClick={onBack} style={{ ...backBtnStyle, background: "rgba(255,255,255,0.12)", color: "#e0e7ff", border: "1.5px solid rgba(255,255,255,0.2)" }}>← Back</button>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1 }}>Chess Academy 🎓</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>Pick a piece — learn it, try it, quiz it!</div>
           </div>
         </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 14, padding: "20px 22px 28px" }}>
+          {PIECE_MODULES.map(mod => {
+            const done = completedPieces.has(mod.key);
+            return (
+              <button key={mod.key} onClick={() => openModule(mod)} style={{
+                background: done
+                  ? `linear-gradient(135deg,${mod.color}cc,${mod.color}88)`
+                  : "rgba(255,255,255,0.07)",
+                border: `2.5px solid ${done ? mod.color : "rgba(255,255,255,0.15)"}`,
+                borderRadius: 20, padding: "18px 12px 16px",
+                cursor: "pointer", textAlign: "center",
+                boxShadow: done ? `0 6px 24px ${mod.color}55` : "0 2px 10px rgba(0,0,0,0.3)",
+                transition: "transform 0.15s, box-shadow 0.15s",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-3px)")}
+              onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
+              >
+                <div style={{ fontSize: 40, lineHeight: 1, filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }}>
+                  {mod.emoji}
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: done ? "#fff" : mod.color }}>{mod.name}</div>
+                <div style={{ fontSize: 10, color: done ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)", lineHeight: 1.3 }}>{mod.tagline}</div>
+                {done && (
+                  <div style={{ marginTop: 4, background: "rgba(255,255,255,0.25)", borderRadius: 99, padding: "2px 10px", fontSize: 10, fontWeight: 800, color: "#fff" }}>
+                    ✅ Complete!
+                  </div>
+                )}
+                {!done && (
+                  <div style={{ marginTop: 4, background: `${mod.color}33`, borderRadius: 99, padding: "2px 10px", fontSize: 10, fontWeight: 700, color: mod.color, border: `1px solid ${mod.color}55` }}>
+                    {mod.tasks.length} steps →
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {completedPieces.size > 0 && (
+          <div style={{ margin: "0 22px 24px", padding: "14px 18px", background: "rgba(255,255,255,0.07)", borderRadius: 16, border: "1.5px solid rgba(255,255,255,0.12)", textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+              🏆 {completedPieces.size} of {PIECE_MODULES.length} pieces mastered!
+            </div>
+            {completedPieces.size === PIECE_MODULES.length && (
+              <div style={{ marginTop: 6, fontSize: 15, fontWeight: 900, color: "#fbbf24" }}>
+                ⭐ You're a Chess Academy Graduate! ⭐
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Per-piece module ──────────────────────────────────────────────────────────
+  if (!task) return null;
+  const isInteractive = task.type === "try" || task.type === "quiz";
+  const typeBadge = task.type === "learn" ? "📖 Learn" : task.type === "try" ? "🖱️ Try It!" : "🧠 Quiz";
+  const typeBg = task.type === "learn" ? "#3b82f6" : task.type === "try" ? "#16a34a" : "#dc2626";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e3a5f 100%)", overflow: "auto" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px 8px", flexWrap: "wrap" }}>
+        <button onClick={() => setActiveModule(null)} style={{ ...backBtnStyle, background: "rgba(255,255,255,0.1)", color: "#e0e7ff", border: "1.5px solid rgba(255,255,255,0.2)" }}>← Back</button>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 24 }}>{activeModule.emoji}</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: color }}>{activeModule.name}</span>
+          <span style={{ fontSize: 11, background: typeBg, color: "#fff", borderRadius: 99, padding: "2px 10px", fontWeight: 700 }}>{typeBadge}</span>
+        </div>
+        {/* Step dots */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {activeModule.tasks.map((t, i) => {
+            const isDone = i < taskIdx || (i === taskIdx && taskDone);
+            const isCurrent = i === taskIdx;
+            return (
+              <div key={i} style={{
+                width: isCurrent ? 28 : 10, height: 10, borderRadius: 99,
+                background: isDone ? "#22c55e" : isCurrent ? color : "rgba(255,255,255,0.2)",
+                transition: "all 0.25s",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 8, color: "#fff",
+              }}>
+                {isDone && !isCurrent ? "✓" : ""}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Title */}
+      <div style={{ padding: "0 18px 10px" }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>{task.title}</div>
+      </div>
+
+      {/* Board — large and centered */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "0 14px" }}>
+        <div style={{
+          width: "min(92vw, 480px)", aspectRatio: "1",
+          borderRadius: 18, overflow: "hidden",
+          boxShadow: wrongFlash
+            ? "0 0 0 4px #ef4444, 0 16px 48px rgba(0,0,0,0.5)"
+            : taskDone
+            ? "0 0 0 4px #22c55e, 0 16px 48px rgba(0,0,0,0.5)"
+            : "0 16px 48px rgba(0,0,0,0.5)",
+          animation: wrongFlash ? "wrongShake 0.5s ease" : undefined,
+          transition: "box-shadow 0.3s",
+        }}>
+          <ChessBoard
+            board={displayBoard}
+            selected={selected}
+            validMoves={validMoves}
+            highlights={task.highlights ?? []}
+            onSquareClick={isInteractive ? handleBoardClick : undefined}
+            interactive={isInteractive && !taskDone}
+            targetSquare={!taskDone ? task.targetSquare : null}
+          />
+        </div>
+      </div>
+
+      {/* Instruction / feedback card */}
+      <div style={{ padding: "12px 18px 20px" }}>
+        {taskDone ? (
+          <div style={{
+            background: "linear-gradient(135deg,#16a34a,#15803d)", borderRadius: 18,
+            padding: "18px 20px", textAlign: "center",
+            animation: "successPop 0.4s ease",
+            boxShadow: "0 8px 28px rgba(22,163,74,0.5)",
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 4 }}>🎉</div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: "#fff", marginBottom: 8 }}>{task.successMsg}</div>
+            <button onClick={nextTask} style={{
+              background: "#fff", color: "#16a34a", border: "none",
+              borderRadius: 99, padding: "10px 28px", fontWeight: 900,
+              cursor: "pointer", fontSize: 15, boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
+            }}>
+              {taskIdx < activeModule.tasks.length - 1 ? "Next →" : "🏆 Finish Module!"}
+            </button>
+          </div>
+        ) : (
+          <div style={{ background: "rgba(255,255,255,0.08)", border: `1.5px solid ${color}44`, borderRadius: 18, padding: "14px 18px" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 15, lineHeight: 1.65, color: "#e0e7ff", fontWeight: 500 }}>
+              {task.text}
+            </p>
+            {task.type === "learn" && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => goToTask(Math.max(0, taskIdx - 1))} disabled={taskIdx === 0}
+                  style={{ flex: 1, padding: "10px", borderRadius: 12, border: `2px solid ${color}55`, background: "transparent", color: taskIdx === 0 ? "rgba(255,255,255,0.2)" : color, fontWeight: 700, cursor: taskIdx === 0 ? "default" : "pointer", fontSize: 14 }}>
+                  ← Prev
+                </button>
+                <button onClick={nextTask}
+                  style={{ flex: 2, padding: "10px", borderRadius: 12, border: "none", background: color, color: "#fff", fontWeight: 900, cursor: "pointer", fontSize: 14, boxShadow: `0 4px 14px ${color}66` }}>
+                  {taskIdx < activeModule.tasks.length - 1 ? "Got it! Next →" : "🏆 Finish!"}
+                </button>
+              </div>
+            )}
+            {isInteractive && !selected && (
+              <div style={{ fontSize: 12, color: `${color}`, fontWeight: 700, background: `${color}22`, borderRadius: 10, padding: "7px 12px", textAlign: "center" }}>
+                👆 Click the {activeModule.name.toLowerCase()} piece to select it!
+              </div>
+            )}
+            {isInteractive && selected && (
+              <div style={{ fontSize: 12, color: "#86efac", fontWeight: 700, background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "7px 12px", textAlign: "center" }}>
+                ✅ Great! Now click a green square to move!
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
