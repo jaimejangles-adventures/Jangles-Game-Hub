@@ -59,8 +59,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp";
-  href: "/games/music-match" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp";
+  slug: "music-match" | "beat-maker" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp" | "space-jangles" | "piano-chords";
+  href: "/games/music-match" | "/games/beat-maker" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp" | "/games/space-jangles" | "/games/piano-chords";
   title: string;
   eyebrow: string;
   description: string;
@@ -81,6 +81,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
       "Travel the world through music. Hear a clip, follow the rhythm, and match it to the right country on the map.",
     accent: "#FF4EAB",
     emoji: "🎵",
+    image: asset("/characters/horns-jaime-jeff.png"),
+    status: "live",
+    category: "music-arts",
+  },
+  {
+    slug: "beat-maker",
+    href: "/games/beat-maker",
+    title: "Beat Maker",
+    eyebrow: "Mix your own beat",
+    description:
+      "Stack drums, bass, melody, and effects into your own groove — every loop plays in the same key and tempo, so anything you mix sounds amazing.",
+    accent: "#a855f7",
+    emoji: "🎛️",
     image: asset("/characters/horns-jaime-jeff.png"),
     status: "live",
     category: "music-arts",
@@ -205,7 +218,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
   {
     slug: "foxer",
     href: "/games/foxer",
-    title: "FOXER",
+    title: "Foxer",
     eyebrow: "Cross the world with Foxy",
     description:
       "Help Foxy the fox dodge traffic across 5 countries! Dodge hockey pucks in Canada, soccer balls in Brazil, bullet trains in Japan, camels in Egypt, and taxis in New York.",
@@ -500,6 +513,32 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     image: asset("/characters/jangles-ball-thumb.png"),
     status: "live",
     category: "arcade-adventures",
+  },
+  {
+    slug: "space-jangles",
+    href: "/games/space-jangles",
+    title: "Space Jangles",
+    eyebrow: "Shoot the alien fleet",
+    description:
+      "A Galaxian-style space shooter! Blast the alien formation before their dive-bombing squads take you down. Three lives — survive as long as you can!",
+    accent: "#6366f1",
+    emoji: "🚀",
+    image: asset("/characters/spaceship-jaime-jeff.png"),
+    status: "live",
+    category: "arcade-adventures",
+  },
+  {
+    slug: "piano-chords",
+    href: "/games/piano-chords",
+    title: "Chord Explorer",
+    eyebrow: "Learn piano chords",
+    description:
+      "Pick any root note and chord type — major, minor, 7ths, and more — then hear it played in all three inversions. A musical reference you can actually play.",
+    accent: "#4F8EF7",
+    emoji: "🎹",
+    image: asset("/art/piano-chords-thumb.png"),
+    status: "live",
+    category: "music-arts",
   },
 ];
 

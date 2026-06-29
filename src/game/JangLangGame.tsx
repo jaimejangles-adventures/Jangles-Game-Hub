@@ -5,7 +5,8 @@ import { burstCorrect, burstFinale } from "@/game/confetti";
 import { playCorrectExclamation, playIncorrectExclamation } from "@/game/exclamations";
 import {
   LANG_WORDS, LANG_CONFIG, LANG_CATEGORIES, getWordsByCategory,
-  type LangCode, type LangWord, type CategorySlug,
+  loadProgress, saveProgress, recordCorrect, isMastered, getCategoryMastery,
+  type LangCode, type LangWord, type CategorySlug, type ProgressStore,
 } from "@/game/data/jang-lang";
 
 const ROUND_SIZE = 8;
@@ -20,6 +21,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function buildRoundQueue(progress: ProgressStore, lang: LangCode, catWords: LangWord[]): LangWord[] {
+  const unmastered = shuffle(catWords.filter((w) => !isMastered(progress, lang, w.id)));
+  const mastered = shuffle(catWords.filter((w) => isMastered(progress, lang, w.id)));
+  return [...unmastered, ...mastered].slice(0, ROUND_SIZE);
+}
+
 function speakForeign(text: string, speechCode: string, onEnd?: () => void) {
   if (!window.speechSynthesis) { onEnd?.(); return; }
   window.speechSynthesis.cancel();
@@ -29,7 +36,7 @@ function speakForeign(text: string, speechCode: string, onEnd?: () => void) {
   utt.pitch = 1.1;
   if (onEnd) {
     utt.onend = onEnd;
-    utt.onerror = onEnd; // fallback if speech fails
+    utt.onerror = onEnd;
   }
   window.speechSynthesis.speak(utt);
 }
@@ -41,7 +48,6 @@ function buildChoices(correct: LangWord, pool: LangWord[], lang: LangCode): stri
       .filter((w) => w.id !== correct.id && w.translations[lang] !== correctAnswer)
       .map((w) => w.translations[lang])
   ).slice(0, 3);
-  // Pad with words from all vocab if category pool too small
   if (wrongs.length < 3) {
     const extra = shuffle(
       LANG_WORDS
@@ -95,10 +101,12 @@ function LangPicker({ onPick }: { onPick: (lang: LangCode) => void }) {
 
 function CategoryPicker({
   lang,
+  progress,
   onPick,
   onBack,
 }: {
   lang: LangCode;
+  progress: ProgressStore;
   onPick: (cat: CategorySlug) => void;
   onBack: () => void;
 }) {
@@ -114,7 +122,9 @@ function CategoryPicker({
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-md">
         {LANG_CATEGORIES.map((cat, i) => {
-          const count = getWordsByCategory(cat.slug).length;
+          const { mastered, total } = getCategoryMastery(progress, lang, cat.slug);
+          const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
+          const allDone = mastered === total;
           return (
             <motion.button
               key={cat.slug}
@@ -127,9 +137,21 @@ function CategoryPicker({
               className="flex flex-col items-start gap-1 p-4 rounded-2xl border-2 border-b-4 bg-white shadow-sm cursor-pointer select-none text-left"
               style={{ borderColor: cat.accent }}
             >
-              <span className="text-3xl">{cat.emoji}</span>
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl">{cat.emoji}</span>
+                {allDone && <span className="text-lg">🏆</span>}
+              </div>
               <span className="font-bold text-gray-800 text-base leading-tight">{cat.label}</span>
-              <span className="text-xs text-gray-400">{count} words</span>
+              <span className="text-xs text-gray-400">{mastered}/{total} mastered</span>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full mt-0.5 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: cat.accent }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.6, delay: i * 0.06 + 0.2 }}
+                />
+              </div>
             </motion.button>
           );
         })}
@@ -145,21 +167,22 @@ type AnswerState = "idle" | "correct" | "wrong";
 function Lesson({
   lang,
   category,
+  progress,
   onComplete,
+  onWordCorrect,
   onChangeLang,
 }: {
   lang: LangCode;
   category: CategorySlug;
+  progress: ProgressStore;
   onComplete: (score: number) => void;
+  onWordCorrect: (wordId: string) => void;
   onChangeLang: () => void;
 }) {
   const cfg = LANG_CONFIG[lang];
   const catWords = getWordsByCategory(category);
 
-  const [queue] = useState<LangWord[]>(() => {
-    const words = catWords.length >= ROUND_SIZE ? shuffle(catWords).slice(0, ROUND_SIZE) : shuffle(catWords);
-    return words;
-  });
+  const [queue] = useState<LangWord[]>(() => buildRoundQueue(progress, lang, catWords));
   const roundSize = queue.length;
 
   const [idx, setIdx] = useState(0);
@@ -196,9 +219,8 @@ function Lesson({
         setAnswerState("correct");
         setScore(newScore);
         burstCorrect();
-        // Speak the word first, then play the exclamation when speech ends
+        onWordCorrect(current.id);
         speakForeign(correctAnswer, cfg.speechCode, () => playCorrectExclamation());
-        // Advance after 2.8s — speech + exclamation + brief pause
         setTimeout(() => advance(newScore), 2800);
       } else {
         setAnswerState("wrong");
@@ -224,14 +246,13 @@ function Lesson({
         }
       }
     },
-    [answerState, correctAnswer, score, lives, advance, queue, catWords, lang, cfg]
+    [answerState, correctAnswer, score, lives, advance, queue, catWords, lang, cfg, current.id, onWordCorrect]
   );
 
-  const progress = (idx / roundSize) * 100;
+  const progress_pct = (idx / roundSize) * 100;
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
-      {/* Top bar */}
       <div className="flex items-center gap-3 px-4 pt-5 pb-3 max-w-lg mx-auto w-full">
         <button
           onClick={onChangeLang}
@@ -244,7 +265,7 @@ function Lesson({
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: "#58CC02" }}
-            animate={{ width: `${progress}%` }}
+            animate={{ width: `${progress_pct}%` }}
             transition={{ duration: 0.4 }}
           />
         </div>
@@ -255,7 +276,6 @@ function Lesson({
         </div>
       </div>
 
-      {/* Card */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 gap-6">
         <motion.p
           key={idx}
@@ -281,7 +301,6 @@ function Lesson({
           <p className="text-3xl font-black text-gray-800">{current.english}</p>
         </motion.div>
 
-        {/* Answer buttons */}
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
           {choices.map((choice) => {
             const isSelected = selectedChoice === choice;
@@ -326,6 +345,7 @@ function CompleteScreen({
   total,
   lang,
   category,
+  progress,
   onPlayAgain,
   onPickCategory,
   onChangeLang,
@@ -334,6 +354,7 @@ function CompleteScreen({
   total: number;
   lang: LangCode;
   category: CategorySlug;
+  progress: ProgressStore;
   onPlayAgain: () => void;
   onPickCategory: () => void;
   onChangeLang: () => void;
@@ -342,28 +363,46 @@ function CompleteScreen({
   const pct = Math.round((score / total) * 100);
   const perfect = score === total;
   const catDef = LANG_CATEGORIES.find((c) => c.slug === category)!;
+  const { mastered, total: catTotal } = getCategoryMastery(progress, lang, category);
+  const allDone = mastered === catTotal;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white px-4 gap-6">
       <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="text-7xl">
-        {perfect ? "🏆" : "⭐"}
+        {allDone ? "🏆" : perfect ? "⭐" : "✨"}
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center">
-        <h2 className="text-3xl font-black text-gray-800">{perfect ? "Perfect round!" : "Round complete!"}</h2>
+        <h2 className="text-3xl font-black text-gray-800">
+          {allDone ? "Category complete!" : perfect ? "Perfect round!" : "Round complete!"}
+        </h2>
         <p className="text-gray-500 mt-1">
           {cfg.flag} {catDef.emoji} {catDef.label} · {score}/{total} correct · {pct}%
         </p>
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: catDef.accent }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.round((mastered / catTotal) * 100)}%` }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            />
+          </div>
+          <span className="text-sm text-gray-500 font-medium">{mastered}/{catTotal} mastered</span>
+        </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="flex flex-col gap-3 w-full max-w-xs">
-        <button
-          onClick={onPlayAgain}
-          className="py-4 rounded-2xl font-bold text-white text-lg border-b-4 transition-all"
-          style={{ backgroundColor: cfg.accent, borderColor: `color-mix(in srgb, ${cfg.accent} 70%, black)` }}
-        >
-          Play again {cfg.flag}
-        </button>
+        {!allDone && (
+          <button
+            onClick={onPlayAgain}
+            className="py-4 rounded-2xl font-bold text-white text-lg border-b-4 transition-all"
+            style={{ backgroundColor: cfg.accent, borderColor: `color-mix(in srgb, ${cfg.accent} 70%, black)` }}
+          >
+            Keep learning {cfg.flag}
+          </button>
+        )}
         <button
           onClick={onPickCategory}
           className="py-4 rounded-2xl font-bold text-gray-700 text-lg border-2 border-gray-200 border-b-4 bg-white"
@@ -395,6 +434,7 @@ export function JangLangGame() {
   const [finalScore, setFinalScore] = useState(0);
   const [finalTotal, setFinalTotal] = useState(ROUND_SIZE);
   const [lessonKey, setLessonKey] = useState(0);
+  const [progress, setProgress] = useState<ProgressStore>(() => loadProgress());
 
   const handlePickLang = useCallback((l: LangCode) => {
     setLang(l);
@@ -414,6 +454,14 @@ export function JangLangGame() {
     setScreen("complete");
   }, [category]);
 
+  const handleWordCorrect = useCallback((wordId: string) => {
+    setProgress((prev) => {
+      const next = recordCorrect(prev, lang, wordId);
+      saveProgress(next);
+      return next;
+    });
+  }, [lang]);
+
   const handlePlayAgain = useCallback(() => {
     setLessonKey((k) => k + 1);
     setScreen("lesson");
@@ -428,13 +476,15 @@ export function JangLangGame() {
   }, []);
 
   if (screen === "picker") return <LangPicker onPick={handlePickLang} />;
-  if (screen === "category") return <CategoryPicker lang={lang} onPick={handlePickCategory} onBack={handleChangeLang} />;
+  if (screen === "category") return <CategoryPicker lang={lang} progress={progress} onPick={handlePickCategory} onBack={handleChangeLang} />;
   if (screen === "lesson") return (
     <Lesson
       key={lessonKey}
       lang={lang}
       category={category}
+      progress={progress}
       onComplete={handleComplete}
+      onWordCorrect={handleWordCorrect}
       onChangeLang={handleChangeLang}
     />
   );
@@ -444,6 +494,7 @@ export function JangLangGame() {
       total={finalTotal}
       lang={lang}
       category={category}
+      progress={progress}
       onPlayAgain={handlePlayAgain}
       onPickCategory={handlePickCategoryAgain}
       onChangeLang={handleChangeLang}

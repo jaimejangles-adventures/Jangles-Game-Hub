@@ -21,15 +21,15 @@ const TOTAL_RACE = TRACK_LENGTH * NUM_LAPS;
 // AI cars beyond this are near the horizon; below 0 = behind player = NOT rendered.
 const VISIBLE_AHEAD = 350;
 
-const PLAYER_MAX_SPEED = 0.018;
-const PLAYER_ACCEL    = 0.000065;
+const PLAYER_MAX_SPEED = 0.021;
+const PLAYER_ACCEL    = 0.000090;
 const AI_ACCEL        = 0.000055;
 
-// Collision: only same-lane AND close-depth triggers slowdown
-const COLLISION_WIDTH     = 0.38;   // narrower than before – player can squeeze past
-const COLLISION_DEPTH_MIN = 0.82;
-const COLLISION_COOLDOWN  = 100;    // frames before next collision can register
-const SLOWDOWN_FRAMES     = 20;     // how long the slowdown lasts
+// Collision: only same-lane AND very close-depth triggers slowdown
+const COLLISION_WIDTH     = 0.27;   // tight – pass cleanly by moving one lane over
+const COLLISION_DEPTH_MIN = 0.91;   // only when < ~32 units ahead
+const COLLISION_COOLDOWN  = 80;
+const SLOWDOWN_FRAMES     = 10;
 
 const COUNTDOWN_GO  = 130; // frame when GO! fires
 const COUNTDOWN_END = 160;
@@ -96,7 +96,7 @@ const AI_DEFS = [
 const GRID_SLOTS = [
   { aiDefIdx: 2, offset: +170, lane: -0.55 }, // P1: ZOOM (far ahead, left)
   { aiDefIdx: 0, offset: +110, lane:  0.55 }, // P2: TURBO (medium, right)
-  { aiDefIdx: 4, offset: +55,  lane:  0.0  }, // P3: SPIKE (close, center)
+  { aiDefIdx: 4, offset: +80,  lane:  0.0  }, // P3: SPIKE (close, center)
   // P4 = PLAYER (0, center lane at start)
   { aiDefIdx: 1, offset: -70,  lane:  0.55 }, // P5: BLITZ (behind)
   { aiDefIdx: 3, offset: -130, lane: -0.55 }, // P6: FLASH (further behind)
@@ -749,13 +749,8 @@ export function JanglesGPGame() {
     playMusic(circuit.music);
 
     // Player steering
-    if (s.touchX !== null) {
-      const target = ((s.touchX / W) * 2 - 1) * CAR_MAX_X;
-      s.carX += Math.sign(target - s.carX) * Math.min(Math.abs(target - s.carX), CAR_STEER * 1.4);
-    } else {
-      if (s.leftDown)  s.carX -= CAR_STEER;
-      if (s.rightDown) s.carX += CAR_STEER;
-    }
+    if (s.leftDown)  s.carX -= CAR_STEER;
+    if (s.rightDown) s.carX += CAR_STEER;
     s.carX -= getCurve(s.roadScrollPos) * DRIFT;
     s.carX = clamp(s.carX, -CAR_MAX_X, CAR_MAX_X);
 
@@ -926,6 +921,33 @@ export function JanglesGPGame() {
     const standings = getLiveStandings(s.playerTrackPos, s.aiCars);
     drawHUD(ctx, s.playerLap, position, circuit, standings, s.lapFlashTick, s.lapFlashLabel);
 
+    // Speed streak lines at edges — intensity scales with speed
+    const spdFrac = clamp(s.playerSpeed / PLAYER_MAX_SPEED, 0, 1);
+    if (spdFrac > 0.4) {
+      ctx.save();
+      ctx.globalAlpha = (spdFrac - 0.4) * 0.5;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 5; i++) {
+        const lx = 14 + i * 7;
+        ctx.beginPath(); ctx.moveTo(lx, HORIZON_Y + 30 + i * 10); ctx.lineTo(lx - 3, H - 30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W - lx, HORIZON_Y + 30 + i * 10); ctx.lineTo(W - lx + 3, H - 30); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Touch steering guides — faint arrows so mobile players know where to press
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 34px 'Baloo 2', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("◀", W * 0.12, H - 85);
+    ctx.fillText("▶", W * 0.88, H - 85);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
     rafRef.current = requestAnimationFrame(tick);
   }, [playMusic, stopMusic]);
 
@@ -990,18 +1012,26 @@ export function JanglesGPGame() {
       }
       return;
     }
-    if (s.phase === "racing") { s.touchX = cx; e.preventDefault(); }
+    if (s.phase === "racing") {
+      s.leftDown  = cx < W / 2;
+      s.rightDown = cx >= W / 2;
+      e.preventDefault();
+    }
   }, [stopMusic]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (stateRef.current.phase !== "racing") return;
     const rect = e.currentTarget.getBoundingClientRect();
-    stateRef.current.touchX = (e.touches[0].clientX - rect.left) * (W / rect.width);
+    const cx = (e.touches[0].clientX - rect.left) * (W / rect.width);
+    stateRef.current.leftDown  = cx < W / 2;
+    stateRef.current.rightDown = cx >= W / 2;
     e.preventDefault();
   }, []);
 
   const handleTouchEnd = useCallback(() => {
-    stateRef.current.touchX = null;
+    stateRef.current.leftDown  = false;
+    stateRef.current.rightDown = false;
+    stateRef.current.touchX    = null;
   }, []);
 
   return (
@@ -1026,7 +1056,7 @@ export function JanglesGPGame() {
         }}
       />
       <p style={{ marginTop:"0.5rem", fontSize:"0.65rem", color:"#ffffff44", fontFamily:"'Baloo 2', sans-serif", letterSpacing:"0.1em" }}>
-        ← → ARROW KEYS · CHANGE LANES TO PASS · RACE 3 LAPS
+        TAP LEFT / TAP RIGHT TO STEER  ·  ← → ARROW KEYS  ·  3 LAPS
       </p>
     </div>
   );

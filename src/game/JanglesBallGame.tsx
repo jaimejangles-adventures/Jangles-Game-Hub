@@ -501,6 +501,7 @@ export function JanglesBallGame() {
     stuckOffsetX: 0,
     baseSpeed: 3.64,
     difficulty: "master" as "rookie" | "master",
+    titleSelected: "rookie" as "rookie" | "master",
   });
 
   useEffect(() => {
@@ -586,26 +587,26 @@ export function JanglesBallGame() {
       }
     };
 
-    // Button rects on the title screen (centred at W/2)
-    const MASTER_Y  = H/2 + 80;
-    const ROOKIE_Y  = H/2 + 158;
+    // Button rects on the title screen (centred at W/2) — Rookie on top
+    const ROOKIE_Y  = H/2 + 80;
+    const MASTER_Y  = H/2 + 158;
 
     const advance = (clickX?: number, clickY?: number) => {
       if (s.phase==="title") {
         if (clickX !== undefined && clickY !== undefined) {
-          // Did they click Jangles Master? (top, wide button)
-          if (Math.abs(clickX - W/2) <= 150 && Math.abs(clickY - MASTER_Y) <= 30) {
-            s.difficulty = "master"; startLevel(1); return;
-          }
-          // Did they click Rookie? (button below)
+          // Did they click Rookie? (top button)
           if (Math.abs(clickX - W/2) <= 130 && Math.abs(clickY - ROOKIE_Y) <= 28) {
             s.difficulty = "rookie"; startLevel(1); return;
+          }
+          // Did they click Jangles Master? (button below)
+          if (Math.abs(clickX - W/2) <= 150 && Math.abs(clickY - MASTER_Y) <= 30) {
+            s.difficulty = "master"; startLevel(1); return;
           }
           // Clicked somewhere else — do nothing (force them to choose a button)
           return;
         }
-        // Keyboard: keep current difficulty
-        startLevel(1);
+        // Keyboard: use titleSelected
+        s.difficulty = s.titleSelected; startLevel(1);
       }
       else if (s.phase==="level-transition") { s.transitionTimer=0; }
       else if (s.phase==="ready" || (s.phase==="playing" && s.ballStuck)) { releaseBall(); }
@@ -626,6 +627,11 @@ export function JanglesBallGame() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (s.phase === "title" && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        s.titleSelected = s.titleSelected === "rookie" ? "master" : "rookie";
+        return;
+      }
       if (e.key===" "||e.key==="Enter") {
         e.preventDefault();
         // Space always tries to release ball first, then advance
@@ -669,48 +675,66 @@ export function JanglesBallGame() {
         c.font="bold 12px 'Courier New', monospace"; c.fillStyle="#666";
         c.fillText("— SELECT DIFFICULTY —",W/2,H/2+46);
 
-        const masterY = H/2 + 80;
-        const rookieY = H/2 + 158;
+        const rookieY = H/2 + 80;
+        const masterY = H/2 + 158;
         const mx = s.paddleTarget; const my = s.mouseY;
-        const overMaster = Math.abs(mx-W/2)<=150 && Math.abs(my-masterY)<=30;
         const overRookie = Math.abs(mx-W/2)<=130 && Math.abs(my-rookieY)<=28;
+        const overMaster = Math.abs(mx-W/2)<=150 && Math.abs(my-masterY)<=30;
+        // keyboard selection highlights when not hovering
+        const kbRookie = !overRookie && !overMaster && s.titleSelected === "rookie";
+        const kbMaster = !overRookie && !overMaster && s.titleSelected === "master";
 
-        // ── JANGLES MASTER — big primary button ──
+        // ── ROOKIE — top button ──
         {
-          const bw=300; const bh=60; const bx=W/2-bw/2; const by=masterY-bh/2;
-          c.shadowColor="#00d4ff"; c.shadowBlur= overMaster ? 36 : 18;
-          roundRect(c,bx,by,bw,bh,bh/2);
-          c.fillStyle = overMaster ? "#00d4ff" : "rgba(0,30,50,0.9)"; c.fill();
-          c.strokeStyle="#00d4ff"; c.lineWidth=3;
-          roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
-          c.shadowBlur=0;
-          c.font="bold 18px 'Courier New', monospace";
-          c.fillStyle = overMaster ? "#000" : "#00d4ff";
-          c.fillText("JANGLES MASTER ★", W/2, masterY+7);
-          c.font="bold 10px 'Courier New', monospace";
-          c.fillStyle = overMaster ? "rgba(0,0,0,0.6)" : "rgba(0,212,255,0.5)";
-          c.fillText("FULL SPEED · FULL GLORY", W/2, masterY+22);
-        }
-
-        // ── ROOKIE — same-width button below ──
-        {
+          const active = overRookie || kbRookie;
           const bw=260; const bh=56; const bx=W/2-bw/2; const by=rookieY-bh/2;
-          c.shadowColor="#44ff88"; c.shadowBlur= overRookie ? 28 : 10;
+          c.shadowColor="#44ff88"; c.shadowBlur= active ? 28 : 10;
           roundRect(c,bx,by,bw,bh,bh/2);
-          c.fillStyle = overRookie ? "#44ff88" : "rgba(0,20,10,0.85)"; c.fill();
-          c.strokeStyle="#44ff88"; c.lineWidth=2.5;
+          c.fillStyle = active ? "#44ff88" : "rgba(0,20,10,0.85)"; c.fill();
+          c.strokeStyle="#44ff88"; c.lineWidth= kbRookie ? 3 : 2.5;
           roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
           c.shadowBlur=0;
           c.font="bold 18px 'Courier New', monospace";
-          c.fillStyle = overRookie ? "#000" : "#44ff88";
+          c.fillStyle = active ? "#000" : "#44ff88";
           c.fillText("ROOKIE", W/2, rookieY+7);
           c.font="bold 10px 'Courier New', monospace";
-          c.fillStyle = overRookie ? "rgba(0,0,0,0.6)" : "rgba(68,255,136,0.5)";
+          c.fillStyle = active ? "rgba(0,0,0,0.6)" : "rgba(68,255,136,0.5)";
           c.fillText("SLOWER BALL · EASY MODE", W/2, rookieY+22);
         }
 
-        c.font="bold 10px 'Courier New', monospace"; c.fillStyle="#333";
-        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [G]RIP [M]ULTI",W/2,H/2+220);
+        // ── JANGLES MASTER — button below ──
+        {
+          const active = overMaster || kbMaster;
+          const bw=300; const bh=60; const bx=W/2-bw/2; const by=masterY-bh/2;
+          c.shadowColor="#00d4ff"; c.shadowBlur= active ? 36 : 18;
+          roundRect(c,bx,by,bw,bh,bh/2);
+          c.fillStyle = active ? "#00d4ff" : "rgba(0,30,50,0.9)"; c.fill();
+          c.strokeStyle="#00d4ff"; c.lineWidth= kbMaster ? 4 : 3;
+          roundRect(c,bx,by,bw,bh,bh/2); c.stroke();
+          c.shadowBlur=0;
+          c.font="bold 18px 'Courier New', monospace";
+          c.fillStyle = active ? "#000" : "#00d4ff";
+          c.fillText("JANGLES MASTER ★", W/2, masterY+7);
+          c.font="bold 10px 'Courier New', monospace";
+          c.fillStyle = active ? "rgba(0,0,0,0.6)" : "rgba(0,212,255,0.5)";
+          c.fillText("FULL SPEED · FULL GLORY", W/2, masterY+22);
+        }
+
+        // ── Arrow indicator — drawn AFTER buttons so it's always on top ──
+        // follows hover if mouse is over a button, otherwise keyboard selection
+        const arrowOnRookie = overRookie || (!overMaster && s.titleSelected === "rookie");
+        const arrowY = arrowOnRookie ? rookieY : masterY;
+        const arrowColor = arrowOnRookie ? "#44ff88" : "#00d4ff";
+        c.textAlign = "right";
+        c.font = "bold 22px 'Courier New', monospace";
+        c.fillStyle = arrowColor; c.shadowColor = arrowColor; c.shadowBlur = 16;
+        c.fillText("▶", W/2 - 160, arrowY + 8);
+        c.shadowBlur = 0; c.textAlign = "center";
+
+        c.font="bold 10px 'Courier New', monospace"; c.fillStyle="#444";
+        c.fillText("↑ ↓ TO SELECT · ENTER TO CONFIRM",W/2,H/2+218);
+        c.fillStyle="#333";
+        c.fillText("SMASH BRICKS · [E]XTEND [S]LOW [L]ASER [G]RIP [M]ULTI",W/2,H/2+238);
         return;
       }
 
@@ -1117,5 +1141,6 @@ function buildState() {
     laserFireTimer: 0, extendTimer: 0, slowTimer: 0, laserTimer: 0,
     stickyTimer: 0, ballStuck: false, stuckOffsetX: 0, baseSpeed: 3.64,
     difficulty: "master" as "rookie" | "master",
+    titleSelected: "rookie" as "rookie" | "master",
   };
 }

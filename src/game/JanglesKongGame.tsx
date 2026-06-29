@@ -60,13 +60,13 @@ function shuffleLevels(): number[] {
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const W = 480, H = 560;
-const GRAVITY    = 0.30;
-const JUMP_V     = -6;
+const GRAVITY    = 0.17;
+const JUMP_V     = -5;
 const MOVE_SPEED = 2.2;
 const CLIMB_SPD  = 1.8;
 const MAX_FALL   = 9;
 const PLAYER_W   = 32, PLAYER_H = 40;
-const COMPASS_R  = 10;
+const COMPASS_R  = 7;
 
 // ── Platform layout ───────────────────────────────────────────────────────
 const PLATFORMS = [
@@ -202,6 +202,18 @@ function checkPlayerLanding(prevBottomY: number, curBottomY: number, leftX: numb
     if (prevBottomY <= plat.y && curBottomY >= plat.y &&
         rightX > plat.x + 4 && leftX < plat.x + plat.w - 4) {
       return plat.y;
+    }
+  }
+  return null;
+}
+
+function checkPlayerCeiling(prevTopY: number, curTopY: number, leftX: number, rightX: number): number | null {
+  if (curTopY > prevTopY) return null;
+  for (const plat of PLATFORMS) {
+    const platBottom = plat.y + 10;
+    if (prevTopY >= platBottom && curTopY < platBottom &&
+        rightX > plat.x + 4 && leftX < plat.x + plat.w - 4) {
+      return platBottom;
     }
   }
   return null;
@@ -646,6 +658,8 @@ export function JanglesKongGame() {
           } else {
             p.onGround = false;
           }
+          const ceilY = checkPlayerCeiling(p.prevY, p.y, p.x, p.x + PLAYER_W);
+          if (ceilY !== null) { p.y = ceilY; p.vy = 0; }
         }
 
         const GROUND_Y = PLATFORMS[0].y;

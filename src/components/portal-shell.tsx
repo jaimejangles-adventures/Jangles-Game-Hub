@@ -729,7 +729,7 @@ function JanglesBucksModal({ onClose, balance }: { onClose: () => void; balance:
           <div>
             <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-ink/40 mb-1.5">What is a Jangles Buck?</div>
             <p className="text-sm font-bold text-ink/80 leading-snug">
-              Jangles Bucks are coins you earn by playing <strong>learning games</strong>. Spend them to unlock <strong>Arcade Adventures</strong> — fast-paced games like Jangles Pac, FOXER, Jangles Kong, and more!
+              Jangles Bucks are coins you earn by playing <strong>learning games</strong>. Spend them to unlock <strong>Arcade Adventures</strong> — fast-paced games like Jangles Pac, Foxer, Jangles Kong, and more!
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-extrabold">
               <span
@@ -800,7 +800,7 @@ function JanglesBucksModal({ onClose, balance }: { onClose: () => void; balance:
               {[
                 { emoji: "🐘", title: "Air Fante Dodge" },
                 { emoji: "⭐", title: "Air Fante Collect!" },
-                { emoji: "🦊", title: "FOXER" },
+                { emoji: "🦊", title: "Foxer" },
                 { emoji: "🎮", title: "Jangles Ball" },
                 { emoji: "👾", title: "Jangles Pac" },
                 { emoji: "🦍", title: "Jangles Kong" },

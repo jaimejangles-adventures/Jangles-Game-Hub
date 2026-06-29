@@ -5,7 +5,7 @@ import { ArcadeGate } from "@/components/arcade-gate";
 export const Route = createFileRoute("/games/foxer")({
   head: () => ({
     meta: [
-      { title: "FOXER | Jaime Jangles" },
+      { title: "Foxer | Jaime Jangles" },
       {
         name: "description",
         content: "Help Foxy the fox cross dangerous roads through 5 countries in this Frogger-style arcade game!",
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/games/foxer")({
 
 function FoxerRoute() {
   return (
-    <ArcadeGate gameSlug="foxer" gameTitle="FOXER" gameEmoji="🦊">
+    <ArcadeGate gameSlug="foxer" gameTitle="Foxer" gameEmoji="🦊">
       <FoxerGame />
     </ArcadeGate>
   );

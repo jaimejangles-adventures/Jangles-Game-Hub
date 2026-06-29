@@ -2173,7 +2173,7 @@ export function FoxerGame() {
         {gameState === "start" && (
           <Overlay>
             <div style={{ fontSize: 64, fontWeight: 900, color: "#ffd54f", letterSpacing: 6, textShadow: "4px 4px 0 #e65100" }}>
-              FOXER
+              Foxer
             </div>
             <div style={{ color: "#ef9a9a", fontSize: 18, marginTop: 8 }}>Help Foxy Cross the World!</div>
             <div style={{ marginTop: 28, display: "flex", gap: 32 }}>
