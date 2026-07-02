@@ -24,6 +24,18 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+// ── "Casey Can" thumbnails: the symbol Casey points to + a pastel banner ────
+const CASEY_CAN: Record<string, { symbol: string; bg: string }> = {
+  "casey-can-count": { symbol: "1-2-3", bg: "#FFE0B2" }, // peach
+  "count-with-jaime": { symbol: "+", bg: "#C8E6C9" }, // mint green
+  "casey-can-subtract": { symbol: "−", bg: "#BBDEFB" }, // sky blue
+  "casey-can-multiply": { symbol: "×", bg: "#F8BBD0" }, // pink
+  "casey-can-divide": { symbol: "÷", bg: "#E1BEE7" }, // lavender
+  "casey-can-spell": { symbol: "ABC", bg: "#FFF9C4" }, // butter yellow
+  "casey-can-roman-numeral": { symbol: "MCXVI", bg: "#D1C4E9" }, // violet
+  "casey-can-pay": { symbol: "$", bg: "#B2DFDB" }, // seafoam
+};
+
 // ── Scrollable row with Netflix-style fade + arrow indicators ──────────────
 function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,7 +77,9 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
         className="flex gap-3 overflow-x-auto pb-3 pt-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {games.map((game) => (
+        {games.map((game) => {
+          const casey = CASEY_CAN[game.slug];
+          return (
           <Link
             key={game.slug}
             to={game.href}
@@ -82,34 +96,52 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
             <div
               className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
               style={{
-                background: game.accent + "33",
+                background: casey ? casey.bg : game.accent + "33",
                 height: "6rem",
                 padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
               }}
             >
-              <img
-                src={game.image}
-                alt={game.title}
-                className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
-                style={{
-                  maxWidth: "100%",
-                  mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
-                  objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
-                  objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
-                  maskImage:
-                    game.slug === "fly-the-flag"
-                      ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                      : game.slug === "world-adventure"
-                      ? "linear-gradient(to right, transparent 0%, black 22%)"
-                      : undefined,
-                  WebkitMaskImage:
-                    game.slug === "fly-the-flag"
-                      ? "linear-gradient(to bottom, black 80%, transparent 84%)"
-                      : game.slug === "world-adventure"
-                      ? "linear-gradient(to right, transparent 0%, black 22%)"
-                      : undefined,
-                }}
-              />
+              {casey ? (
+                <div className="flex h-full w-full items-center justify-center gap-1">
+                  {/* The symbol Casey is pointing at */}
+                  <span
+                    className="font-semibold leading-none text-ink"
+                    style={{ fontSize: casey.symbol.length > 2 ? "1.5rem" : "2.6rem" }}
+                  >
+                    {casey.symbol}
+                  </span>
+                  <img
+                    src={game.image}
+                    alt={game.title}
+                    className="h-20 w-auto object-contain"
+                    style={{ maxWidth: "55%", mixBlendMode: "multiply" }}
+                  />
+                </div>
+              ) : (
+                <img
+                  src={game.image}
+                  alt={game.title}
+                  className={game.slug === "fly-the-flag" ? "w-full h-full" : "h-20 w-auto object-contain"}
+                  style={{
+                    maxWidth: "100%",
+                    mixBlendMode: game.slug === "fly-the-flag" ? "normal" : "multiply",
+                    objectFit: game.slug === "fly-the-flag" ? "cover" : undefined,
+                    objectPosition: game.slug === "fly-the-flag" ? "50% 0%" : undefined,
+                    maskImage:
+                      game.slug === "fly-the-flag"
+                        ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                        : game.slug === "world-adventure"
+                        ? "linear-gradient(to right, transparent 0%, black 22%)"
+                        : undefined,
+                    WebkitMaskImage:
+                      game.slug === "fly-the-flag"
+                        ? "linear-gradient(to bottom, black 80%, transparent 84%)"
+                        : game.slug === "world-adventure"
+                        ? "linear-gradient(to right, transparent 0%, black 22%)"
+                        : undefined,
+                  }}
+                />
+              )}
             </div>
 
             {/* Content */}
@@ -135,7 +167,8 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
               </div>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
 
       {/* Left fade + arrow */}

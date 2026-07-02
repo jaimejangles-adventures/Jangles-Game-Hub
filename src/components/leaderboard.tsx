@@ -173,15 +173,20 @@ export function Leaderboard({ gameSlug, difficulty, limit = 10, previewLimit, th
 const LEADERBOARD_GAMES = [
   'pacman',
   'jangles-ball',
+  'jangles-kong',
+  'jangles-gp',
   'racer',
   'elefante',
   'air-fante-collect',
   'foxer',
-  'jangles-kong',
   'type-with-casey',
   'music-match',
+  'fly-the-flag',
+  'name-that-country',
+  'find-foxy',
   'match-game',
   'sliding-puzzle',
+  'color-mix',
 ] as const;
 
 // Games that have rookie/master difficulty splits in the leaderboard

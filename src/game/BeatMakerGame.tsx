@@ -1,676 +1,937 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const STEPS = 32; // 2 bars × 16th notes
-const LOOKAHEAD = 0.15;
-const SCHEDULE_MS = 25;
+// ─── Note frequencies ─────────────────────────────────────────────────────────
+const NF: Record<string, number> = {
+  E2:82.41,F2:87.31,Gb2:92.50,G2:98.00,Ab2:103.83,A2:110.00,Bb2:116.54,B2:123.47,
+  C1:32.70,D1:36.71,Eb1:38.89,F1:43.65,G1:49.00,Bb1:58.27,
+  C2:65.41,D2:73.42,Eb2:77.78,
+  C3:130.81,D3:146.83,Eb3:155.56,F3:174.61,G3:196.00,Ab3:207.65,Bb3:233.08,B3:246.94,
+  C4:261.63,D4:293.66,Eb4:311.13,F4:349.23,G4:392.00,Ab4:415.30,Bb4:466.16,B4:493.88,
+  C5:523.25,D5:587.33,Eb5:622.25,F5:698.46,G5:784.00,A5:880.00,Bb5:932.33,
+};
 
-// ─── C Minor frequencies ──────────────────────────────────────────────────────
-const C2 = 65.41, Eb2 = 77.78, F2 = 87.31, G2 = 98.0, Bb2 = 116.54, C3 = 130.81, D2 = 73.42;
-const C4 = 261.63, D4 = 293.66, Eb4 = 311.13, F4 = 349.23, G4 = 392.0, Ab4 = 415.3, Bb4 = 466.16, C5 = 523.25, D5 = 587.33, Eb5 = 622.25;
-
-// ─── Synthesis ────────────────────────────────────────────────────────────────
-function synthKick(ctx: AudioContext, t: number, dest: AudioNode, vel = 1) {
-  const click = ctx.createOscillator(); const cg = ctx.createGain();
-  click.type = "square"; click.frequency.setValueAtTime(600, t);
-  cg.gain.setValueAtTime(vel * 0.35, t); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
-  click.connect(cg); cg.connect(dest); click.start(t); click.stop(t + 0.018);
-
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = "sine"; osc.frequency.setValueAtTime(155, t); osc.frequency.exponentialRampToValueAtTime(40, t + 0.42);
-  g.gain.setValueAtTime(vel * 1.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
-  osc.connect(g); g.connect(dest); osc.start(t); osc.stop(t + 0.5);
-}
-
-function synthSnare(ctx: AudioContext, t: number, dest: AudioNode) {
-  const osc = ctx.createOscillator(); const og = ctx.createGain();
-  osc.frequency.setValueAtTime(220, t); osc.frequency.exponentialRampToValueAtTime(110, t + 0.1);
-  og.gain.setValueAtTime(0.65, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-  osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.14);
-
-  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.22), ctx.sampleRate);
-  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const ns = ctx.createBufferSource(); ns.buffer = buf;
-  const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 2800; f.Q.value = 0.7;
-  const ng = ctx.createGain(); ng.gain.setValueAtTime(0.85, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-  ns.connect(f); f.connect(ng); ng.connect(dest); ns.start(t); ns.stop(t + 0.22);
-}
-
-function synthHihat(ctx: AudioContext, t: number, dest: AudioNode, open = false, vel = 0.3) {
-  const dur = open ? 0.22 : 0.04;
-  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const ns = ctx.createBufferSource(); ns.buffer = buf;
-  const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 8000;
-  const g = ctx.createGain(); g.gain.setValueAtTime(vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  ns.connect(f); f.connect(g); g.connect(dest); ns.start(t); ns.stop(t + dur);
-}
-
-function synthClap(ctx: AudioContext, t: number, dest: AudioNode) {
-  for (let i = 0; i < 3; i++) {
-    const ti = t + i * 0.009;
-    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.07), ctx.sampleRate);
-    const d = buf.getChannelData(0); for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
-    const ns = ctx.createBufferSource(); ns.buffer = buf;
-    const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1200; f.Q.value = 0.5;
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.65, ti); g.gain.exponentialRampToValueAtTime(0.0001, ti + 0.07);
-    ns.connect(f); f.connect(g); g.connect(dest); ns.start(ti); ns.stop(ti + 0.07);
-  }
-}
-
-function synthRimshot(ctx: AudioContext, t: number, dest: AudioNode) {
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = "triangle"; osc.frequency.setValueAtTime(380, t); osc.frequency.exponentialRampToValueAtTime(190, t + 0.06);
-  g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
-  osc.connect(g); g.connect(dest); osc.start(t); osc.stop(t + 0.08);
-}
-
-function synthBass(ctx: AudioContext, t: number, dest: AudioNode, freq: number, dur = 0.28, vel = 0.7) {
-  const osc = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
-  osc.type = "sawtooth"; filt.type = "lowpass"; filt.frequency.value = 700; filt.Q.value = 1.5;
-  osc.frequency.setValueAtTime(freq, t);
-  g.gain.setValueAtTime(vel, t); g.gain.setValueAtTime(vel * 0.5, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(filt); filt.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur);
-  const sub = ctx.createOscillator(); const sg = ctx.createGain();
-  sub.type = "sine"; sub.frequency.setValueAtTime(freq / 2, t);
-  sg.gain.setValueAtTime(vel * 0.45, t); sg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  sub.connect(sg); sg.connect(dest); sub.start(t); sub.stop(t + dur);
-}
-
-function synthNote(ctx: AudioContext, t: number, dest: AudioNode, freq: number, dur = 0.14, vel = 0.32, type: OscillatorType = "square") {
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = type; osc.frequency.setValueAtTime(freq, t);
+// ─── Synthesis helpers ────────────────────────────────────────────────────────
+function osc(ctx: AudioContext, t: number, dest: AudioNode, type: OscillatorType, freq: number, dur: number, vel: number) {
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
   g.gain.setValueAtTime(vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
 }
 
-function synthPluck(ctx: AudioContext, t: number, dest: AudioNode, freq: number, vel = 0.35) {
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = "triangle"; osc.frequency.setValueAtTime(freq, t);
-  g.gain.setValueAtTime(vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-  osc.connect(g); g.connect(dest); osc.start(t); osc.stop(t + 0.3);
-}
-
-function synthPad(ctx: AudioContext, t: number, dest: AudioNode, freq: number, dur = 1.5, vel = 0.18) {
-  const osc1 = ctx.createOscillator(); const osc2 = ctx.createOscillator(); const g = ctx.createGain();
-  osc1.type = "sine"; osc1.frequency.setValueAtTime(freq, t);
-  osc2.type = "sine"; osc2.frequency.setValueAtTime(freq * 1.0015, t);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + 0.12);
-  g.gain.setValueAtTime(vel, t + dur - 0.15); g.gain.linearRampToValueAtTime(0, t + dur);
-  osc1.connect(g); osc2.connect(g); g.connect(dest);
-  osc1.start(t); osc1.stop(t + dur); osc2.start(t); osc2.stop(t + dur);
-}
-
-function synthNoise(ctx: AudioContext, t: number, dest: AudioNode, dur = 0.25, ffreq = 2000, vel = 0.18) {
+function noise(ctx: AudioContext, t: number, dest: AudioNode, dur: number, ffreq: number, ftype: BiquadFilterType, fQ: number, vel: number) {
   const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
   const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const ns = ctx.createBufferSource(); ns.buffer = buf;
-  const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = ffreq; f.Q.value = 1.2;
+  const f = ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = ffreq; f.Q.value = fQ;
   const g = ctx.createGain(); g.gain.setValueAtTime(vel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   ns.connect(f); f.connect(g); g.connect(dest); ns.start(t); ns.stop(t + dur);
 }
 
-function synthRiser(ctx: AudioContext, t: number, dest: AudioNode, startF: number, endF: number, dur: number, vel = 0.22) {
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(startF, t); osc.frequency.linearRampToValueAtTime(endF, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + dur * 0.8);
-  g.gain.linearRampToValueAtTime(0, t + dur);
-  const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 4;
-  f.frequency.setValueAtTime(startF, t); f.frequency.linearRampToValueAtTime(endF, t + dur);
-  osc.connect(f); f.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur);
+// step is passed to every PlayFn; loop instruments use it, others ignore it
+type PlayFn = (ctx: AudioContext, t: number, dest: AudioNode, sd: number, step: number) => void;
+
+// ─── Drums ────────────────────────────────────────────────────────────────────
+function mkKick(bodyFreq = 155, click = true): PlayFn {
+  return (ctx, t, dest) => {
+    if (click) osc(ctx, t, dest, "square", 700, 0.018, 0.3);
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(bodyFreq, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.45);
+    g.gain.setValueAtTime(1.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.5);
+  };
+}
+function mkKick808(): PlayFn {
+  return (ctx, t, dest) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(60, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.7);
+    g.gain.setValueAtTime(1.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.75);
+    osc(ctx, t, dest, "square", 400, 0.02, 0.25);
+  };
+}
+function mkSnare(noiseFreq = 2500, vel = 0.9): PlayFn {
+  return (ctx, t, dest) => {
+    osc(ctx, t, dest, "triangle", 200, 0.14, 0.65);
+    noise(ctx, t, dest, 0.22, noiseFreq, "bandpass", 0.8, vel);
+  };
+}
+function mkSnareRim(): PlayFn {
+  return (ctx, t, dest) => {
+    osc(ctx, t, dest, "triangle", 380, 0.07, 0.7);
+    noise(ctx, t, dest, 0.06, 3000, "bandpass", 1.5, 0.6);
+  };
+}
+function mkHihat(open = false, vel = 0.35): PlayFn {
+  return (ctx, t, dest) => { noise(ctx, t, dest, open ? 0.22 : 0.04, 8000, "highpass", 1, vel); };
+}
+function mkClap(tight = false): PlayFn {
+  return (ctx, t, dest) => {
+    for (let i = 0; i < (tight ? 2 : 3); i++) noise(ctx, t + i * (tight ? 0.007 : 0.01), dest, tight ? 0.05 : 0.07, 1200, "bandpass", 0.5, 0.65);
+  };
+}
+function mkCowbell(): PlayFn {
+  return (ctx, t, dest) => { osc(ctx, t, dest, "square", 562, 0.35, 0.45); osc(ctx, t, dest, "square", 845, 0.25, 0.3); };
+}
+function mkRimshot(): PlayFn {
+  return (ctx, t, dest) => { osc(ctx, t, dest, "triangle", 400, 0.065, 0.75); noise(ctx, t, dest, 0.05, 2500, "bandpass", 1.5, 0.5); };
+}
+function mkShaker(): PlayFn { return (ctx, t, dest) => { noise(ctx, t, dest, 0.06, 9000, "highpass", 0.5, 0.22); }; }
+function mkTambourine(): PlayFn {
+  return (ctx, t, dest) => { for (let i = 0; i < 4; i++) noise(ctx, t + i * 0.015, dest, 0.04, 7000, "highpass", 1, 0.2); };
+}
+function mkWoodblock(): PlayFn {
+  return (ctx, t, dest) => { osc(ctx, t, dest, "square", 1200, 0.06, 0.6); osc(ctx, t, dest, "square", 1500, 0.04, 0.35); };
+}
+function mkTom(freq = 200): PlayFn {
+  return (ctx, t, dest) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.4, t + 0.25);
+    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.28);
+    noise(ctx, t, dest, 0.04, 800, "bandpass", 1, 0.3);
+  };
 }
 
-function synthShimmer(ctx: AudioContext, t: number, dest: AudioNode, freq: number) {
-  const osc = ctx.createOscillator(); const g = ctx.createGain();
-  osc.type = "sine"; osc.frequency.setValueAtTime(freq, t);
-  g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-  osc.connect(g); g.connect(dest); osc.start(t); osc.stop(t + 0.4);
+// ─── Bass (5 timbres × notes) ─────────────────────────────────────────────────
+function mkSubBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41; const dur = sd * 0.9;
+    osc(ctx, t, dest, "sine", f, dur, 0.95);
+    osc(ctx, t, dest, "sine", f * 2, dur * 0.4, 0.12);
+  };
+}
+function mkSawBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41; const dur = sd * 0.85;
+    const o = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; filt.type = "lowpass"; filt.frequency.value = 700; filt.Q.value = 1.5;
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.75, t); g.gain.setValueAtTime(0.5, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+    osc(ctx, t, dest, "sine", f / 2, dur, 0.4);
+  };
+}
+function mkMoogBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41; const dur = sd * 0.85;
+    const o = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; filt.type = "lowpass"; filt.Q.value = 9;
+    filt.frequency.setValueAtTime(f * 9, t); filt.frequency.exponentialRampToValueAtTime(f * 1.4, t + 0.1);
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+  };
+}
+function mkSlapBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41;
+    // Thumb slap transient
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f * 4, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.025);
+    g.gain.setValueAtTime(1.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.09);
+    noise(ctx, t, dest, 0.012, f * 6, "highpass", 1, 0.4);
+    // Body note
+    osc(ctx, t + 0.015, dest, "sine", f, sd * 0.65, 0.6);
+    osc(ctx, t + 0.015, dest, "sine", f * 2, sd * 0.4, 0.18);
+  };
+}
+function mkPickedBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41; const dur = Math.min(sd * 0.55, 0.22);
+    // Pick click
+    noise(ctx, t, dest, 0.008, f * 5, "bandpass", 2, 0.28);
+    osc(ctx, t, dest, "triangle", f, dur, 0.65);
+    osc(ctx, t, dest, "triangle", f * 2, dur * 0.5, 0.18);
+    osc(ctx, t, dest, "sine", f / 2, dur * 0.8, 0.3);
+  };
+}
+function mkFuzzBass(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 65.41; const dur = sd * 0.8;
+    osc(ctx, t, dest, "square", f, dur, 0.32);
+    osc(ctx, t, dest, "sawtooth", f, dur, 0.22);
+    osc(ctx, t, dest, "sawtooth", f * 1.01, dur, 0.18); // detune for grit
+    osc(ctx, t, dest, "sine", f / 2, dur, 0.28);
+  };
 }
 
-// ─── Pad definitions ──────────────────────────────────────────────────────────
-// Each pad receives: (ctx, step 0-31, webAudioTime, outputGainNode, stepDur)
-type OnStepFn = (ctx: AudioContext, step: number, t: number, dest: AudioNode, sd: number) => void;
+// ─── Guitar ───────────────────────────────────────────────────────────────────
+function mkGuitarClean(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 196.0; const dur = sd * 1.8;
+    // Pick transient
+    noise(ctx, t, dest, 0.012, f * 3, "bandpass", 2, 0.22);
+    // Fundamental + harmonics (simulate string)
+    osc(ctx, t, dest, "triangle", f, dur, 0.38);
+    osc(ctx, t, dest, "triangle", f * 2, dur * 0.65, 0.16);
+    osc(ctx, t, dest, "sine", f * 3, dur * 0.45, 0.07);
+    osc(ctx, t, dest, "sine", f * 4, dur * 0.3, 0.04);
+  };
+}
+function mkGuitarMuted(note: string): PlayFn {
+  return (ctx, t, dest) => {
+    const f = NF[note] ?? 196.0; const dur = 0.08;
+    noise(ctx, t, dest, 0.015, f * 2, "bandpass", 1.5, 0.35);
+    osc(ctx, t, dest, "triangle", f, dur, 0.5);
+    osc(ctx, t, dest, "triangle", f * 2, dur * 0.5, 0.2);
+  };
+}
+function mkGuitarPowerChord(note: string): PlayFn {
+  // Root + perfect 5th + octave, slight strum delay
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 98.0; const dur = sd * 1.5;
+    [[f, 0], [f * 1.5, 0.01], [f * 2, 0.02]].forEach(([freq, delay]) => {
+      noise(ctx, t + delay, dest, 0.01, freq * 2, "bandpass", 2, 0.18);
+      osc(ctx, t + delay, dest, "sawtooth", freq as number, dur, 0.22);
+    });
+  };
+}
+function mkGuitarWah(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 196.0; const dur = sd * 1.2;
+    const o = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; filt.type = "bandpass"; filt.Q.value = 6;
+    o.frequency.setValueAtTime(f, t);
+    filt.frequency.setValueAtTime(300, t); filt.frequency.linearRampToValueAtTime(2400, t + dur * 0.6); filt.frequency.linearRampToValueAtTime(400, t + dur);
+    g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+  };
+}
+function mkGuitarHarmonic(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 392.0; const dur = sd * 2.5;
+    // Natural harmonic — pure sine, bell-like
+    osc(ctx, t, dest, "sine", f * 2, dur, 0.28);
+    osc(ctx, t, dest, "sine", f * 4, dur * 0.6, 0.08);
+  };
+}
+function mkGuitarSlide(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 196.0; const dur = sd * 1.5;
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f * 0.75, t); o.frequency.linearRampToValueAtTime(f, t + 0.06);
+    g.gain.setValueAtTime(0.42, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+    osc(ctx, t, dest, "triangle", f * 2, dur * 0.7, 0.12);
+  };
+}
 
-interface PadDef { id: string; label: string; onStep: OnStepFn; }
-interface RowDef { id: string; label: string; emoji: string; color: string; pads: PadDef[]; }
+// ─── Synth ────────────────────────────────────────────────────────────────────
+function mkSynthNote(note: string, type: OscillatorType = "square"): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 261.63; const dur = sd * 0.75;
+    osc(ctx, t, dest, type, f, dur, 0.3);
+    osc(ctx, t, dest, type, f * 1.005, dur * 0.9, 0.15);
+  };
+}
+function mkSynthPad(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 261.63; const dur = sd * 3;
+    const o1 = ctx.createOscillator(); const o2 = ctx.createOscillator(); const g = ctx.createGain();
+    o1.type = "sine"; o1.frequency.setValueAtTime(f, t);
+    o2.type = "sine"; o2.frequency.setValueAtTime(f * 1.002, t);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.12);
+    g.gain.setValueAtTime(0.18, t + dur - 0.15); g.gain.linearRampToValueAtTime(0, t + dur);
+    o1.connect(g); o2.connect(g); g.connect(dest);
+    o1.start(t); o1.stop(t + dur); o2.start(t); o2.stop(t + dur);
+  };
+}
+function mkChordStab(note: string): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const root = NF[note] ?? 261.63; const dur = sd * 0.5;
+    [[root, 0.28], [root * 1.189, 0.22], [root * 1.498, 0.2]].forEach(([f, v]) => osc(ctx, t, dest, "square", f as number, dur, v as number));
+  };
+}
 
-const ROWS: RowDef[] = [
-  {
-    id: "drums", label: "DRUMS", emoji: "🥁", color: "#f97316",
-    pads: [
-      {
-        id: "d-kick", label: "Kick",
-        onStep: (ctx, s, t, dest) => {
-          if (s === 0 || s === 16) synthKick(ctx, t, dest);
-        },
-      },
-      {
-        id: "d-rock", label: "K+S",
-        onStep: (ctx, s, t, dest) => {
-          if (s === 0 || s === 16) synthKick(ctx, t, dest);
-          if (s === 8 || s === 24) synthSnare(ctx, t, dest);
-        },
-      },
-      {
-        id: "d-4floor", label: "4/4",
-        onStep: (ctx, s, t, dest) => {
-          if (s % 8 === 0) synthKick(ctx, t, dest);
-          if ([4,12,20,28].includes(s)) synthHihat(ctx, t, dest, false, 0.28);
-        },
-      },
-      {
-        id: "d-hh", label: "Hats",
-        onStep: (ctx, s, t, dest) => {
-          if (s % 4 === 0) synthHihat(ctx, t, dest, false, 0.3);
-          if ([8, 24].includes(s)) synthSnare(ctx, t, dest);
-        },
-      },
-      {
-        id: "d-openhat", label: "Open",
-        onStep: (ctx, s, t, dest) => {
-          if (s === 0 || s === 16) synthKick(ctx, t, dest);
-          if ([4,12,20,28].includes(s)) synthHihat(ctx, t, dest, true, 0.3);
-        },
-      },
-      {
-        id: "d-clap", label: "Clap",
-        onStep: (ctx, s, t, dest) => {
-          if (s === 0 || s === 16) synthKick(ctx, t, dest);
-          if ([8, 24].includes(s)) synthClap(ctx, t, dest);
-          if (s % 4 === 0) synthHihat(ctx, t, dest, false, 0.2);
-        },
-      },
-      {
-        id: "d-rim", label: "Trap",
-        onStep: (ctx, s, t, dest) => {
-          if ([0, 10, 16, 26].includes(s)) synthKick(ctx, t, dest);
-          if ([8, 24].includes(s)) synthSnare(ctx, t, dest);
-          if (s % 2 === 0) synthHihat(ctx, t, dest, false, 0.18);
-          if ([6, 22].includes(s)) synthRimshot(ctx, t, dest);
-        },
-      },
-      {
-        id: "d-break", label: "Break",
-        onStep: (ctx, s, t, dest) => {
-          const kickSteps = [0, 3, 10, 16, 18, 26];
-          const snareSteps = [4, 12, 20, 28];
-          const hatSteps = [2, 6, 8, 14, 18, 22, 24, 30];
-          if (kickSteps.includes(s)) synthKick(ctx, t, dest, 0.85);
-          if (snareSteps.includes(s)) synthSnare(ctx, t, dest);
-          if (hatSteps.includes(s)) synthHihat(ctx, t, dest, false, 0.25);
-        },
-      },
-    ],
-  },
-  {
-    id: "bass", label: "BASS", emoji: "🎸", color: "#a855f7",
-    pads: [
-      {
-        id: "b-root", label: "Root",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s === 0 || s === 16) synthBass(ctx, t, dest, C2, sd * 7);
-        },
-      },
-      {
-        id: "b-bounce", label: "Bounce",
-        onStep: (ctx, s, t, dest, sd) => {
-          if ([0, 16].includes(s)) synthBass(ctx, t, dest, C2, sd * 3.5);
-          if ([8, 24].includes(s)) synthBass(ctx, t, dest, G2, sd * 3.5);
-        },
-      },
-      {
-        id: "b-funk", label: "Funk",
-        onStep: (ctx, s, t, dest, sd) => {
-          const pat: [number, number][] = [[0,C2],[4,C2],[6,G2],[10,Bb2],[16,C3],[20,Bb2],[22,G2],[26,Eb2]];
-          for (const [step, freq] of pat) if (s === step) synthBass(ctx, t, dest, freq, sd * 3.5);
-        },
-      },
-      {
-        id: "b-offbeat", label: "Skank",
-        onStep: (ctx, s, t, dest, sd) => {
-          if ([4, 12, 20, 28].includes(s)) synthBass(ctx, t, dest, Eb2, sd * 3);
-        },
-      },
-      {
-        id: "b-pulse", label: "Pulse",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s % 8 === 0) synthBass(ctx, t, dest, C2, sd * 6.5, 0.8);
-        },
-      },
-      {
-        id: "b-walk", label: "Walk",
-        onStep: (ctx, s, t, dest, sd) => {
-          const steps: [number, number][] = [[0,C2],[4,D2],[8,Eb2],[12,F2],[16,G2],[20,F2],[24,Eb2],[28,D2]];
-          for (const [step, freq] of steps) if (s === step) synthBass(ctx, t, dest, freq, sd * 3.5);
-        },
-      },
-      {
-        id: "b-arp", label: "Arp",
-        onStep: (ctx, s, t, dest, sd) => {
-          const steps: [number, number][] = [[0,C2],[4,Eb2],[8,G2],[12,Bb2],[16,C3],[20,Bb2],[24,G2],[28,Eb2]];
-          for (const [step, freq] of steps) if (s === step) synthBass(ctx, t, dest, freq, sd * 3.5);
-        },
-      },
-      {
-        id: "b-staccato", label: "Stabs",
-        onStep: (ctx, s, t, dest, sd) => {
-          const stabs: [number, number][] = [[0,C2],[2,C2],[8,Eb2],[10,Eb2],[16,G2],[18,C2],[24,Bb2],[26,G2]];
-          for (const [step, freq] of stabs) if (s === step) synthBass(ctx, t, dest, freq, sd * 1.5, 0.8);
-        },
-      },
-    ],
-  },
-  {
-    id: "melody", label: "MELODY", emoji: "🎹", color: "#06b6d4",
-    pads: [
-      {
-        id: "m-hook", label: "Hook",
-        onStep: (ctx, s, t, dest, sd) => {
-          const pat: [number, number][] = [[0,C4],[4,Eb4],[8,G4],[12,Bb4],[16,C5],[20,Bb4],[24,G4],[28,Eb4]];
-          for (const [step, freq] of pat) if (s === step) synthNote(ctx, t, dest, freq, sd * 3, 0.3, "square");
-        },
-      },
-      {
-        id: "m-lead", label: "Lead",
-        onStep: (ctx, s, t, dest, sd) => {
-          const pat: [number, number][] = [[0,G4],[3,Bb4],[6,C5],[9,Bb4],[12,G4],[16,F4],[19,Eb4],[22,C4],[25,D4],[28,Eb4],[30,F4]];
-          for (const [step, freq] of pat) if (s === step) synthNote(ctx, t, dest, freq, sd * 2.5, 0.28, "sawtooth");
-        },
-      },
-      {
-        id: "m-pluck", label: "Pluck",
-        onStep: (ctx, s, t, dest) => {
-          const pat: [number, number][] = [[0,C4],[4,Eb4],[8,G4],[12,C5],[16,Bb4],[20,G4],[24,Eb4],[28,C4]];
-          for (const [step, freq] of pat) if (s === step) synthPluck(ctx, t, dest, freq, 0.32);
-        },
-      },
-      {
-        id: "m-stab", label: "Stab",
-        onStep: (ctx, s, t, dest, sd) => {
-          if ([0, 12, 16, 28].includes(s)) {
-            synthNote(ctx, t, dest, C4, sd * 1.5, 0.25, "square");
-            synthNote(ctx, t, dest, Eb4, sd * 1.5, 0.22, "square");
-            synthNote(ctx, t, dest, G4, sd * 1.5, 0.2, "square");
-          }
-        },
-      },
-      {
-        id: "m-arp", label: "Arp",
-        onStep: (ctx, s, t, dest) => {
-          if (s % 2 === 0) {
-            const notes = [C4, Eb4, G4, Bb4, C5, Bb4, G4, Eb4, C4, Eb4, G4, Bb4, C5, Bb4, G4, Eb4];
-            const idx = (s / 2) % notes.length;
-            synthPluck(ctx, t, dest, notes[idx], 0.28);
-          }
-        },
-      },
-      {
-        id: "m-bell", label: "Bell",
-        onStep: (ctx, s, t, dest, sd) => {
-          const pat: [number, number][] = [[0,C5],[6,Eb5],[12,G4],[18,F4],[24,Ab4],[30,Eb5]];
-          for (const [step, freq] of pat) if (s === step) {
-            synthNote(ctx, t, dest, freq, sd * 4, 0.25, "sine");
-            synthNote(ctx, t, dest, freq * 2, sd * 3, 0.1, "sine");
-          }
-        },
-      },
-      {
-        id: "m-pad", label: "Pad",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s === 0) {
-            synthPad(ctx, t, dest, C4, sd * 14, 0.18);
-            synthPad(ctx, t, dest, Eb4, sd * 14, 0.15);
-            synthPad(ctx, t, dest, G4, sd * 14, 0.14);
-          }
-        },
-      },
-      {
-        id: "m-counter", label: "Riff",
-        onStep: (ctx, s, t, dest, sd) => {
-          const pat: [number, number][] = [[0,Eb4],[2,F4],[4,G4],[8,Bb4],[10,C5],[14,Bb4],[16,Ab4],[20,G4],[22,F4],[26,Eb4],[28,G4]];
-          for (const [step, freq] of pat) if (s === step) synthNote(ctx, t, dest, freq, sd * 1.8, 0.26, "triangle");
-        },
-      },
-    ],
-  },
-  {
-    id: "effects", label: "EFFECTS", emoji: "✨", color: "#ec4899",
-    pads: [
-      {
-        id: "fx-crackle", label: "Vinyl",
-        onStep: (ctx, s, t, dest) => {
-          if (Math.random() < 0.5) synthNoise(ctx, t, dest, 0.08, 800 + Math.random() * 2000, 0.07);
-        },
-      },
-      {
-        id: "fx-sweep", label: "Sweep",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s === 0) synthRiser(ctx, t, dest, 200, 3200, sd * 16, 0.28);
-        },
-      },
-      {
-        id: "fx-riser", label: "Riser",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s === 0) synthRiser(ctx, t, dest, 80, 800, sd * 16, 0.35);
-        },
-      },
-      {
-        id: "fx-zap", label: "Zap",
-        onStep: (ctx, s, t, dest, sd) => {
-          if ([0, 16].includes(s)) {
-            synthNote(ctx, t, dest, 1800, sd * 1.2, 0.25, "sawtooth");
-            synthNote(ctx, t + 0.03, dest, 900, sd, 0.2, "sawtooth");
-          }
-        },
-      },
-      {
-        id: "fx-whoosh", label: "Whoosh",
-        onStep: (ctx, s, t, dest, sd) => {
-          if ([0, 16].includes(s)) {
-            const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * sd * 7), ctx.sampleRate);
-            const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-            const ns = ctx.createBufferSource(); ns.buffer = buf;
-            const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3;
-            f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(4000, t + sd * 7);
-            const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.3, t + sd * 3);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + sd * 7);
-            ns.connect(f); f.connect(g); g.connect(dest); ns.start(t); ns.stop(t + sd * 7);
-          }
-        },
-      },
-      {
-        id: "fx-shimmer", label: "Shimmer",
-        onStep: (ctx, s, t, dest) => {
-          if (s % 4 === 0) {
-            const freqs = [C5, Eb5, G4 * 4, D5];
-            synthShimmer(ctx, t, dest, freqs[Math.floor(Math.random() * freqs.length)] * (1 + (Math.random() - 0.5) * 0.02));
-          }
-        },
-      },
-      {
-        id: "fx-tension", label: "Drone",
-        onStep: (ctx, s, t, dest, sd) => {
-          if (s === 0 || s === 16) {
-            const osc = ctx.createOscillator(); const g = ctx.createGain();
-            osc.type = "sawtooth"; osc.frequency.setValueAtTime(C2 / 2, t);
-            const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 120;
-            g.gain.setValueAtTime(0.35, t); g.gain.setValueAtTime(0.35, t + sd * 15); g.gain.linearRampToValueAtTime(0, t + sd * 16);
-            osc.connect(f); f.connect(g); g.connect(dest); osc.start(t); osc.stop(t + sd * 16);
-          }
-        },
-      },
-      {
-        id: "fx-glitch", label: "Glitch",
-        onStep: (ctx, s, t, dest) => {
-          if (Math.random() < 0.25) {
-            const f = [C4, G4, Eb4, Bb4, C5][Math.floor(Math.random() * 5)];
-            synthNote(ctx, t, dest, f * (1 + (Math.random() - 0.5) * 0.3), 0.04 + Math.random() * 0.08, 0.2, "sawtooth");
-          }
-        },
-      },
-    ],
-  },
+// ─── Percussion ───────────────────────────────────────────────────────────────
+function mkPercNote(note: string, type: OscillatorType): PlayFn {
+  return (ctx, t, dest) => { osc(ctx, t, dest, type, NF[note] ?? 200, 0.15, 0.6); noise(ctx, t, dest, 0.06, 1000, "bandpass", 1, 0.3); };
+}
+
+// ─── Effects ──────────────────────────────────────────────────────────────────
+function mkSweepUp(): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const dur = sd * 4;
+    const o = ctx.createOscillator(); const f = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; f.type = "bandpass"; f.Q.value = 5;
+    o.frequency.setValueAtTime(100, t); o.frequency.linearRampToValueAtTime(4000, t + dur);
+    f.frequency.setValueAtTime(100, t); f.frequency.linearRampToValueAtTime(4000, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.28, t + dur * 0.8); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+  };
+}
+function mkSweepDown(): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const dur = sd * 4;
+    const o = ctx.createOscillator(); const f = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; f.type = "bandpass"; f.Q.value = 5;
+    o.frequency.setValueAtTime(4000, t); o.frequency.linearRampToValueAtTime(100, t + dur);
+    f.frequency.setValueAtTime(4000, t); f.frequency.linearRampToValueAtTime(100, t + dur);
+    g.gain.setValueAtTime(0.28, t); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+  };
+}
+function mkRiser(): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const dur = sd * 8;
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(80, t); o.frequency.linearRampToValueAtTime(1200, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + dur * 0.9); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+  };
+}
+function mkZap(): PlayFn {
+  return (ctx, t, dest) => { osc(ctx, t, dest, "sawtooth", 1800, 0.12, 0.25); osc(ctx, t + 0.03, dest, "sawtooth", 900, 0.08, 0.18); };
+}
+function mkWhoosh(): PlayFn {
+  return (ctx, t, dest, sd) => {
+    const dur = sd * 2;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const ns = ctx.createBufferSource(); ns.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3;
+    f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(4000, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.3, t + dur * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    ns.connect(f); f.connect(g); g.connect(dest); ns.start(t); ns.stop(t + dur);
+  };
+}
+function mkShimmer(): PlayFn {
+  return (ctx, t, dest) => {
+    [NF.C5, NF.Eb5, NF.G5].forEach(f => osc(ctx, t, dest, "sine", f * (1 + (Math.random() - 0.5) * 0.02), 0.4, 0.1));
+  };
+}
+function mkDrone(): PlayFn {
+  return (ctx, t, dest, sd) => { osc(ctx, t, dest, "sawtooth", 32, sd * 4, 0.3); osc(ctx, t, dest, "sine", 16, sd * 4, 0.2); };
+}
+function mkCrackle(): PlayFn {
+  return (ctx, t, dest) => { if (Math.random() < 0.6) noise(ctx, t, dest, 0.06 + Math.random() * 0.06, 1000 + Math.random() * 3000, "bandpass", 1, 0.06); };
+}
+function mkReverbWash(): PlayFn {
+  return (ctx, t, dest, sd) => { noise(ctx, t, dest, sd * 3, 2000, "bandpass", 0.5, 0.15); osc(ctx, t, dest, "sine", NF.C4, sd * 3, 0.08); };
+}
+
+// ─── LOOPS: each step plays a different note from a sequence ──────────────────
+// The step index determines which note in the melody fires
+function mkLoop(sequence: (string | null)[], type: OscillatorType = "square", vel = 0.28): PlayFn {
+  return (ctx, t, dest, sd, step) => {
+    const note = sequence[step % sequence.length];
+    if (!note) return;
+    const f = NF[note] ?? 261.63;
+    const dur = sd * 0.72;
+    osc(ctx, t, dest, type, f, dur, vel);
+    osc(ctx, t, dest, type, f * 1.005, dur * 0.85, vel * 0.5);
+  };
+}
+function mkLoopPluck(sequence: (string | null)[]): PlayFn {
+  return (ctx, t, dest, sd, step) => {
+    const note = sequence[step % sequence.length];
+    if (!note) return;
+    const f = NF[note] ?? 261.63;
+    const dur = sd * 1.4;
+    noise(ctx, t, dest, 0.01, f * 3, "bandpass", 2, 0.2);
+    osc(ctx, t, dest, "triangle", f, dur, 0.35);
+    osc(ctx, t, dest, "triangle", f * 2, dur * 0.6, 0.14);
+    osc(ctx, t, dest, "sine", f * 3, dur * 0.35, 0.06);
+  };
+}
+function mkLoopBass(sequence: (string | null)[]): PlayFn {
+  return (ctx, t, dest, sd, step) => {
+    const note = sequence[step % sequence.length];
+    if (!note) return;
+    const f = NF[note] ?? 65.41;
+    const dur = sd * 0.82;
+    const o = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; filt.type = "lowpass"; filt.frequency.value = 600; filt.Q.value = 2;
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+    osc(ctx, t, dest, "sine", f / 2, dur, 0.38);
+  };
+}
+function mkLoopPad(sequence: (string | null)[]): PlayFn {
+  return (ctx, t, dest, sd, step) => {
+    const note = sequence[step % sequence.length];
+    if (!note) return;
+    const f = NF[note] ?? 261.63; const dur = sd * 3.5;
+    const o1 = ctx.createOscillator(); const o2 = ctx.createOscillator(); const g = ctx.createGain();
+    o1.type = "sine"; o1.frequency.setValueAtTime(f, t);
+    o2.type = "sine"; o2.frequency.setValueAtTime(f * 1.002, t);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.15, t + 0.1);
+    g.gain.setValueAtTime(0.15, t + dur - 0.15); g.gain.linearRampToValueAtTime(0, t + dur);
+    o1.connect(g); o2.connect(g); g.connect(dest);
+    o1.start(t); o1.stop(t + dur); o2.start(t); o2.stop(t + dur);
+  };
+}
+
+// ─── Instrument catalog ───────────────────────────────────────────────────────
+interface Instrument { id: string; label: string; group?: string; play: PlayFn; }
+
+const DRUMS_CATALOG: Instrument[] = [
+  { id:"kick1",     label:"Kick 1",        play:mkKick(155) },
+  { id:"kick808",   label:"Kick 808",       play:mkKick808() },
+  { id:"kick3",     label:"Kick Punchy",    play:mkKick(200, false) },
+  { id:"snare1",    label:"Snare",          play:mkSnare() },
+  { id:"snare2",    label:"Snare Snappy",   play:mkSnare(4000, 0.7) },
+  { id:"snare_rim", label:"Snare Rim",      play:mkSnareRim() },
+  { id:"hihat_c",   label:"Hi-Hat Closed",  play:mkHihat(false, 0.32) },
+  { id:"hihat_o",   label:"Hi-Hat Open",    play:mkHihat(true, 0.3) },
+  { id:"clap1",     label:"Clap",           play:mkClap() },
+  { id:"clap2",     label:"Clap Tight",     play:mkClap(true) },
+  { id:"rimshot",   label:"Rimshot",        play:mkRimshot() },
+  { id:"cowbell",   label:"Cowbell",        play:mkCowbell() },
+  { id:"shaker",    label:"Shaker",         play:mkShaker() },
+  { id:"tambourine",label:"Tambourine",     play:mkTambourine() },
+  { id:"woodblock", label:"Woodblock",      play:mkWoodblock() },
+  { id:"tom_hi",    label:"Tom High",       play:mkTom(280) },
+  { id:"tom_lo",    label:"Tom Low",        play:mkTom(130) },
 ];
 
-// ─── Scheduler state ──────────────────────────────────────────────────────────
-interface SchedulerState {
-  ctx: AudioContext;
-  masterGain: GainNode;
-  nextStepTime: number;
-  currentStep: number;
-  bpm: number;
-  activePads: Set<string>;
-  pendingOn: Set<string>;
-  pendingOff: Set<string>;
+// Bass: 6 timbres × 14 notes
+const BASS_NOTES = ["C1","D1","Eb1","F1","G1","Bb1","C2","D2","Eb2","F2","G2","Ab2","Bb2","C3","Eb3","G3"];
+const BASS_CATALOG: Instrument[] = [
+  ...BASS_NOTES.map(n => ({ id:`sub_${n}`,    label:n, group:"Sub Bass",    play:mkSubBass(n) })),
+  ...BASS_NOTES.map(n => ({ id:`saw_${n}`,    label:n, group:"Saw Bass",    play:mkSawBass(n) })),
+  ...BASS_NOTES.map(n => ({ id:`moog_${n}`,   label:n, group:"Moog Bass",   play:mkMoogBass(n) })),
+  ...BASS_NOTES.map(n => ({ id:`slap_${n}`,   label:n, group:"Slap Bass",   play:mkSlapBass(n) })),
+  ...BASS_NOTES.map(n => ({ id:`pick_${n}`,   label:n, group:"Picked Bass", play:mkPickedBass(n) })),
+  ...BASS_NOTES.map(n => ({ id:`fuzz_${n}`,   label:n, group:"Fuzz Bass",   play:mkFuzzBass(n) })),
+];
+
+// Guitar: notes across fretboard + sound types
+const GTR_NOTES = ["E2","F2","G2","Ab2","A2","Bb2","B2","C3","D3","Eb3","E3","F3","G3","A3","B3","C4","D4","E4","G4"];
+const GTR_CHORD_ROOTS = ["E2","A2","D3","G3","C3","F3","G2","C3","Eb3"];
+const GUITAR_CATALOG: Instrument[] = [
+  ...GTR_NOTES.map(n => ({ id:`gclean_${n}`,  label:n, group:"Clean",       play:mkGuitarClean(n) })),
+  ...GTR_NOTES.map(n => ({ id:`gmute_${n}`,   label:n, group:"Muted",       play:mkGuitarMuted(n) })),
+  ...GTR_NOTES.map(n => ({ id:`gwah_${n}`,    label:n, group:"Wah",         play:mkGuitarWah(n) })),
+  ...GTR_NOTES.map(n => ({ id:`gslide_${n}`,  label:n, group:"Slide",       play:mkGuitarSlide(n) })),
+  ...GTR_NOTES.map(n => ({ id:`gharm_${n}`,   label:n, group:"Harmonic",    play:mkGuitarHarmonic(n) })),
+  ...GTR_CHORD_ROOTS.map(n => ({ id:`gpow_${n}`, label:n, group:"Power Chord", play:mkGuitarPowerChord(n) })),
+];
+
+// Synth catalog
+const SYNTH_NOTES_SQ  = ["C3","Eb3","G3","Bb3","C4","D4","Eb4","F4","G4","Ab4","Bb4","C5","Eb5","G5"];
+const SYNTH_NOTES_SAW = ["C3","Eb3","G3","C4","Eb4","G4","Bb4","C5"];
+const SYNTH_NOTES_TRI = ["C4","Eb4","G4","Bb4","C5","Eb5"];
+const SYNTH_CHORD     = ["C4","Eb4","F4","G4","Bb4","C5"];
+const SYNTH_PAD_NOTES = ["C3","Eb3","G3","Bb3","C4","Eb4","G4"];
+const SYNTH_CATALOG: Instrument[] = [
+  ...SYNTH_NOTES_SQ.map(n  => ({ id:`sq_${n}`,   label:n, group:"Square",   play:mkSynthNote(n,"square") })),
+  ...SYNTH_NOTES_SAW.map(n => ({ id:`saw_${n}`,  label:n, group:"Saw",      play:mkSynthNote(n,"sawtooth") })),
+  ...SYNTH_NOTES_TRI.map(n => ({ id:`tri_${n}`,  label:n, group:"Triangle", play:mkSynthNote(n,"triangle") })),
+  ...SYNTH_CHORD.map(n     => ({ id:`chd_${n}`,  label:n, group:"Stab",     play:mkChordStab(n) })),
+  ...SYNTH_PAD_NOTES.map(n => ({ id:`pad_${n}`,  label:n, group:"Pad",      play:mkSynthPad(n) })),
+];
+
+// Loops catalog — melodic sequences; each step plays the note at that position
+const LOOP_SEQS: Record<string, { label: string; notes: (string|null)[]; mkFn: (s:(string|null)[]) => PlayFn }> = {
+  cm_arp:     { label:"Cm Arpeggio",      notes:["C4","Eb4","G4","Bb4","C5","Bb4","G4","Eb4","C4","Eb4","G4","Bb4","C5","Bb4","G4","Eb4"], mkFn:s=>mkLoop(s) },
+  cm_scale:   { label:"Cm Scale",         notes:["C4","D4","Eb4","F4","G4","Ab4","Bb4","C5","Bb4","Ab4","G4","F4","Eb4","D4","C4",null], mkFn:s=>mkLoop(s,"triangle") },
+  penta:      { label:"Pentatonic",       notes:["C4","Eb4","F4","G4","Bb4","C5","Bb4","G4","F4","Eb4","C4",null,"C4","Eb4","G4",null], mkFn:s=>mkLoop(s) },
+  funk_hook:  { label:"Funk Hook",        notes:["C4","C4","Eb4","G4","Bb4","G4","Eb4","Bb3","C4","C4","Eb4","G4","Bb4","G4","F4","Eb4"], mkFn:s=>mkLoop(s,"sawtooth",0.22) },
+  jazz_phrase:{ label:"Jazz Phrase",      notes:["C4","D4","Eb4","F4","G4","Bb4","C5","Bb4","G4","F4","Eb4","D4","C4","Bb3","G3","C4"], mkFn:s=>mkLoop(s,"triangle",0.25) },
+  modal:      { label:"Modal Phrase",     notes:["C4","Eb4","F4","G4","Bb4","C5","Bb4","G4","C4","Eb4","F4","G4","Bb4","G4","Eb4","C4"], mkFn:s=>mkLoop(s) },
+  disco:      { label:"Disco Hook",       notes:["G4","Bb4","C5","Bb4","G4","F4","Eb4","F4","G4","Bb4","C5","Bb4","G4","Eb4","F4","G4"], mkFn:s=>mkLoop(s) },
+  pluck_arp:  { label:"Pluck Arpeggio",   notes:["C4","Eb4","G4","Bb4","C5","Bb4","G4","Eb4","C4","Eb4","G4","Bb4","C5","Bb4","G4","Eb4"], mkFn:s=>mkLoopPluck(s) },
+  pluck_riff: { label:"Pluck Riff",       notes:["C4","Eb4","F4","G4","F4","Eb4","C4","Bb3","C4","Eb4","G4","Ab4","G4","F4","Eb4","C4"], mkFn:s=>mkLoopPluck(s) },
+  bass_walk:  { label:"Bass Walk",        notes:["C2","D2","Eb2","F2","G2","Ab2","Bb2","C3","Bb2","Ab2","G2","F2","Eb2","D2","C2",null], mkFn:s=>mkLoopBass(s) },
+  bass_funk:  { label:"Bass Funk",        notes:["C2","C2","Eb2","G2","Bb2","G2","Eb2","Bb1","C2","C2","Eb2","G2","Bb2","G2","F2","Eb2"], mkFn:s=>mkLoopBass(s) },
+  bass_jump:  { label:"Bass Jump",        notes:["C2","C3","Eb2","G2","C3","G2","Eb2","C2","C2","C3","G2","Bb2","C3","Bb2","G2","Eb2"], mkFn:s=>mkLoopBass(s) },
+  pad_flow:   { label:"Pad Flow",         notes:["C4","G4","Eb4","Bb4","C5","Bb4","G4","Eb4","C4","G4","Eb4","Bb4","C5","G4","Eb4","C4"], mkFn:s=>mkLoopPad(s) },
+  gtr_riff:   { label:"Guitar Riff",      notes:["G3","Bb3","C4","Bb3","G3","F3","Eb3","F3","G3","Bb3","C4","D4","C4","Bb3","G3",null], mkFn:s=>mkLoopPluck(s) },
+  gtr_minor:  { label:"Guitar Minor Run", notes:["E3","G3","A3","Bb3","A3","G3","E3","D3","E3","G3","A3","C4","A3","G3","E3",null], mkFn:s=>mkLoopPluck(s) },
+};
+const LOOPS_CATALOG: Instrument[] = Object.entries(LOOP_SEQS).map(([id, def]) => ({
+  id, label: def.label, play: def.mkFn(def.notes),
+}));
+
+const PERC_CATALOG: Instrument[] = [
+  { id:"p_rim",  label:"Rimshot",    play:mkRimshot() },
+  { id:"p_cow",  label:"Cowbell",    play:mkCowbell() },
+  { id:"p_wood", label:"Woodblock",  play:mkWoodblock() },
+  { id:"p_shk",  label:"Shaker",     play:mkShaker() },
+  { id:"p_tam",  label:"Tambourine", play:mkTambourine() },
+  { id:"p_thi",  label:"Tom High",   play:mkTom(280) },
+  { id:"p_tlo",  label:"Tom Low",    play:mkTom(130) },
+  { id:"p_cga",  label:"Conga Hi",   play:mkPercNote("G3","triangle") },
+  { id:"p_cgb",  label:"Conga Lo",   play:mkPercNote("D3","triangle") },
+];
+const FX_CATALOG: Instrument[] = [
+  { id:"fx_sup", label:"Sweep ↑",     play:mkSweepUp() },
+  { id:"fx_sdn", label:"Sweep ↓",     play:mkSweepDown() },
+  { id:"fx_rsr", label:"Riser",       play:mkRiser() },
+  { id:"fx_zap", label:"Zap",         play:mkZap() },
+  { id:"fx_wsh", label:"Whoosh",      play:mkWhoosh() },
+  { id:"fx_shm", label:"Shimmer",     play:mkShimmer() },
+  { id:"fx_drn", label:"Sub Drone",   play:mkDrone() },
+  { id:"fx_crk", label:"Crackle",     play:mkCrackle() },
+  { id:"fx_rev", label:"Reverb Wash", play:mkReverbWash() },
+];
+
+const CATALOGS: Record<string, Instrument[]> = {
+  drums: DRUMS_CATALOG,
+  bass:  BASS_CATALOG,
+  guitar:GUITAR_CATALOG,
+  synth: SYNTH_CATALOG,
+  loops: LOOPS_CATALOG,
+  perc:  PERC_CATALOG,
+  fx:    FX_CATALOG,
+};
+
+// ─── Sections ─────────────────────────────────────────────────────────────────
+interface Section { id: string; label: string; emoji: string; color: string; }
+const SECTIONS: Section[] = [
+  { id:"drums",  label:"DRUMS",      emoji:"🥁", color:"#f97316" },
+  { id:"bass",   label:"BASS",       emoji:"🎸", color:"#a855f7" },
+  { id:"guitar", label:"GUITAR",     emoji:"🎸", color:"#f59e0b" },
+  { id:"synth",  label:"SYNTH",      emoji:"🎹", color:"#06b6d4" },
+  { id:"loops",  label:"LOOPS",      emoji:"🔄", color:"#22d3ee" },
+  { id:"perc",   label:"PERCUSSION", emoji:"🪘", color:"#22c55e" },
+  { id:"fx",     label:"EFFECTS",    emoji:"✨", color:"#ec4899" },
+];
+
+interface TrackRow { id: string; sectionId: string; instrumentId: string; steps: boolean[]; muted: boolean; solo: boolean; volume: number; }
+let _rowId = 0;
+function mkRow(sectionId: string, instrumentId: string, steps?: boolean[]): TrackRow {
+  return { id:`row_${_rowId++}`, sectionId, instrumentId, steps: steps ?? Array(16).fill(false), muted: false, solo: false, volume: 1 };
 }
 
-function stepDur(bpm: number) { return (60 / bpm) / 4; }
+const B = (n: number[]) => Array(16).fill(false).map((_,i) => n.includes(i));
+const DEFAULT_ROWS: TrackRow[] = [
+  // Drums
+  mkRow("drums","kick1",      B([0,8])),
+  mkRow("drums","snare1",     B([4,12])),
+  mkRow("drums","hihat_c",    B([0,2,4,6,8,10,12,14])),
+  mkRow("drums","hihat_o",    B([6,14])),
+  mkRow("drums","clap1",      B([4,12])),
+  // Bass
+  mkRow("bass","sub_C2",      B([0])),
+  mkRow("bass","sub_G2",      B([8])),
+  mkRow("bass","moog_Eb2"),
+  // Guitar
+  mkRow("guitar","gclean_G3"),
+  mkRow("guitar","gmute_E2"),
+  // Synth
+  mkRow("synth","sq_C4",      B([0,6,14])),
+  mkRow("synth","sq_Eb4",     B([4,12])),
+  mkRow("synth","sq_G4"),
+  // Loops - all 16 steps on so you hear the full melody
+  mkRow("loops","cm_arp",     Array(16).fill(true)),
+  mkRow("loops","bass_walk"),
+  // Perc
+  mkRow("perc","p_rim"),
+  mkRow("perc","p_cow"),
+  // FX
+  mkRow("fx","fx_zap"),
+  mkRow("fx","fx_shm"),
+];
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Scheduler ────────────────────────────────────────────────────────────────
+const STEPS = 16;
+const LOOKAHEAD = 0.12;
+const SCHED_MS = 25;
+function stepDur(bpm: number) { return (60 / bpm) / 4; }
+interface EngineState { ctx: AudioContext; masterGain: GainNode; nextStepTime: number; currentStep: number; bpm: number; }
+
+// ─── Quick patterns ───────────────────────────────────────────────────────────
+const QUICK_PATTERNS: Record<string, {label:string; pattern:number[]}[]> = {
+  drums: [
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"8th notes",   pattern:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]},
+    {label:"16th notes",  pattern:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},
+    {label:"Backbeat 2+4",pattern:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]},
+    {label:"Beats 1+3",   pattern:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]},
+    {label:"Offbeat 8ths",pattern:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]},
+    {label:"Shuffle",     pattern:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0]},
+  ],
+  bass:  [
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"Beats 1+3",   pattern:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]},
+    {label:"Backbeat",    pattern:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]},
+    {label:"Walking 8ths",pattern:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]},
+    {label:"Reggae",      pattern:[0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0]},
+  ],
+  guitar:[
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"8th notes",   pattern:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]},
+    {label:"Backbeat",    pattern:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]},
+    {label:"Strum down",  pattern:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0]},
+    {label:"Syncopated",  pattern:[1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0]},
+  ],
+  synth: [
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"Syncopated",  pattern:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0]},
+    {label:"Offbeat",     pattern:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]},
+    {label:"Sparse",      pattern:[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0]},
+  ],
+  loops: [
+    {label:"All steps",   pattern:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"8th notes",   pattern:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]},
+    {label:"Syncopated",  pattern:[1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0]},
+    {label:"Sparse",      pattern:[1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0]},
+  ],
+  perc:  [
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"8th notes",   pattern:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]},
+    {label:"Offbeat",     pattern:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]},
+  ],
+  fx:    [
+    {label:"Bar start",   pattern:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+    {label:"Half bars",   pattern:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]},
+    {label:"Every beat",  pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+  ],
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export function BeatMakerGame() {
-  const [activePads, setActivePads] = useState<Set<string>>(new Set());
-  const [pendingPads, setPendingPads] = useState<Set<string>>(new Set());
+  const [rows, setRows] = useState<TrackRow[]>(DEFAULT_ROWS);
+  const [isRunning, setIsRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
   const [bpm, setBpm] = useState(120);
   const [volume, setVolume] = useState(0.8);
-  const [isRunning, setIsRunning] = useState(false);
-  const schedRef = useRef<SchedulerState | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const volumeRef = useRef(0.8);
-  const bpmRef = useRef(120);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+    perc: true, fx: true,
+  });
 
-  // Keep refs in sync
-  useEffect(() => { volumeRef.current = volume; if (schedRef.current) schedRef.current.masterGain.gain.setTargetAtTime(volume, schedRef.current.ctx.currentTime, 0.01); }, [volume]);
-  useEffect(() => { bpmRef.current = bpm; if (schedRef.current) schedRef.current.bpm = bpm; }, [bpm]);
+  const engineRef = useRef<EngineState | null>(null);
+  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rowsRef   = useRef(rows);
+  const volRef    = useRef(volume);
+  const bpmRef    = useRef(bpm);
+
+  useEffect(() => { rowsRef.current = rows; }, [rows]);
+  useEffect(() => { volRef.current = volume; if (engineRef.current) engineRef.current.masterGain.gain.setTargetAtTime(volume, engineRef.current.ctx.currentTime, 0.01); }, [volume]);
+  useEffect(() => { bpmRef.current = bpm; if (engineRef.current) engineRef.current.bpm = bpm; }, [bpm]);
 
   const startEngine = useCallback(() => {
-    if (schedRef.current) return;
+    if (engineRef.current) return;
     const ctx = new AudioContext();
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(volumeRef.current, ctx.currentTime);
+    masterGain.gain.setValueAtTime(volRef.current, ctx.currentTime);
     masterGain.connect(ctx.destination);
-    schedRef.current = {
-      ctx, masterGain,
-      nextStepTime: ctx.currentTime + 0.05,
-      currentStep: 0,
-      bpm: bpmRef.current,
-      activePads: new Set(),
-      pendingOn: new Set(),
-      pendingOff: new Set(),
-    };
+    engineRef.current = { ctx, masterGain, nextStepTime: ctx.currentTime + 0.05, currentStep: 0, bpm: bpmRef.current };
   }, []);
 
-  const togglePad = useCallback((padId: string) => {
-    if (!schedRef.current) startEngine();
-    const sched = schedRef.current!;
-
-    setActivePads(prev => {
-      const next = new Set(prev);
-      if (next.has(padId)) {
-        next.delete(padId);
-        sched.pendingOff.add(padId);
-        sched.pendingOn.delete(padId);
-      } else {
-        next.add(padId);
-        sched.pendingOn.add(padId);
-        sched.pendingOff.delete(padId);
-      }
-      return next;
-    });
-
-    setPendingPads(prev => {
-      const next = new Set(prev);
-      next.add(padId);
-      return next;
-    });
-  }, [startEngine]);
-
-  // Scheduler loop
   useEffect(() => {
-    if (!isRunning) {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      return;
-    }
-    if (!schedRef.current) startEngine();
-
+    if (!isRunning) { if (timerRef.current) clearInterval(timerRef.current); timerRef.current = null; return; }
+    startEngine();
     timerRef.current = setInterval(() => {
-      const sched = schedRef.current;
-      if (!sched) return;
-      const { ctx, masterGain } = sched;
-      const sd = stepDur(sched.bpm);
-
-      while (sched.nextStepTime < ctx.currentTime + LOOKAHEAD) {
-        const step = sched.currentStep;
-
-        // Apply pending activations at bar start
-        if (step === 0) {
-          sched.pendingOff.forEach(id => { sched.activePads.delete(id); });
-          sched.pendingOn.forEach(id => { sched.activePads.add(id); });
-          sched.pendingOff.clear();
-          sched.pendingOn.clear();
-          setPendingPads(new Set());
-        }
-
-        // Fire each active pad's step
-        sched.activePads.forEach(padId => {
-          const row = ROWS.find(r => r.pads.some(p => p.id === padId));
-          const pad = row?.pads.find(p => p.id === padId);
-          pad?.onStep(ctx, step, sched.nextStepTime, masterGain, sd);
+      const eng = engineRef.current; if (!eng) return;
+      const sd = stepDur(eng.bpm);
+      while (eng.nextStepTime < eng.ctx.currentTime + LOOKAHEAD) {
+        const step = eng.currentStep;
+        const anySolo = rowsRef.current.some(r => r.solo);
+        rowsRef.current.forEach(row => {
+          if (row.muted || !row.steps[step]) return;
+          if (anySolo && !row.solo) return;
+          const instr = CATALOGS[row.sectionId]?.find(i => i.id === row.instrumentId);
+          // Per-track gain: insert a transient GainNode so PlayFns need no changes
+          const tg = eng.ctx.createGain();
+          tg.gain.value = row.volume;
+          tg.connect(eng.masterGain);
+          instr?.play(eng.ctx, eng.nextStepTime, tg, sd, step);
         });
-
         setCurrentStep(step);
-        sched.currentStep = (step + 1) % STEPS;
-        sched.nextStepTime += sd;
+        eng.currentStep = (step + 1) % STEPS;
+        eng.nextStepTime += sd;
       }
-    }, SCHEDULE_MS);
-
+    }, SCHED_MS);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isRunning, startEngine]);
 
   const handlePlayStop = () => {
     if (!isRunning) {
       startEngine();
-      schedRef.current!.nextStepTime = schedRef.current!.ctx.currentTime + 0.05;
-      schedRef.current!.currentStep = 0;
-    } else {
-      setCurrentStep(-1);
-    }
+      const eng = engineRef.current!;
+      eng.nextStepTime = eng.ctx.currentTime + 0.05;
+      eng.currentStep = 0;
+    } else { setCurrentStep(-1); }
     setIsRunning(r => !r);
   };
 
-  const clearAll = () => {
-    setActivePads(new Set());
-    setPendingPads(new Set());
-    if (schedRef.current) {
-      schedRef.current.activePads.clear();
-      schedRef.current.pendingOn.clear();
-      schedRef.current.pendingOff.clear();
+  const toggleStep     = (id: string, s: number) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: r.steps.map((v,i) => i===s ? !v : v) }));
+  const setInstrument  = (id: string, iid: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, instrumentId: iid }));
+  const toggleMute     = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, muted: !r.muted }));
+  const toggleSolo     = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, solo: !r.solo }));
+  const setRowVolume   = (id: string, v: number) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, volume: v }));
+  const clearRow       = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: Array(16).fill(false) }));
+  const previewInstrument = useCallback((sectionId: string, instrumentId: string) => {
+    if (!engineRef.current) startEngine();
+    const eng = engineRef.current!;
+    const instr = CATALOGS[sectionId]?.find(i => i.id === instrumentId);
+    if (!instr) return;
+    const tNow = eng.ctx.currentTime + 0.01;
+    if (sectionId === "loops") {
+      // Play 4 steps at real tempo so you hear the melody shape
+      const sd = stepDur(eng.bpm);
+      for (let s = 0; s < 4; s++) {
+        const tg = eng.ctx.createGain(); tg.gain.value = 0.7; tg.connect(eng.masterGain);
+        instr.play(eng.ctx, tNow + s * sd, tg, sd, s);
+      }
+    } else {
+      // Use a fixed 0.5s sd so sustained notes (bass, synth, guitar) ring out clearly
+      const tg = eng.ctx.createGain(); tg.gain.value = 0.7; tg.connect(eng.masterGain);
+      instr.play(eng.ctx, tNow, tg, 0.5, 0);
     }
+  }, [startEngine]);
+  const removeRow      = (id: string) => setRows(prev => prev.filter(r => r.id !== id));
+  const fillRow        = (id: string, p: number[]) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: p.map(Boolean) }));
+  const addRow         = (sectionId: string) => {
+    const first = CATALOGS[sectionId]?.[0]?.id ?? "";
+    setRows(prev => {
+      const lastIdx = prev.map((r,i) => r.sectionId===sectionId ? i : -1).filter(i=>i>=0).pop() ?? prev.length-1;
+      const next = [...prev]; next.splice(lastIdx+1, 0, mkRow(sectionId, first)); return next;
+    });
   };
+  const clearAll = () => setRows(prev => prev.map(r => ({ ...r, steps: Array(16).fill(false) })));
 
-  // Beat column indicator: 32 steps → 8 columns (4 steps each)
-  const beatCol = currentStep >= 0 ? Math.floor(currentStep / 4) : -1;
+  const sectionRows = (id: string) => rows.filter(r => r.sectionId === id);
 
   return (
-    <div
-      className="min-h-screen w-full flex flex-col items-center justify-start py-6 px-4"
-      style={{ background: "linear-gradient(180deg, #0a0a1a 0%, #0d0d22 100%)" }}
-    >
+    <div className="min-h-screen w-full flex flex-col items-center py-5 px-3"
+      style={{ background:"linear-gradient(180deg,#12111f 0%,#16142e 100%)", fontFamily:"var(--font-display)" }}>
+
       {/* Header */}
-      <div className="w-full max-w-4xl mb-6 flex items-center justify-between flex-wrap gap-3">
+      <div className="w-full max-w-5xl flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: "#ffffff", textShadow: "0 0 20px rgba(168,85,247,0.8), 0 0 40px rgba(168,85,247,0.4)", fontFamily: "var(--font-display)" }}>
+          <h1 className="text-2xl sm:text-3xl font-black" style={{ color:"#fff", textShadow:"0 0 24px #a855f788,0 0 48px #a855f744" }}>
             🎛️ Beat Maker
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Mix loops — everything plays in tune at {bpm} BPM</p>
+          <p className="text-xs mt-0.5" style={{ color:"rgba(255,255,255,0.35)" }}>
+            Step sequencer · C minor · {bpm} BPM · Loops play a different note per step
+          </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* BPM */}
-          <div className="flex flex-col items-center gap-1">
-            <label className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>BPM: {bpm}</label>
-            <input type="range" min={70} max={180} value={bpm} onChange={e => setBpm(Number(e.target.value))}
-              className="w-24 accent-purple-500" style={{ accentColor: "#a855f7" }} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.45)" }}>BPM {bpm}</span>
+            <input type="range" min={60} max={200} value={bpm} onChange={e=>setBpm(+e.target.value)} className="w-20" style={{ accentColor:"#a855f7" }} />
           </div>
-          {/* Volume */}
-          <div className="flex flex-col items-center gap-1">
-            <label className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Vol: {Math.round(volume * 100)}%</label>
-            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={e => setVolume(Number(e.target.value))}
-              className="w-24" style={{ accentColor: "#06b6d4" }} />
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.45)" }}>VOL {Math.round(volume*100)}%</span>
+            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={e=>setVolume(+e.target.value)} className="w-20" style={{ accentColor:"#06b6d4" }} />
           </div>
-          {/* Clear */}
-          <button onClick={clearAll}
-            className="px-3 py-1.5 rounded-lg text-sm font-bold transition-all"
-            style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.15)" }}>
-            Clear
+          <button onClick={clearAll} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+            style={{ background:"rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.55)", border:"1px solid rgba(255,255,255,0.12)" }}>
+            Clear All
           </button>
-          {/* Play/Stop */}
-          <button onClick={handlePlayStop}
-            className="px-5 py-2 rounded-xl text-base font-bold transition-all"
-            style={{
-              background: isRunning ? "rgba(239,68,68,0.9)" : "rgba(168,85,247,0.9)",
-              color: "#fff",
-              border: isRunning ? "2px solid #ef4444" : "2px solid #a855f7",
-              boxShadow: isRunning ? "0 0 18px rgba(239,68,68,0.6)" : "0 0 18px rgba(168,85,247,0.6)",
-              minWidth: 80,
-            }}>
+          <button onClick={handlePlayStop} className="px-5 py-2 rounded-xl text-sm font-black"
+            style={{ background:isRunning?"#ef4444":"#a855f7", color:"#fff", minWidth:80, boxShadow:isRunning?"0 0 20px #ef444488":"0 0 20px #a855f788", border:`2px solid ${isRunning?"#ef4444":"#a855f7"}` }}>
             {isRunning ? "⏹ Stop" : "▶ Play"}
           </button>
         </div>
       </div>
 
-      {/* Beat indicator bar */}
-      <div className="w-full max-w-4xl mb-4 flex gap-1">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="h-2 flex-1 rounded-full transition-all duration-75"
-            style={{
-              background: isRunning && beatCol === i ? "#ffffff" : "rgba(255,255,255,0.08)",
-              boxShadow: isRunning && beatCol === i ? "0 0 12px rgba(255,255,255,0.9)" : "none",
-            }} />
-        ))}
-      </div>
+      {/* Sections */}
+      <div className="w-full max-w-5xl flex flex-col gap-4">
+        {SECTIONS.map(section => {
+          const secRows = sectionRows(section.id);
+          const isCollapsed = collapsed[section.id];
+          return (
+            <div key={section.id} className="rounded-2xl overflow-hidden"
+              style={{ border:`1px solid ${section.color}22`, background:"rgba(255,255,255,0.025)" }}>
+              <button onClick={() => setCollapsed(c => ({...c,[section.id]:!c[section.id]}))}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+                style={{ background:`${section.color}18` }}>
+                <span className="flex items-center gap-2">
+                  <span className="text-base">{section.emoji}</span>
+                  <span className="text-xs font-black tracking-widest" style={{ color:section.color, textShadow:`0 0 8px ${section.color}88` }}>
+                    {section.label}
+                  </span>
+                  {section.id === "loops" && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background:`${section.color}33`, color:section.color }}>
+                      each step = different note
+                    </span>
+                  )}
+                  <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.3)" }}>
+                    {secRows.length} track{secRows.length !== 1 ? "s" : ""}
+                  </span>
+                </span>
+                <span className="text-xs" style={{ color:"rgba(255,255,255,0.3)" }}>{isCollapsed ? "▶" : "▼"}</span>
+              </button>
 
-      {/* Rows */}
-      <div className="w-full max-w-4xl flex flex-col gap-3">
-        {ROWS.map(row => (
-          <div key={row.id}
-            className="rounded-2xl p-3 sm:p-4"
-            style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${row.color}22` }}>
-            {/* Row label */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">{row.emoji}</span>
-              <span className="text-xs font-bold tracking-widest" style={{ color: row.color, textShadow: `0 0 8px ${row.color}88` }}>
-                {row.label}
-              </span>
-            </div>
-            {/* Pads grid */}
-            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(8, 1fr)" }}>
-              {row.pads.map((pad, i) => {
-                const active = activePads.has(pad.id);
-                const pending = pendingPads.has(pad.id);
-                const isBeat = isRunning && beatCol === i;
-                return (
-                  <button
-                    key={pad.id}
-                    onClick={() => togglePad(pad.id)}
-                    className="relative flex flex-col items-center justify-center rounded-xl font-bold transition-all select-none"
-                    style={{
-                      aspectRatio: "1",
-                      fontSize: "clamp(8px, 1.5vw, 11px)",
-                      background: active
-                        ? `linear-gradient(135deg, ${row.color}cc, ${row.color}88)`
-                        : "rgba(255,255,255,0.05)",
-                      border: active
-                        ? `2px solid ${row.color}`
-                        : `2px solid rgba(255,255,255,0.1)`,
-                      color: active ? "#fff" : "rgba(255,255,255,0.4)",
-                      boxShadow: active
-                        ? `0 0 14px ${row.color}88, 0 0 28px ${row.color}44, inset 0 0 10px ${row.color}22`
-                        : isBeat
-                        ? `0 0 8px rgba(255,255,255,0.25)`
-                        : "none",
-                      transform: active ? "scale(0.97)" : "scale(1)",
-                      outline: "none",
-                      opacity: pending && !active ? 0.7 : 1,
-                    }}>
-                    {/* Pulse dot when active */}
-                    {active && isRunning && isBeat && (
-                      <span className="absolute inset-0 rounded-xl animate-ping"
-                        style={{ background: `${row.color}33`, animationDuration: "0.3s" }} />
-                    )}
-                    <span className="relative z-10 px-1 text-center leading-tight">{pad.label}</span>
+              {!isCollapsed && (
+                <div className="px-3 pb-3 pt-2">
+                  {/* Beat numbers */}
+                  <div className="flex items-center gap-1 mb-2 pl-[234px]">
+                    {Array.from({length:16},(_,i)=>i).map(i => (
+                      <div key={i} className="flex-1 text-center text-[9px] font-bold select-none"
+                        style={{
+                          color: isRunning && currentStep===i ? "#fff" : (i+1)%4===1 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)",
+                          textShadow: isRunning && currentStep===i ? "0 0 8px #fff" : "none",
+                        }}>
+                        {i+1}
+                      </div>
+                    ))}
+                    <div className="w-[44px] sm:w-[52px]" />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    {secRows.map(row => (
+                      <TrackRowView key={row.id} row={row}
+                        catalog={CATALOGS[section.id] ?? []}
+                        currentStep={currentStep} isRunning={isRunning}
+                        sectionColor={section.color} sectionId={section.id}
+                        onToggleStep={toggleStep} onSetInstrument={setInstrument}
+                        onToggleMute={toggleMute} onToggleSolo={toggleSolo} onClear={clearRow}
+                        onRemove={removeRow} onFill={fillRow} onSetVolume={setRowVolume}
+                        onPreview={previewInstrument} />
+                    ))}
+                  </div>
+
+                  <button onClick={() => addRow(section.id)}
+                    className="mt-2 ml-[234px] px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                    style={{ background:"rgba(255,255,255,0.05)", color:"rgba(255,255,255,0.35)", border:"1px dashed rgba(255,255,255,0.15)" }}>
+                    ＋ Add track
                   </button>
-                );
-              })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Footer hint */}
-      <p className="mt-6 text-xs text-center" style={{ color: "rgba(255,255,255,0.25)" }}>
-        Tap pads to toggle loops — new loops snap to the next bar
+      <p className="mt-6 text-[10px]" style={{ color:"rgba(255,255,255,0.2)" }}>
+        Loops section: enable step buttons to choose which beats play — the pitch changes each step based on the melody
       </p>
+    </div>
+  );
+}
+
+// ─── Track row view ───────────────────────────────────────────────────────────
+interface TrackRowViewProps {
+  row: TrackRow; catalog: Instrument[]; currentStep: number; isRunning: boolean;
+  sectionColor: string; sectionId: string;
+  onToggleStep:(id:string,s:number)=>void; onSetInstrument:(id:string,iid:string)=>void;
+  onToggleMute:(id:string)=>void; onToggleSolo:(id:string)=>void; onClear:(id:string)=>void;
+  onRemove:(id:string)=>void; onFill:(id:string,p:number[])=>void;
+  onSetVolume:(id:string,v:number)=>void;
+  onPreview:(sectionId:string,instrumentId:string)=>void;
+}
+
+function TrackRowView({ row, catalog, currentStep, isRunning, sectionColor, sectionId, onToggleStep, onSetInstrument, onToggleMute, onToggleSolo, onClear, onRemove, onFill, onSetVolume, onPreview }: TrackRowViewProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const patterns = QUICK_PATTERNS[sectionId] ?? [];
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const close = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showMenu]);
+
+  return (
+    <div className="flex items-center gap-1">
+      {/* Left controls */}
+      <div className="flex items-center gap-1 shrink-0" style={{ width:232, minWidth:232 }}>
+        {/* Mute */}
+        <button onClick={() => onToggleMute(row.id)}
+          className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
+          title={row.muted ? "Unmute" : "Mute"}
+          style={{ background:row.muted ? "rgba(255,255,255,0.08)" : sectionColor, border:`1px solid ${row.muted?"rgba(255,255,255,0.15)":sectionColor}`, boxShadow:row.muted?"none":`0 0 6px ${sectionColor}88` }}>
+          <span style={{ fontSize:8, color:row.muted?"rgba(255,255,255,0.3)":"#fff" }}>{row.muted?"M":"●"}</span>
+        </button>
+        {/* Solo */}
+        <button onClick={() => onToggleSolo(row.id)}
+          className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
+          title={row.solo ? "Unsolo" : "Solo"}
+          style={{ background: row.solo ? "#facc15" : "rgba(255,255,255,0.06)", border:`1px solid ${row.solo?"#facc15":"rgba(255,255,255,0.12)"}`, boxShadow: row.solo ? "0 0 6px #facc1588" : "none" }}>
+          <span style={{ fontSize:8, fontWeight:"bold", color: row.solo ? "#000" : "rgba(255,255,255,0.35)" }}>S</span>
+        </button>
+        {/* Volume fader */}
+        <div className="flex flex-col items-center shrink-0" style={{ width:52 }}>
+          <span className="text-[8px] font-bold leading-none mb-0.5" style={{ color: row.muted ? "rgba(255,255,255,0.2)" : `${sectionColor}cc` }}>
+            {Math.round(row.volume * 100)}
+          </span>
+          <input
+            type="range" min={0} max={1} step={0.01}
+            value={row.volume}
+            onChange={e => onSetVolume(row.id, +e.target.value)}
+            disabled={row.muted}
+            title={`Volume: ${Math.round(row.volume * 100)}%`}
+            style={{
+              width: 50, accentColor: sectionColor,
+              opacity: row.muted ? 0.3 : 1,
+              cursor: row.muted ? "not-allowed" : "pointer",
+            }}
+          />
+        </div>
+        {/* Instrument dropdown + preview */}
+        <div className="flex flex-1 min-w-0 items-center gap-0.5">
+          <select value={row.instrumentId} onChange={e => onSetInstrument(row.id, e.target.value)}
+            className="flex-1 min-w-0 rounded-lg px-1.5 py-1 text-[10px] font-bold truncate"
+            style={{ background:"rgba(255,255,255,0.07)", color:row.muted?"rgba(255,255,255,0.3)":"#fff", border:`1px solid ${sectionColor}44`, outline:"none", cursor:"pointer" }}>
+            {catalog.some(i => i.group)
+              ? (() => {
+                  const groups: {g:string; items:Instrument[]}[] = [];
+                  catalog.forEach(i => {
+                    const g = i.group ?? "";
+                    const last = groups[groups.length-1];
+                    if (last && last.g === g) last.items.push(i);
+                    else groups.push({g, items:[i]});
+                  });
+                  return groups.map(({g, items}) => (
+                    <optgroup key={g} label={g}>
+                      {items.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
+                    </optgroup>
+                  ));
+                })()
+              : catalog.map(i => <option key={i.id} value={i.id}>{i.label}</option>)
+            }
+          </select>
+          <button
+            onClick={() => onPreview(sectionId, row.instrumentId)}
+            title="Preview sound"
+            className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center"
+            style={{ background:`${sectionColor}22`, border:`1px solid ${sectionColor}44`, color: sectionColor }}>
+            <span style={{ fontSize:7, lineHeight:1 }}>▶</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Steps */}
+      {row.steps.map((active, step) => {
+        const isCurrent = isRunning && currentStep === step;
+        const groupEven = Math.floor(step/4) % 2 === 0;
+        return (
+          <button key={step} onClick={() => onToggleStep(row.id, step)}
+            className="flex-1 rounded-md transition-all select-none"
+            style={{
+              aspectRatio:"1", minWidth:0,
+              background: active ? `linear-gradient(135deg,${sectionColor}dd,${sectionColor}88)` : isCurrent ? "rgba(255,255,255,0.18)" : groupEven ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.035)",
+              border: active ? `1.5px solid ${sectionColor}` : isCurrent ? "1.5px solid rgba(255,255,255,0.5)" : "1.5px solid rgba(255,255,255,0.07)",
+              boxShadow: active ? `0 0 10px ${sectionColor}77, inset 0 0 6px ${sectionColor}44` : isCurrent && !active ? "0 0 6px rgba(255,255,255,0.3)" : "none",
+              opacity: row.muted ? 0.3 : 1,
+            }} />
+        );
+      })}
+
+      {/* Menu */}
+      <div className="relative shrink-0 ml-0.5" ref={menuRef}>
+        <button onClick={() => setShowMenu(s=>!s)} className="w-6 h-6 rounded flex items-center justify-center" style={{ color:"rgba(255,255,255,0.3)", fontSize:14 }}>⋮</button>
+        {showMenu && (
+          <div className="absolute right-0 top-7 z-50 rounded-xl py-1 min-w-[145px]"
+            style={{ background:"#1a1a2e", border:"1px solid rgba(255,255,255,0.12)", boxShadow:"0 8px 32px #0008" }}>
+            {patterns.map(p => (
+              <button key={p.label} onClick={() => { onFill(row.id, p.pattern); setShowMenu(false); }}
+                className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5" style={{ color:"rgba(255,255,255,0.7)" }}>
+                {p.label}
+              </button>
+            ))}
+            <div className="border-t border-white/10 my-1" />
+            <button onClick={() => { onClear(row.id); setShowMenu(false); }}
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5" style={{ color:"rgba(255,100,100,0.7)" }}>
+              Clear row
+            </button>
+            <button onClick={() => { onRemove(row.id); setShowMenu(false); }}
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/5" style={{ color:"rgba(255,100,100,0.7)" }}>
+              Remove track
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
