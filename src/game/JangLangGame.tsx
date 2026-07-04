@@ -304,7 +304,6 @@ function Lesson({
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
           {choices.map((choice) => {
             const isSelected = selectedChoice === choice;
-            const isCorrect = choice === correctAnswer;
             let borderColor = "#d1d5db";
             let bg = "white";
             let textColor = "#374151";
@@ -312,8 +311,6 @@ function Lesson({
               borderColor = "#22c55e"; bg = "#f0fdf4"; textColor = "#15803d";
             } else if (isSelected && answerState === "wrong") {
               borderColor = "#ef4444"; bg = "#fef2f2"; textColor = "#b91c1c";
-            } else if (answerState !== "idle" && isCorrect) {
-              borderColor = "#22c55e"; bg = "#f0fdf4"; textColor = "#15803d";
             }
             return (
               <motion.button

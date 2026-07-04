@@ -31,9 +31,20 @@ const CASEY_CAN: Record<string, { symbol: string; bg: string }> = {
   "casey-can-subtract": { symbol: "−", bg: "#BBDEFB" }, // sky blue
   "casey-can-multiply": { symbol: "×", bg: "#F8BBD0" }, // pink
   "casey-can-divide": { symbol: "÷", bg: "#E1BEE7" }, // lavender
-  "casey-can-spell": { symbol: "ABC", bg: "#FFF9C4" }, // butter yellow
+  "casey-can-spell": { symbol: "A-B-C", bg: "#FFF9C4" }, // butter yellow
   "casey-can-roman-numeral": { symbol: "MCXVI", bg: "#D1C4E9" }, // violet
   "casey-can-pay": { symbol: "$", bg: "#B2DFDB" }, // seafoam
+};
+
+// ── Puzzle thumbnails: real game screenshots framed on pastel banners ───────
+const PUZZLE_THUMB: Record<string, { bg: string }> = {
+  "sliding-puzzle": { bg: "#BBDEFB" }, // sky blue
+  "spot-the-difference": { bg: "#FFE0B2" }, // peach
+  mastermind: { bg: "#E1BEE7" }, // lavender
+  "match-game": { bg: "#C8E6C9" }, // mint green
+  "foxy-word-scramble": { bg: "#FFF9C4" }, // butter yellow
+  checkers: { bg: "#F8BBD0" }, // pink
+  chess: { bg: "#B2DFDB" }, // seafoam
 };
 
 // ── Scrollable row with Netflix-style fade + arrow indicators ──────────────
@@ -79,6 +90,7 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
       >
         {games.map((game) => {
           const casey = CASEY_CAN[game.slug];
+          const puzzle = PUZZLE_THUMB[game.slug];
           return (
           <Link
             key={game.slug}
@@ -96,12 +108,20 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
             <div
               className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
               style={{
-                background: casey ? casey.bg : game.accent + "33",
+                background: casey ? casey.bg : puzzle ? puzzle.bg : game.accent + "33",
                 height: "6rem",
-                padding: game.slug === "fly-the-flag" ? 0 : "0 0.75rem",
+                padding: game.slug === "fly-the-flag" || puzzle ? 0 : "0 0.75rem",
               }}
             >
-              {casey ? (
+              {puzzle ? (
+                <div className="h-full w-full p-2">
+                  <img
+                    src={game.image}
+                    alt={game.title}
+                    className="h-full w-full rounded-xl border-2 border-ink object-cover"
+                  />
+                </div>
+              ) : casey ? (
                 <div className="flex h-full w-full items-center justify-center gap-1">
                   {/* The symbol Casey is pointing at */}
                   <span
