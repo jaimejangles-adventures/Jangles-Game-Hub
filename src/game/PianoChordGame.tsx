@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, type CSSProperties } from "react";
 import { isSupabaseConfigured, supabase, type ProgressionRow, type SavedChord } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
@@ -283,6 +283,73 @@ export function PianoChordGame() {
     setInstrument(inst); trigger(selected.root, selected.chordKey, position, inst);
   }, [selected, position, trigger]);
 
+  // ── Progression builder ──
+  const stopProgression = useCallback(() => {
+    if (playTimer.current) clearTimeout(playTimer.current);
+    playTimer.current = null;
+    setPlayIdx(-1);
+  }, []);
+
+  useEffect(() => () => { if (playTimer.current) clearTimeout(playTimer.current); }, []);
+
+  const playProgression = useCallback(() => {
+    if (!progression.length) return;
+    stopProgression();
+    const playAt = (i: number) => {
+      const c = progression[i];
+      setPlayIdx(i);
+      trigger(c.root, c.chordKey, c.position, instrument);
+      playTimer.current = setTimeout(() => {
+        if (i + 1 < progression.length) playAt(i + 1);
+        else { setPlayIdx(-1); playTimer.current = null; }
+      }, CHORD_STEP_MS);
+    };
+    playAt(0);
+  }, [progression, instrument, trigger, stopProgression]);
+
+  const addChord = () => {
+    if (progression.length >= MAX_CHORDS) return;
+    setProgression(prev => [...prev, { root: selected.root, chordKey: selected.chordKey, position }]);
+  };
+  const removeChord = (idx: number) => {
+    stopProgression();
+    setProgression(prev => prev.filter((_, i) => i !== idx));
+  };
+  const clearProgression = () => { stopProgression(); setProgression([]); };
+
+  const handleSaveClick = () => {
+    if (!user) { openAuthModal("sign-in"); return; }
+    setSaveOpen(true);
+  };
+
+  const saveProgression = async (title: string) => {
+    if (!user) return false;
+    const { error } = await supabase.from("chord_progressions").insert({
+      user_id: user.id,
+      title,
+      instrument,
+      chords: progression,
+    });
+    if (!error) {
+      setSaveOpen(false);
+      setSaveNotice("Saved! 🎉");
+      setTimeout(() => setSaveNotice(""), 3000);
+    }
+    return !error;
+  };
+
+  const loadProgression = (p: ProgressionRow) => {
+    stopProgression();
+    const chords = (p.chords ?? [])
+      .filter(c => typeof c?.root === "number" && c.root >= 0 && c.root < 12
+        && CHORD_TYPES.some(ct => ct.key === c.chordKey))
+      .slice(0, MAX_CHORDS)
+      .map(c => ({ root: c.root, chordKey: c.chordKey, position: c.position >= 0 && c.position < 3 ? c.position : 0 }));
+    setProgression(chords);
+    if (INSTRUMENTS.some(i => i.key === p.instrument)) setInstrument(p.instrument as Instrument);
+    setSongsOpen(false);
+  };
+
   const activeChord = CHORD_TYPES.find(c=>c.key===selected.chordKey)!;
   const currentNotes = getInversions(48+selected.root, activeChord.intervals)[position];
   const noteNames = currentNotes.map(m=>NOTE_NAMES[((m%12)+12)%12]);
@@ -453,6 +520,110 @@ export function PianoChordGame() {
         </div>
       </div>
 
+      {/* ── My Progression ── */}
+      <div style={{
+        position:"relative", zIndex:1,
+        background:"rgba(255,255,255,0.05)",
+        backdropFilter:"blur(12px)",
+        borderTop:"1.5px solid rgba(255,255,255,0.1)",
+        padding:"8px 16px",
+        display:"flex", alignItems:"center", gap:8, flexWrap:"wrap",
+      }}>
+        <span style={{fontSize:"0.6rem", fontWeight:800, letterSpacing:"0.15em", textTransform:"uppercase", opacity:0.45}}>
+          My Progression
+        </span>
+        <button onClick={addChord} disabled={progression.length >= MAX_CHORDS} style={{
+          padding:"5px 14px", borderRadius:999, border:"none", cursor:"pointer",
+          fontFamily:"inherit", fontWeight:800, fontSize:"0.72rem",
+          background:`linear-gradient(160deg, ${activeChord.color}ff, ${activeChord.color}cc)`,
+          color:"#1a0033",
+          boxShadow:`0 3px 0 ${activeChord.shadow}`,
+          opacity: progression.length >= MAX_CHORDS ? 0.4 : 1,
+        }}>
+          ＋ Add {chordName}
+        </button>
+
+        {/* Chord chips */}
+        <div style={{display:"flex", gap:5, alignItems:"center", flexWrap:"wrap", flex:1, minWidth:0}}>
+          {progression.length === 0 && (
+            <span style={{fontSize:"0.65rem", opacity:0.35, fontStyle:"italic"}}>
+              Tap chords above, then press ＋ Add to build a progression (up to {MAX_CHORDS})
+            </span>
+          )}
+          {progression.map((c, i) => {
+            const ct = CHORD_TYPES.find(x => x.key === c.chordKey)!;
+            const isPlaying = playIdx === i;
+            return (
+              <span key={i} style={{
+                display:"inline-flex", alignItems:"center", gap:4,
+                padding:"3px 6px 3px 10px", borderRadius:999,
+                background: isPlaying ? ct.color : `${ct.color}33`,
+                border:`1.5px solid ${ct.color}${isPlaying ? "" : "88"}`,
+                color: isPlaying ? "#1a0033" : ct.color,
+                fontWeight:800, fontSize:"0.68rem",
+                boxShadow: isPlaying ? `0 0 14px ${ct.color}cc` : "none",
+                transition:"all 0.12s", userSelect:"none",
+              }}>
+                {NOTE_NAMES[c.root]}{ct.label}{c.position > 0 ? <sup style={{fontSize:"0.5rem"}}>{c.position === 1 ? "1st" : "2nd"}</sup> : null}
+                <button onClick={() => removeChord(i)} title="Remove chord" style={{
+                  border:"none", background:"transparent", cursor:"pointer",
+                  color:"inherit", fontSize:"0.6rem", fontWeight:900, padding:"0 2px",
+                  opacity:0.7, fontFamily:"inherit",
+                }}>✕</button>
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Playback + save controls */}
+        <div style={{display:"flex", gap:6, alignItems:"center"}}>
+          {saveNotice && <span style={{fontSize:"0.7rem", fontWeight:800, color:"#55EFC4"}}>{saveNotice}</span>}
+          {progression.length > 0 && (
+            <>
+              <button onClick={playIdx >= 0 ? stopProgression : playProgression} style={{
+                padding:"5px 16px", borderRadius:999, border:"none", cursor:"pointer",
+                fontFamily:"inherit", fontWeight:900, fontSize:"0.72rem",
+                background: playIdx >= 0 ? "#FF7675" : "#55EFC4",
+                color:"#1a0033",
+                boxShadow: playIdx >= 0 ? "0 3px 0 #C42020" : "0 3px 0 #00A87A",
+              }}>
+                {playIdx >= 0 ? "⏹ Stop" : "▶ Play"}
+              </button>
+              <button onClick={clearProgression} style={{
+                padding:"5px 12px", borderRadius:999, cursor:"pointer",
+                fontFamily:"inherit", fontWeight:800, fontSize:"0.72rem",
+                background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.5)",
+                border:"1.5px solid rgba(255,255,255,0.15)",
+              }}>
+                Clear
+              </button>
+            </>
+          )}
+          {isSupabaseConfigured && (
+            <>
+              {progression.length > 0 && (
+                <button onClick={handleSaveClick} style={{
+                  padding:"5px 14px", borderRadius:999, cursor:"pointer",
+                  fontFamily:"inherit", fontWeight:800, fontSize:"0.72rem",
+                  background:"rgba(85,239,196,0.2)", color:"#55EFC4",
+                  border:"1.5px solid rgba(85,239,196,0.5)",
+                }}>
+                  💾 Save
+                </button>
+              )}
+              <button onClick={() => setSongsOpen(true)} style={{
+                padding:"5px 14px", borderRadius:999, cursor:"pointer",
+                fontFamily:"inherit", fontWeight:800, fontSize:"0.72rem",
+                background:"rgba(72,219,251,0.15)", color:"#48DBFB",
+                border:"1.5px solid rgba(72,219,251,0.5)",
+              }}>
+                🎵 Songs
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* ── Bottom panel ── */}
       <div style={{
         position:"relative", zIndex:1,
@@ -537,6 +708,185 @@ export function PianoChordGame() {
               {POSITION_DESC[position]}
             </div>
           </div>
+        </div>
+      </div>
+
+      {saveOpen && <SaveProgressionModal onSave={saveProgression} onClose={() => setSaveOpen(false)} />}
+      {songsOpen && <ProgressionsModal userId={user?.id ?? null} onLoad={loadProgression} onClose={() => setSongsOpen(false)} />}
+    </div>
+  );
+}
+
+// ─── Save progression modal ───────────────────────────────────────────────────
+
+const modalOverlay: CSSProperties = {
+  position:"fixed", inset:0, zIndex:50, display:"flex", alignItems:"center",
+  justifyContent:"center", padding:16, background:"rgba(0,0,0,0.7)",
+};
+const modalCard: CSSProperties = {
+  background:"#1a0a3e", border:"1.5px solid rgba(255,255,255,0.15)",
+  borderRadius:20, padding:20, width:"100%", boxShadow:"0 16px 64px rgba(0,0,0,0.8)",
+  fontFamily:"'Nunito','Segoe UI',sans-serif", color:"white",
+};
+
+function SaveProgressionModal({ onSave, onClose }: { onSave: (title: string) => Promise<boolean>; onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    const t = title.trim();
+    if (!t || saving) return;
+    setSaving(true);
+    setError("");
+    const ok = await onSave(t);
+    setSaving(false);
+    if (!ok) setError("Couldn't save — please try again.");
+  };
+
+  return (
+    <div style={modalOverlay} onClick={onClose}>
+      <div style={{...modalCard, maxWidth:380}} onClick={e => e.stopPropagation()}>
+        <div style={{fontSize:"1.1rem", fontWeight:900, marginBottom:12}}>💾 Save your progression</div>
+        <input
+          autoFocus value={title} maxLength={60}
+          onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          placeholder="Name your progression…"
+          style={{
+            width:"100%", boxSizing:"border-box", borderRadius:999, padding:"8px 14px",
+            fontSize:"0.85rem", fontFamily:"inherit", fontWeight:700, marginBottom:12,
+            background:"rgba(255,255,255,0.08)", color:"white",
+            border:"1.5px solid rgba(255,255,255,0.2)", outline:"none",
+          }}
+        />
+        {error && <div style={{fontSize:"0.7rem", color:"#FF7675", marginBottom:8}}>{error}</div>}
+        <div style={{display:"flex", justifyContent:"flex-end", gap:8}}>
+          <button onClick={onClose} style={{
+            padding:"6px 14px", borderRadius:999, cursor:"pointer", fontFamily:"inherit",
+            fontWeight:800, fontSize:"0.72rem", background:"rgba(255,255,255,0.08)",
+            color:"rgba(255,255,255,0.55)", border:"1.5px solid rgba(255,255,255,0.15)",
+          }}>
+            Cancel
+          </button>
+          <button onClick={submit} disabled={!title.trim() || saving} style={{
+            padding:"6px 18px", borderRadius:999, border:"none", cursor:"pointer",
+            fontFamily:"inherit", fontWeight:900, fontSize:"0.72rem",
+            background:"#55EFC4", color:"#1a0033", boxShadow:"0 3px 0 #00A87A",
+            opacity: !title.trim() || saving ? 0.5 : 1,
+          }}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Progressions modal (Mine + Jukebox) ──────────────────────────────────────
+
+function ProgressionsModal({ userId, onLoad, onClose }: { userId: string | null; onLoad: (p: ProgressionRow) => void; onClose: () => void }) {
+  const [tab, setTab] = useState<"mine" | "jukebox">(userId ? "mine" : "jukebox");
+  const [items, setItems] = useState<ProgressionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      let query = supabase
+        .from("chord_progressions")
+        .select("id, user_id, title, instrument, chords, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (tab === "mine" && userId) query = query.eq("user_id", userId);
+      const { data } = await query;
+      const list: ProgressionRow[] = data ?? [];
+
+      if (list.length && tab === "jukebox") {
+        const userIds = [...new Set(list.map(p => p.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, country_code")
+          .in("id", userIds);
+        const profileMap: Record<string, { username: string; country_code: string }> = {};
+        for (const p of profiles ?? []) profileMap[p.id] = p;
+        for (const item of list) {
+          item.username = profileMap[item.user_id]?.username ?? "Musician";
+          item.country_code = profileMap[item.user_id]?.country_code ?? "";
+        }
+      }
+      if (!cancelled) { setItems(list); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [tab, userId]);
+
+  const deleteItem = async (id: string) => {
+    if (!window.confirm("Delete this progression forever?")) return;
+    const { error } = await supabase.from("chord_progressions").delete().eq("id", id);
+    if (!error) setItems(prev => prev.filter(p => p.id !== id));
+  };
+
+  const tabBtn = (active: boolean, color: string): CSSProperties => ({
+    padding:"6px 14px", borderRadius:999, border:"none", cursor:"pointer",
+    fontFamily:"inherit", fontWeight:900, fontSize:"0.72rem",
+    background: active ? color : "rgba(255,255,255,0.08)",
+    color: active ? "#1a0033" : "rgba(255,255,255,0.5)",
+  });
+
+  return (
+    <div style={modalOverlay} onClick={onClose}>
+      <div style={{...modalCard, maxWidth:440, maxHeight:"80vh", display:"flex", flexDirection:"column"}} onClick={e => e.stopPropagation()}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12}}>
+          <div style={{display:"flex", gap:6}}>
+            {userId && <button onClick={() => setTab("mine")} style={tabBtn(tab==="mine", "#C77DFF")}>🎵 My Songs</button>}
+            <button onClick={() => setTab("jukebox")} style={tabBtn(tab==="jukebox", "#48DBFB")}>📻 Jukebox</button>
+          </div>
+          <button onClick={onClose} style={{
+            width:28, height:28, borderRadius:999, border:"none", cursor:"pointer",
+            background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.5)", fontSize:"0.8rem",
+          }}>✕</button>
+        </div>
+
+        <div style={{overflowY:"auto", flex:1, display:"flex", flexDirection:"column", gap:6}}>
+          {loading && <div style={{fontSize:"0.75rem", opacity:0.4, textAlign:"center", padding:"24px 0"}}>Loading…</div>}
+          {!loading && items.length === 0 && (
+            <div style={{fontSize:"0.75rem", opacity:0.4, textAlign:"center", padding:"24px 0"}}>
+              {tab === "mine" ? "No progressions yet — build one and hit 💾 Save!" : "The jukebox is empty — be the first to share!"}
+            </div>
+          )}
+          {items.map(p => {
+            const preview = (p.chords ?? []).slice(0, 6)
+              .map(c => `${NOTE_NAMES[c.root] ?? "?"}${CHORD_TYPES.find(ct => ct.key === c.chordKey)?.label ?? ""}`)
+              .join(" · ");
+            return (
+              <div key={p.id} style={{
+                display:"flex", alignItems:"center", gap:8, borderRadius:16, padding:"8px 12px",
+                background:"rgba(255,255,255,0.06)", border:"1.5px solid rgba(255,255,255,0.1)",
+              }}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:"0.85rem", fontWeight:800, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.title}</div>
+                  <div style={{fontSize:"0.62rem", opacity:0.45, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                    {tab === "jukebox" && p.username ? `by ${p.username} · ` : ""}{(p.chords ?? []).length} chords · {preview}{(p.chords ?? []).length > 6 ? " …" : ""}
+                  </div>
+                </div>
+                <button onClick={() => onLoad(p)} style={{
+                  padding:"5px 14px", borderRadius:999, border:"none", cursor:"pointer",
+                  fontFamily:"inherit", fontWeight:900, fontSize:"0.68rem",
+                  background:"#C77DFF", color:"#1a0033", boxShadow:"0 3px 0 #8B3FD9", flexShrink:0,
+                }}>
+                  Load
+                </button>
+                {userId === p.user_id && (
+                  <button onClick={() => deleteItem(p.id)} title="Delete progression" style={{
+                    width:26, height:26, borderRadius:999, cursor:"pointer", flexShrink:0,
+                    background:"rgba(255,118,117,0.15)", color:"#FF7675",
+                    border:"1.5px solid rgba(255,118,117,0.4)", fontSize:"0.7rem",
+                  }}>🗑</button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
