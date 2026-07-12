@@ -1,4 +1,6 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { isSupabaseConfigured, supabase, type ProgressionRow, type SavedChord } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -233,12 +235,23 @@ function PianoKeys({ midiNotes, color }: { midiNotes: number[]; color: string })
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const MAX_CHORDS = 16;
+const CHORD_STEP_MS = 1000;
+
 export function PianoChordGame() {
   const ctxRef = useRef<AudioContext|null>(null);
   const [selected, setSelected] = useState({root:0, chordKey:"major"});
   const [position, setPosition] = useState(0);
   const [instrument, setInstrument] = useState<Instrument>("piano");
   const [guitarLoading, setGuitarLoading] = useState(false);
+  const [progression, setProgression] = useState<SavedChord[]>([]);
+  const [playIdx, setPlayIdx] = useState(-1);
+  const playTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
+
+  const { user, openAuthModal } = useAuth();
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [songsOpen, setSongsOpen] = useState(false);
+  const [saveNotice, setSaveNotice] = useState("");
 
   function getCtx() {
     if(!ctxRef.current||ctxRef.current.state==="closed") ctxRef.current=new AudioContext();

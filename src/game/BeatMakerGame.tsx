@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { isSupabaseConfigured, supabase, type SavedSongTrack, type SongRow } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 // ─── Note frequencies ─────────────────────────────────────────────────────────
 const NF: Record<string, number> = {
@@ -491,10 +493,40 @@ const SECTIONS: Section[] = [
   { id:"fx",     label:"EFFECTS",    emoji:"✨", color:"#ec4899" },
 ];
 
-interface TrackRow { id: string; sectionId: string; instrumentId: string; steps: boolean[]; muted: boolean; solo: boolean; volume: number; }
+// ─── Patterns (A–D) & song arrangement ───────────────────────────────────────
+const PATTERN_COUNT = 4;
+const PATTERN_META = [
+  { label: "A", color: "#a855f7" },
+  { label: "B", color: "#06b6d4" },
+  { label: "C", color: "#f97316" },
+  { label: "D", color: "#22c55e" },
+];
+const SONG_LENGTHS = [8, 16, 24, 32] as const;
+const MAX_BARS = 32;
+type PlayMode = "pattern" | "song";
+
+// steps is indexed [pattern][step]: 4 patterns × 16 steps
+interface TrackRow { id: string; sectionId: string; instrumentId: string; steps: boolean[][]; muted: boolean; solo: boolean; volume: number; }
 let _rowId = 0;
+function emptyPatterns(): boolean[][] {
+  return Array.from({ length: PATTERN_COUNT }, () => Array(16).fill(false));
+}
 function mkRow(sectionId: string, instrumentId: string, steps?: boolean[]): TrackRow {
-  return { id:`row_${_rowId++}`, sectionId, instrumentId, steps: steps ?? Array(16).fill(false), muted: false, solo: false, volume: 1 };
+  const patterns = emptyPatterns();
+  if (steps) patterns[0] = [...steps];
+  return { id:`row_${_rowId++}`, sectionId, instrumentId, steps: patterns, muted: false, solo: false, volume: 1 };
+}
+// Coerce saved JSON back into a valid 4×16 grid, whatever shape it arrives in
+function normalizeSteps(saved: unknown): boolean[][] {
+  const patterns = emptyPatterns();
+  if (Array.isArray(saved)) {
+    for (let p = 0; p < PATTERN_COUNT; p++) {
+      const pat = saved[p];
+      if (!Array.isArray(pat)) continue;
+      for (let s = 0; s < 16; s++) patterns[p][s] = !!pat[s];
+    }
+  }
+  return patterns;
 }
 
 const B = (n: number[]) => Array(16).fill(false).map((_,i) => n.includes(i));
@@ -532,7 +564,7 @@ const STEPS = 16;
 const LOOKAHEAD = 0.12;
 const SCHED_MS = 25;
 function stepDur(bpm: number) { return (60 / bpm) / 4; }
-interface EngineState { ctx: AudioContext; masterGain: GainNode; nextStepTime: number; currentStep: number; bpm: number; }
+interface EngineState { ctx: AudioContext; masterGain: GainNode; nextStepTime: number; currentStep: number; currentBar: number; bpm: number; }
 
 // ─── Quick patterns ───────────────────────────────────────────────────────────
 const QUICK_PATTERNS: Record<string, {label:string; pattern:number[]}[]> = {
@@ -594,16 +626,34 @@ export function BeatMakerGame() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     perc: true, fx: true,
   });
+  const [editPattern, setEditPattern] = useState(0);
+  const [playMode, setPlayMode] = useState<PlayMode>("pattern");
+  const [songLen, setSongLen] = useState<number>(8);
+  const [arrangement, setArrangement] = useState<number[]>(Array(MAX_BARS).fill(0));
+  const [currentBar, setCurrentBar] = useState(0);
+
+  const { user, openAuthModal } = useAuth();
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [songsOpen, setSongsOpen] = useState(false);
+  const [saveNotice, setSaveNotice] = useState("");
 
   const engineRef = useRef<EngineState | null>(null);
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const rowsRef   = useRef(rows);
   const volRef    = useRef(volume);
   const bpmRef    = useRef(bpm);
+  const editPatternRef = useRef(editPattern);
+  const playModeRef    = useRef(playMode);
+  const songLenRef     = useRef(songLen);
+  const arrangementRef = useRef(arrangement);
 
   useEffect(() => { rowsRef.current = rows; }, [rows]);
   useEffect(() => { volRef.current = volume; if (engineRef.current) engineRef.current.masterGain.gain.setTargetAtTime(volume, engineRef.current.ctx.currentTime, 0.01); }, [volume]);
   useEffect(() => { bpmRef.current = bpm; if (engineRef.current) engineRef.current.bpm = bpm; }, [bpm]);
+  useEffect(() => { editPatternRef.current = editPattern; }, [editPattern]);
+  useEffect(() => { playModeRef.current = playMode; }, [playMode]);
+  useEffect(() => { songLenRef.current = songLen; }, [songLen]);
+  useEffect(() => { arrangementRef.current = arrangement; }, [arrangement]);
 
   const startEngine = useCallback(() => {
     if (engineRef.current) return;
@@ -611,7 +661,7 @@ export function BeatMakerGame() {
     const masterGain = ctx.createGain();
     masterGain.gain.setValueAtTime(volRef.current, ctx.currentTime);
     masterGain.connect(ctx.destination);
-    engineRef.current = { ctx, masterGain, nextStepTime: ctx.currentTime + 0.05, currentStep: 0, bpm: bpmRef.current };
+    engineRef.current = { ctx, masterGain, nextStepTime: ctx.currentTime + 0.05, currentStep: 0, currentBar: 0, bpm: bpmRef.current };
   }, []);
 
   useEffect(() => {
@@ -622,9 +672,12 @@ export function BeatMakerGame() {
       const sd = stepDur(eng.bpm);
       while (eng.nextStepTime < eng.ctx.currentTime + LOOKAHEAD) {
         const step = eng.currentStep;
+        const patIdx = playModeRef.current === "song"
+          ? (arrangementRef.current[eng.currentBar] ?? 0)
+          : editPatternRef.current;
         const anySolo = rowsRef.current.some(r => r.solo);
         rowsRef.current.forEach(row => {
-          if (row.muted || !row.steps[step]) return;
+          if (row.muted || !row.steps[patIdx]?.[step]) return;
           if (anySolo && !row.solo) return;
           const instr = CATALOGS[row.sectionId]?.find(i => i.id === row.instrumentId);
           // Per-track gain: insert a transient GainNode so PlayFns need no changes
@@ -635,28 +688,48 @@ export function BeatMakerGame() {
         });
         setCurrentStep(step);
         eng.currentStep = (step + 1) % STEPS;
+        if (eng.currentStep === 0 && playModeRef.current === "song") {
+          eng.currentBar = (eng.currentBar + 1) % songLenRef.current;
+          setCurrentBar(eng.currentBar);
+        }
         eng.nextStepTime += sd;
       }
     }, SCHED_MS);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isRunning, startEngine]);
 
+  const startPlayback = (mode: PlayMode) => {
+    startEngine();
+    const eng = engineRef.current!;
+    eng.nextStepTime = eng.ctx.currentTime + 0.05;
+    eng.currentStep = 0;
+    eng.currentBar = 0;
+    setCurrentBar(0);
+    setPlayMode(mode);
+    setIsRunning(true);
+  };
+  const stopPlayback = () => {
+    setIsRunning(false);
+    setCurrentStep(-1);
+    setCurrentBar(0);
+  };
   const handlePlayStop = () => {
-    if (!isRunning) {
-      startEngine();
-      const eng = engineRef.current!;
-      eng.nextStepTime = eng.ctx.currentTime + 0.05;
-      eng.currentStep = 0;
-    } else { setCurrentStep(-1); }
-    setIsRunning(r => !r);
+    if (isRunning) stopPlayback();
+    else startPlayback("pattern");
+  };
+  const handleSongPlayStop = () => {
+    if (isRunning && playMode === "song") stopPlayback();
+    else startPlayback("song");
   };
 
-  const toggleStep     = (id: string, s: number) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: r.steps.map((v,i) => i===s ? !v : v) }));
+  const editSteps = (steps: boolean[][], fn: (pat: boolean[]) => boolean[]) =>
+    steps.map((pat, p) => p === editPattern ? fn(pat) : pat);
+  const toggleStep     = (id: string, s: number) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: editSteps(r.steps, pat => pat.map((v,i) => i===s ? !v : v)) }));
   const setInstrument  = (id: string, iid: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, instrumentId: iid }));
   const toggleMute     = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, muted: !r.muted }));
   const toggleSolo     = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, solo: !r.solo }));
   const setRowVolume   = (id: string, v: number) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, volume: v }));
-  const clearRow       = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: Array(16).fill(false) }));
+  const clearRow       = (id: string) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: editSteps(r.steps, () => Array(16).fill(false)) }));
   const previewInstrument = useCallback((sectionId: string, instrumentId: string) => {
     if (!engineRef.current) startEngine();
     const eng = engineRef.current!;
@@ -677,7 +750,7 @@ export function BeatMakerGame() {
     }
   }, [startEngine]);
   const removeRow      = (id: string) => setRows(prev => prev.filter(r => r.id !== id));
-  const fillRow        = (id: string, p: number[]) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: p.map(Boolean) }));
+  const fillRow        = (id: string, p: number[]) => setRows(prev => prev.map(r => r.id !== id ? r : { ...r, steps: editSteps(r.steps, () => p.map(Boolean)) }));
   const addRow         = (sectionId: string) => {
     const first = CATALOGS[sectionId]?.[0]?.id ?? "";
     setRows(prev => {
@@ -685,9 +758,70 @@ export function BeatMakerGame() {
       const next = [...prev]; next.splice(lastIdx+1, 0, mkRow(sectionId, first)); return next;
     });
   };
-  const clearAll = () => setRows(prev => prev.map(r => ({ ...r, steps: Array(16).fill(false) })));
+  const clearAll = () => setRows(prev => prev.map(r => ({ ...r, steps: editSteps(r.steps, () => Array(16).fill(false)) })));
+
+  const copyPatternTo = (target: number) => {
+    if (target === editPattern) return;
+    setRows(prev => prev.map(r => ({ ...r, steps: r.steps.map((pat, p) => p === target ? [...r.steps[editPattern]] : pat) })));
+  };
+  const cycleBar = (bar: number) => setArrangement(prev => prev.map((p, i) => i === bar ? (p + 1) % PATTERN_COUNT : p));
+
+  const loadSong = (s: SongRow) => {
+    stopPlayback();
+    const loaded = (s.rows ?? []).map(t => ({
+      id: `row_${_rowId++}`,
+      sectionId: t.sectionId,
+      instrumentId: t.instrumentId,
+      steps: normalizeSteps(t.steps),
+      muted: !!t.muted,
+      solo: false,
+      volume: typeof t.volume === "number" ? t.volume : 1,
+    }));
+    if (loaded.length) setRows(loaded);
+    setBpm(s.bpm >= 60 && s.bpm <= 200 ? s.bpm : 120);
+    setSongLen(SONG_LENGTHS.includes(s.song_len as typeof SONG_LENGTHS[number]) ? s.song_len : 8);
+    setArrangement(Array.from({ length: MAX_BARS }, (_, i) => {
+      const p = s.arrangement?.[i];
+      return typeof p === "number" && p >= 0 && p < PATTERN_COUNT ? p : 0;
+    }));
+    setEditPattern(0);
+    setSongsOpen(false);
+  };
+
+  const handleSaveClick = () => {
+    if (!user) { openAuthModal("sign-in"); return; }
+    setSaveOpen(true);
+  };
+
+  const saveSong = async (title: string) => {
+    if (!user) return false;
+    const payload: SavedSongTrack[] = rows.map(r => ({
+      sectionId: r.sectionId,
+      instrumentId: r.instrumentId,
+      steps: r.steps,
+      muted: r.muted,
+      volume: r.volume,
+    }));
+    const { error } = await supabase.from("songs").insert({
+      user_id: user.id,
+      title,
+      bpm,
+      song_len: songLen,
+      arrangement: arrangement.slice(0, songLen),
+      rows: payload,
+    });
+    if (!error) {
+      setSaveOpen(false);
+      setSaveNotice("Song saved! 🎉");
+      setTimeout(() => setSaveNotice(""), 3000);
+    }
+    return !error;
+  };
 
   const sectionRows = (id: string) => rows.filter(r => r.sectionId === id);
+
+  const soundingPattern = playMode === "song" ? (arrangement[currentBar] ?? 0) : editPattern;
+  const gridPlaying = isRunning && soundingPattern === editPattern;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center py-5 px-3"
@@ -716,11 +850,111 @@ export function BeatMakerGame() {
             style={{ background:"rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.55)", border:"1px solid rgba(255,255,255,0.12)" }}>
             Clear All
           </button>
+          {isSupabaseConfigured && (
+            <>
+              <button onClick={handleSaveClick} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                style={{ background:"rgba(34,197,94,0.15)", color:"#4ade80", border:"1px solid rgba(34,197,94,0.4)" }}>
+                💾 Save
+              </button>
+              <button onClick={() => setSongsOpen(true)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                style={{ background:"rgba(6,182,212,0.15)", color:"#22d3ee", border:"1px solid rgba(6,182,212,0.4)" }}>
+                🎵 Songs
+              </button>
+            </>
+          )}
           <button onClick={handlePlayStop} className="px-5 py-2 rounded-xl text-sm font-black"
             style={{ background:isRunning?"#ef4444":"#a855f7", color:"#fff", minWidth:80, boxShadow:isRunning?"0 0 20px #ef444488":"0 0 20px #a855f788", border:`2px solid ${isRunning?"#ef4444":"#a855f7"}` }}>
             {isRunning ? "⏹ Stop" : "▶ Play"}
           </button>
+          {saveNotice && (
+            <span className="text-xs font-bold" style={{ color:"#4ade80" }}>{saveNotice}</span>
+          )}
         </div>
+      </div>
+
+      {/* Song Builder */}
+      <div className="w-full max-w-5xl mb-5 rounded-2xl p-3"
+        style={{ border:"1px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.03)" }}>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-black tracking-widest" style={{ color:"rgba(255,255,255,0.6)" }}>🎼 SONG BUILDER</span>
+            {/* Pattern selector */}
+            <div className="flex items-center gap-1">
+              {PATTERN_META.map((p, idx) => (
+                <button key={p.label} onClick={() => setEditPattern(idx)}
+                  className="w-7 h-7 rounded-lg text-xs font-black"
+                  title={`Edit pattern ${p.label}`}
+                  style={{
+                    background: editPattern === idx ? p.color : `${p.color}22`,
+                    color: editPattern === idx ? "#fff" : p.color,
+                    border: `1.5px solid ${editPattern === idx ? p.color : `${p.color}55`}`,
+                    boxShadow: editPattern === idx ? `0 0 10px ${p.color}88` : "none",
+                  }}>
+                  {p.label}
+                </button>
+              ))}
+              <select value="" onChange={e => { if (e.target.value !== "") copyPatternTo(+e.target.value); }}
+                title={`Copy pattern ${PATTERN_META[editPattern].label} to another pattern`}
+                className="rounded-lg px-1.5 py-1 text-[10px] font-bold"
+                style={{ background:"rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.55)", border:"1px solid rgba(255,255,255,0.12)", outline:"none", cursor:"pointer" }}>
+                <option value="">Copy {PATTERN_META[editPattern].label} to…</option>
+                {PATTERN_META.map((p, idx) => idx !== editPattern && (
+                  <option key={p.label} value={idx}>Pattern {p.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Song length */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.45)" }}>BARS</span>
+              {SONG_LENGTHS.map(len => (
+                <button key={len} onClick={() => setSongLen(len)}
+                  className="px-2 py-1 rounded-lg text-[11px] font-bold"
+                  style={{
+                    background: songLen === len ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.05)",
+                    color: songLen === len ? "#fff" : "rgba(255,255,255,0.4)",
+                    border: `1px solid ${songLen === len ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  }}>
+                  {len}
+                </button>
+              ))}
+            </div>
+            <button onClick={handleSongPlayStop} className="px-4 py-1.5 rounded-xl text-xs font-black"
+              style={{
+                background: isRunning && playMode === "song" ? "#ef4444" : "#22c55e",
+                color:"#fff", minWidth:100,
+                boxShadow: isRunning && playMode === "song" ? "0 0 16px #ef444488" : "0 0 16px #22c55e88",
+                border: `2px solid ${isRunning && playMode === "song" ? "#ef4444" : "#22c55e"}`,
+              }}>
+              {isRunning && playMode === "song" ? "⏹ Stop Song" : "▶ Play Song"}
+            </button>
+          </div>
+        </div>
+        {/* Bar timeline — click a bar to cycle its pattern A→B→C→D */}
+        <div className="grid gap-1" style={{ gridTemplateColumns:"repeat(8, minmax(0, 1fr))" }}>
+          {Array.from({ length: songLen }, (_, bar) => {
+            const p = arrangement[bar] ?? 0;
+            const meta = PATTERN_META[p];
+            const isCurrent = isRunning && playMode === "song" && currentBar === bar;
+            return (
+              <button key={bar} onClick={() => cycleBar(bar)}
+                className="rounded-md py-1.5 flex flex-col items-center select-none transition-all"
+                title={`Bar ${bar + 1}: pattern ${meta.label} (click to change)`}
+                style={{
+                  background: `${meta.color}${isCurrent ? "66" : "22"}`,
+                  border: `1.5px solid ${isCurrent ? "#fff" : `${meta.color}66`}`,
+                  boxShadow: isCurrent ? "0 0 10px rgba(255,255,255,0.5)" : "none",
+                }}>
+                <span className="text-xs font-black leading-none" style={{ color: meta.color }}>{meta.label}</span>
+                <span className="text-[8px] leading-none mt-0.5" style={{ color:"rgba(255,255,255,0.35)" }}>{bar + 1}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[10px]" style={{ color:"rgba(255,255,255,0.25)" }}>
+          Click a bar to change which pattern plays there · The grid below edits pattern {PATTERN_META[editPattern].label}
+        </p>
       </div>
 
       {/* Sections */}
@@ -758,8 +992,8 @@ export function BeatMakerGame() {
                     {Array.from({length:16},(_,i)=>i).map(i => (
                       <div key={i} className="flex-1 text-center text-[9px] font-bold select-none"
                         style={{
-                          color: isRunning && currentStep===i ? "#fff" : (i+1)%4===1 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)",
-                          textShadow: isRunning && currentStep===i ? "0 0 8px #fff" : "none",
+                          color: gridPlaying && currentStep===i ? "#fff" : (i+1)%4===1 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)",
+                          textShadow: gridPlaying && currentStep===i ? "0 0 8px #fff" : "none",
                         }}>
                         {i+1}
                       </div>
@@ -770,8 +1004,9 @@ export function BeatMakerGame() {
                   <div className="flex flex-col gap-1.5">
                     {secRows.map(row => (
                       <TrackRowView key={row.id} row={row}
+                        steps={row.steps[editPattern] ?? []}
                         catalog={CATALOGS[section.id] ?? []}
-                        currentStep={currentStep} isRunning={isRunning}
+                        currentStep={currentStep} isRunning={gridPlaying}
                         sectionColor={section.color} sectionId={section.id}
                         onToggleStep={toggleStep} onSetInstrument={setInstrument}
                         onToggleMute={toggleMute} onToggleSolo={toggleSolo} onClear={clearRow}
@@ -795,13 +1030,161 @@ export function BeatMakerGame() {
       <p className="mt-6 text-[10px]" style={{ color:"rgba(255,255,255,0.2)" }}>
         Loops section: enable step buttons to choose which beats play — the pitch changes each step based on the melody
       </p>
+
+      {saveOpen && <SaveSongModal onSave={saveSong} onClose={() => setSaveOpen(false)} />}
+      {songsOpen && <SongsModal userId={user?.id ?? null} onLoad={loadSong} onClose={() => setSongsOpen(false)} />}
+    </div>
+  );
+}
+
+// ─── Save song modal ──────────────────────────────────────────────────────────
+function SaveSongModal({ onSave, onClose }: { onSave: (title: string) => Promise<boolean>; onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    const t = title.trim();
+    if (!t || saving) return;
+    setSaving(true);
+    setError("");
+    const ok = await onSave(t);
+    setSaving(false);
+    if (!ok) setError("Couldn't save — please try again.");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:"rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}
+        style={{ background:"#1a1a2e", border:"1px solid rgba(255,255,255,0.15)", boxShadow:"0 16px 64px #000c" }}>
+        <h2 className="text-lg font-black mb-3" style={{ color:"#fff" }}>💾 Save your song</h2>
+        <input
+          autoFocus value={title} maxLength={60}
+          onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          placeholder="Name your song…"
+          className="w-full rounded-lg px-3 py-2 text-sm mb-3"
+          style={{ background:"rgba(255,255,255,0.07)", color:"#fff", border:"1px solid rgba(255,255,255,0.2)", outline:"none" }}
+        />
+        {error && <p className="text-xs mb-2" style={{ color:"#f87171" }}>{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+            style={{ background:"rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.55)", border:"1px solid rgba(255,255,255,0.12)" }}>
+            Cancel
+          </button>
+          <button onClick={submit} disabled={!title.trim() || saving}
+            className="px-4 py-1.5 rounded-lg text-xs font-black"
+            style={{ background:"#22c55e", color:"#fff", opacity: !title.trim() || saving ? 0.5 : 1, border:"2px solid #22c55e" }}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Songs modal (My Songs + Jukebox) ─────────────────────────────────────────
+function SongsModal({ userId, onLoad, onClose }: { userId: string | null; onLoad: (s: SongRow) => void; onClose: () => void }) {
+  const [tab, setTab] = useState<"mine" | "jukebox">(userId ? "mine" : "jukebox");
+  const [songs, setSongs] = useState<SongRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      let query = supabase
+        .from("songs")
+        .select("id, user_id, title, bpm, song_len, arrangement, rows, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (tab === "mine" && userId) query = query.eq("user_id", userId);
+      const { data } = await query;
+      const list: SongRow[] = data ?? [];
+
+      // Attach author names for the Jukebox (same pattern as the Casey gallery)
+      if (list.length && tab === "jukebox") {
+        const userIds = [...new Set(list.map(s => s.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, country_code")
+          .in("id", userIds);
+        const profileMap: Record<string, { username: string; country_code: string }> = {};
+        for (const p of profiles ?? []) profileMap[p.id] = p;
+        for (const s of list) {
+          s.username = profileMap[s.user_id]?.username ?? "Musician";
+          s.country_code = profileMap[s.user_id]?.country_code ?? "";
+        }
+      }
+      if (!cancelled) { setSongs(list); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [tab, userId]);
+
+  const deleteSong = async (id: string) => {
+    if (!window.confirm("Delete this song forever?")) return;
+    const { error } = await supabase.from("songs").delete().eq("id", id);
+    if (!error) setSongs(prev => prev.filter(s => s.id !== id));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:"rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="rounded-2xl p-5 w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}
+        style={{ background:"#1a1a2e", border:"1px solid rgba(255,255,255,0.15)", boxShadow:"0 16px 64px #000c" }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex gap-1">
+            {userId && (
+              <button onClick={() => setTab("mine")} className="px-3 py-1.5 rounded-lg text-xs font-black"
+                style={{ background: tab==="mine" ? "#a855f7" : "rgba(255,255,255,0.07)", color: tab==="mine" ? "#fff" : "rgba(255,255,255,0.5)" }}>
+                🎵 My Songs
+              </button>
+            )}
+            <button onClick={() => setTab("jukebox")} className="px-3 py-1.5 rounded-lg text-xs font-black"
+              style={{ background: tab==="jukebox" ? "#06b6d4" : "rgba(255,255,255,0.07)", color: tab==="jukebox" ? "#fff" : "rgba(255,255,255,0.5)" }}>
+              📻 Jukebox
+            </button>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg text-sm" style={{ color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)" }}>✕</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 flex flex-col gap-1.5">
+          {loading && <p className="text-xs py-6 text-center" style={{ color:"rgba(255,255,255,0.4)" }}>Loading songs…</p>}
+          {!loading && songs.length === 0 && (
+            <p className="text-xs py-6 text-center" style={{ color:"rgba(255,255,255,0.4)" }}>
+              {tab === "mine" ? "No songs yet — make a beat and hit 💾 Save!" : "The jukebox is empty — be the first to share a song!"}
+            </p>
+          )}
+          {songs.map(s => (
+            <div key={s.id} className="flex items-center gap-2 rounded-xl px-3 py-2"
+              style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold truncate" style={{ color:"#fff" }}>{s.title}</div>
+                <div className="text-[10px]" style={{ color:"rgba(255,255,255,0.4)" }}>
+                  {tab === "jukebox" && s.username ? `by ${s.username} · ` : ""}{s.song_len} bars · {s.bpm} BPM
+                </div>
+              </div>
+              <button onClick={() => onLoad(s)} className="px-3 py-1 rounded-lg text-[11px] font-black shrink-0"
+                style={{ background:"#a855f7", color:"#fff" }}>
+                Load
+              </button>
+              {userId === s.user_id && (
+                <button onClick={() => deleteSong(s.id)} title="Delete song"
+                  className="w-6 h-6 rounded-lg text-[11px] shrink-0"
+                  style={{ background:"rgba(239,68,68,0.15)", color:"#f87171", border:"1px solid rgba(239,68,68,0.4)" }}>
+                  🗑
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 // ─── Track row view ───────────────────────────────────────────────────────────
 interface TrackRowViewProps {
-  row: TrackRow; catalog: Instrument[]; currentStep: number; isRunning: boolean;
+  row: TrackRow; steps: boolean[]; catalog: Instrument[]; currentStep: number; isRunning: boolean;
   sectionColor: string; sectionId: string;
   onToggleStep:(id:string,s:number)=>void; onSetInstrument:(id:string,iid:string)=>void;
   onToggleMute:(id:string)=>void; onToggleSolo:(id:string)=>void; onClear:(id:string)=>void;
@@ -810,7 +1193,7 @@ interface TrackRowViewProps {
   onPreview:(sectionId:string,instrumentId:string)=>void;
 }
 
-function TrackRowView({ row, catalog, currentStep, isRunning, sectionColor, sectionId, onToggleStep, onSetInstrument, onToggleMute, onToggleSolo, onClear, onRemove, onFill, onSetVolume, onPreview }: TrackRowViewProps) {
+function TrackRowView({ row, steps, catalog, currentStep, isRunning, sectionColor, sectionId, onToggleStep, onSetInstrument, onToggleMute, onToggleSolo, onClear, onRemove, onFill, onSetVolume, onPreview }: TrackRowViewProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const patterns = QUICK_PATTERNS[sectionId] ?? [];
@@ -892,7 +1275,7 @@ function TrackRowView({ row, catalog, currentStep, isRunning, sectionColor, sect
       </div>
 
       {/* Steps */}
-      {row.steps.map((active, step) => {
+      {steps.map((active, step) => {
         const isCurrent = isRunning && currentStep === step;
         const groupEven = Math.floor(step/4) % 2 === 0;
         return (

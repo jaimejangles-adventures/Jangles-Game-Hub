@@ -74,3 +74,62 @@ create policy "read own bucks"
 create policy "insert own bucks"
   on public.bucks_log for insert with check (auth.uid() = user_id);
 -- No update/delete policies = immutable ledger
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Beat Maker songs: user-created songs (patterns + bar arrangement as JSON)
+-- Run this block separately in Supabase SQL Editor after running the above
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table public.songs (
+  id          uuid default gen_random_uuid() primary key,
+  user_id     uuid references auth.users on delete cascade not null,
+  title       text not null,
+  bpm         integer not null default 120,
+  song_len    integer not null default 8 check (song_len in (8, 16, 24, 32)),
+  arrangement jsonb not null,
+  rows        jsonb not null,
+  created_at  timestamptz default now() not null,
+  updated_at  timestamptz default now() not null
+);
+
+alter table public.songs enable row level security;
+
+create policy "Songs are viewable by everyone"
+  on public.songs for select using (true);
+
+create policy "Users can insert their own songs"
+  on public.songs for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own songs"
+  on public.songs for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own songs"
+  on public.songs for delete using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Chord Explorer progressions: user-created chord progressions
+-- Run this block separately in Supabase SQL Editor after running the above
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table public.chord_progressions (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users on delete cascade not null,
+  title      text not null,
+  instrument text not null default 'piano',
+  chords     jsonb not null,
+  created_at timestamptz default now() not null
+);
+
+alter table public.chord_progressions enable row level security;
+
+create policy "Progressions are viewable by everyone"
+  on public.chord_progressions for select using (true);
+
+create policy "Users can insert their own progressions"
+  on public.chord_progressions for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own progressions"
+  on public.chord_progressions for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own progressions"
+  on public.chord_progressions for delete using (auth.uid() = user_id);

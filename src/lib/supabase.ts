@@ -26,6 +26,44 @@ export type ScoreRow = {
   } | null;
 };
 
+export type SongRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  bpm: number;
+  song_len: number;
+  arrangement: number[];
+  rows: SavedSongTrack[];
+  created_at: string;
+  username?: string;
+  country_code?: string;
+};
+
+export type SavedSongTrack = {
+  sectionId: string;
+  instrumentId: string;
+  steps: boolean[][];
+  muted: boolean;
+  volume: number;
+};
+
+export type SavedChord = {
+  root: number;
+  chordKey: string;
+  position: number;
+};
+
+export type ProgressionRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  instrument: string;
+  chords: SavedChord[];
+  created_at: string;
+  username?: string;
+  country_code?: string;
+};
+
 export type GalleryRow = {
   id: string;
   user_id: string;
