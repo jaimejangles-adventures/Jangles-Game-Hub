@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { asset } from "@/lib/asset";
 import { useScore } from "@/hooks/use-score";
 import { useAuth } from "@/lib/auth-context";
-import { useArcadeSession } from "@/lib/arcade-session-context";
 import { burstCorrect, burstFinale } from "@/game/confetti";
 
 // ── NATO phonetic alphabet ─────────────────────────────────────────────────────
@@ -40,8 +39,9 @@ const NATO: NatoEntry[] = [
 ];
 
 const ROUNDS = 8;
+const LETTERS_PER_CALL_SIGN = 3;
 const POINTS_PER_LETTER = 10;
-const MAX_LISTEN_MS = 8000;
+const MAX_LISTEN_MS = 10000;
 
 type Difficulty = "rookie" | "master";
 type Phase = "select" | "playing" | "over";
@@ -57,13 +57,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function buildRounds(difficulty: Difficulty): NatoEntry[][] {
-  const perRound = difficulty === "rookie" ? 1 : 3;
+function buildRounds(): NatoEntry[][] {
   const rounds: NatoEntry[][] = [];
   let pool = shuffle(NATO);
   for (let i = 0; i < ROUNDS; i++) {
-    if (pool.length < perRound) pool = shuffle(NATO);
-    rounds.push(pool.splice(0, perRound));
+    if (pool.length < LETTERS_PER_CALL_SIGN) pool = shuffle(NATO);
+    rounds.push(pool.splice(0, LETTERS_PER_CALL_SIGN));
   }
   return rounds;
 }
@@ -106,11 +105,11 @@ function makeDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
   return curve;
 }
 
-// Short squelch click — the pssht a radio makes when the mic keys on or off.
-function playSquelch(delaySec = 0) {
+// Very soft, short radio key click — kept quiet so it never reads as a drum hit.
+function playKeyClick(delaySec = 0) {
   const ctx = getCtx();
   void ctx.resume();
-  const dur = 0.07;
+  const dur = 0.035;
   const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
@@ -118,10 +117,10 @@ function playSquelch(delaySec = 0) {
   src.buffer = buf;
   const bp = ctx.createBiquadFilter();
   bp.type = "bandpass";
-  bp.frequency.value = 1800;
-  bp.Q.value = 0.7;
+  bp.frequency.value = 2400;
+  bp.Q.value = 1.4;
   const gain = ctx.createGain();
-  gain.gain.value = 0.22;
+  gain.gain.value = 0.05;
   src.connect(bp);
   bp.connect(gain);
   gain.connect(ctx.destination);
@@ -129,13 +128,13 @@ function playSquelch(delaySec = 0) {
 }
 
 // Plays a recorded clip through a walkie-talkie chain: narrow bandpass,
-// a touch of overdrive, and a static bed underneath.
+// a touch of overdrive, and a quiet static bed underneath.
 async function playThroughRadio(blob: Blob): Promise<void> {
   const ctx = getCtx();
   await ctx.resume();
   const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
 
-  playSquelch(0);
+  playKeyClick(0);
 
   const src = ctx.createBufferSource();
   src.buffer = buf;
@@ -155,30 +154,28 @@ async function playThroughRadio(blob: Blob): Promise<void> {
   shaper.connect(gain);
   gain.connect(ctx.destination);
 
-  const staticDur = buf.duration + 0.25;
+  const staticDur = buf.duration + 0.2;
   const nbuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * staticDur), ctx.sampleRate);
   const ndata = nbuf.getChannelData(0);
   for (let i = 0; i < ndata.length; i++) ndata[i] = Math.random() * 2 - 1;
   const noise = ctx.createBufferSource();
   noise.buffer = nbuf;
   const ngain = ctx.createGain();
-  ngain.gain.value = 0.012;
+  ngain.gain.value = 0.008;
   noise.connect(ngain);
   ngain.connect(ctx.destination);
 
-  const t0 = ctx.currentTime + 0.12;
+  const t0 = ctx.currentTime + 0.1;
   noise.start(t0);
   src.start(t0 + 0.05);
-  playSquelch(staticDur + 0.18);
 
   await new Promise<void>((resolve) => {
     src.onended = () => resolve();
   });
 }
 
-// Tower voice: TTS book-ended by squelch clicks so it reads as radio chatter.
+// Tower voice — plain TTS, no static bursts.
 function towerSay(text: string, onEnd?: () => void) {
-  playSquelch(0);
   if (!window.speechSynthesis) {
     onEnd?.();
     return;
@@ -187,12 +184,11 @@ function towerSay(text: string, onEnd?: () => void) {
   const utt = new SpeechSynthesisUtterance(text);
   utt.rate = 0.92;
   utt.pitch = 0.85;
-  utt.onend = () => {
-    playSquelch(0);
-    onEnd?.();
-  };
-  utt.onerror = () => onEnd?.();
-  window.setTimeout(() => window.speechSynthesis.speak(utt), 180);
+  if (onEnd) {
+    utt.onend = onEnd;
+    utt.onerror = onEnd;
+  }
+  window.speechSynthesis.speak(utt);
 }
 
 // ── Speech recognition (Chrome/Edge webkit prefix) ─────────────────────────────
@@ -217,6 +213,22 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+// ── Alphabet reference chart (shown on Rookie) ─────────────────────────────────
+function NatoChart() {
+  return (
+    <div className="w-full max-w-2xl rounded-2xl border-2 border-sky-700/50 bg-white/90 px-2 py-2 mb-3 shadow-sm">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-x-1 gap-y-0.5">
+        {NATO.map((n) => (
+          <div key={n.letter} className="flex items-baseline gap-1 justify-center whitespace-nowrap text-[10px] sm:text-xs leading-tight">
+            <span className="font-black text-sky-700">{n.letter}</span>
+            <span className="font-semibold text-gray-600">{n.word}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Component ──────────────────────────────────────────────────────────────────
 export function AirFanteAlphabetGame() {
   const [phase, setPhase] = useState<Phase>("select");
@@ -239,6 +251,7 @@ export function AirFanteAlphabetGame() {
   const blobRef = useRef<Blob | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef("");
+  const holdingRef = useRef(false);
   const recognitionDoneRef = useRef(true);
   const recorderDoneRef = useRef(true);
   const gradedRef = useRef(false);
@@ -246,7 +259,6 @@ export function AirFanteAlphabetGame() {
 
   const { user } = useAuth();
   const { saveScore } = useScore("air-fante-alphabet");
-  const { endSession } = useArcadeSession();
 
   const callSign = rounds[roundIdx] ?? [];
 
@@ -254,13 +266,10 @@ export function AirFanteAlphabetGame() {
     if (phase === "over" && user && score > 0) saveScore(score);
   }, [phase, user, score, saveScore]);
 
-  useEffect(() => {
-    if (phase === "over") endSession();
-  }, [phase, endSession]);
-
   // Clean up mic + speech on unmount
   useEffect(() => {
     return () => {
+      holdingRef.current = false;
       recognitionRef.current?.abort();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       window.speechSynthesis?.cancel();
@@ -279,14 +288,14 @@ export function AirFanteAlphabetGame() {
       return;
     }
     setDifficulty(diff);
-    setRounds(buildRounds(diff));
+    setRounds(buildRounds());
     setRoundIdx(0);
     setScore(0);
     setResult(null);
     setHeard("");
     setHasRecording(false);
     setPhase("playing");
-    towerSay(diff === "rookie" ? "Jangles Tower to Air Fante. Read back your call sign. Over." : "Jangles Tower to Air Fante. Read back all three letters. Over.");
+    towerSay("Jangles Tower to Air Fante. Read back your call sign. Over.");
   }, []);
 
   const grade = useCallback(() => {
@@ -325,8 +334,10 @@ export function AirFanteAlphabetGame() {
   }, [rounds, roundIdx]);
 
   const stopListening = useCallback(() => {
-    if (micState !== "listening") return;
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
     setMicState("processing");
+    playKeyClick(0);
     try {
       recognitionRef.current?.stop();
     } catch {
@@ -342,53 +353,73 @@ export function AirFanteAlphabetGame() {
       recorderDoneRef.current = true;
       grade();
     }, 3000);
-  }, [micState, grade]);
+  }, [grade]);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     if (micState !== "idle" || result !== null) return;
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) return;
+    // Keep receiving pointer events even if the pointer drifts off the button
+    // (e.g. when the button scales up under the finger).
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
     window.speechSynthesis?.cancel();
 
     transcriptRef.current = "";
     blobRef.current = null;
     chunksRef.current = [];
     gradedRef.current = false;
+    holdingRef.current = true;
     recognitionDoneRef.current = false;
     recorderDoneRef.current = true;
 
-    const recognition = new Ctor();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 3;
-    recognition.onresult = (event) => {
-      let finals = "";
-      for (let i = 0; i < event.results.length; i++) {
-        const r = event.results[i];
-        if (r.isFinal) finals += " " + r[0].transcript;
-      }
-      // Fall back to interim text so a fast release still counts
-      if (!finals.trim()) {
-        for (let i = 0; i < event.results.length; i++) finals += " " + event.results[i][0].transcript;
-      }
-      transcriptRef.current = finals.trim();
+    const makeRecognition = () => {
+      const recognition = new Ctor();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 3;
+      recognition.onresult = (event) => {
+        let finals = "";
+        for (let i = 0; i < event.results.length; i++) {
+          const r = event.results[i];
+          if (r.isFinal) finals += " " + r[0].transcript;
+        }
+        // Fall back to interim text so a fast release still counts
+        if (!finals.trim()) {
+          for (let i = 0; i < event.results.length; i++) finals += " " + event.results[i][0].transcript;
+        }
+        const text = finals.trim();
+        if (text) transcriptRef.current = text;
+      };
+      recognition.onend = () => {
+        // Chrome ends recognition on its own after silence or hiccups —
+        // restart it as long as the kid is still holding the mic.
+        if (holdingRef.current) {
+          try {
+            const next = makeRecognition();
+            recognitionRef.current = next;
+            next.start();
+            return;
+          } catch {}
+        }
+        recognitionDoneRef.current = true;
+        grade();
+      };
+      recognition.onerror = () => {};
+      return recognition;
     };
-    recognition.onend = () => {
-      recognitionDoneRef.current = true;
-      grade();
-    };
-    recognition.onerror = () => {
-      recognitionDoneRef.current = true;
-    };
+
+    const recognition = makeRecognition();
     recognitionRef.current = recognition;
 
     const stream = streamRef.current;
     if (stream && typeof MediaRecorder !== "undefined") {
       try {
         const recorder = new MediaRecorder(stream);
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunksRef.current.push(e.data);
+        recorder.ondataavailable = (ev) => {
+          if (ev.data.size > 0) chunksRef.current.push(ev.data);
         };
         recorder.onstop = () => {
           blobRef.current = new Blob(chunksRef.current, { type: recorderRef.current?.mimeType || "audio/webm" });
@@ -403,19 +434,13 @@ export function AirFanteAlphabetGame() {
       }
     }
 
-    playSquelch(0);
+    playKeyClick(0);
     recognition.start();
     setMicState("listening");
 
     window.clearTimeout(listenTimeoutRef.current);
     listenTimeoutRef.current = window.setTimeout(() => stopListening(), MAX_LISTEN_MS);
   }, [micState, result, grade, stopListening]);
-
-  // Keep the timeout's stopListening fresh
-  const stopListeningRef = useRef(stopListening);
-  useEffect(() => {
-    stopListeningRef.current = stopListening;
-  }, [stopListening]);
 
   const hearCallSign = useCallback(() => {
     const words = callSign.map((l) => l.word).join(", ");
@@ -446,9 +471,8 @@ export function AirFanteAlphabetGame() {
   }, [roundIdx, rounds.length]);
 
   const answerByTap = useCallback(
-    (entry: NatoEntry, correct: boolean) => {
+    (correct: boolean) => {
       if (result !== null) return;
-      void entry;
       const letters = rounds[roundIdx] ?? [];
       const words = letters.map((l) => l.word).join(", ");
       if (correct) {
@@ -490,8 +514,8 @@ export function AirFanteAlphabetGame() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl">
           {(
             [
-              { diff: "rookie" as const, title: "Rookie Pilot", desc: "One letter per plane. Say “Charlie!”", emoji: "🛩️" },
-              { diff: "master" as const, title: "Captain", desc: "Three letters per plane. Say “Bravo, Lima, India!”", emoji: "✈️" },
+              { diff: "rookie" as const, title: "Rookie Pilot", desc: "The alphabet chart is on screen to help you read it back!", emoji: "🛩️" },
+              { diff: "master" as const, title: "Captain", desc: "No chart — a true Captain knows the code by heart!", emoji: "✈️" },
             ]
           ).map(({ diff, title, desc, emoji }) => (
             <motion.button
@@ -521,7 +545,7 @@ export function AirFanteAlphabetGame() {
   }
 
   if (phase === "over") {
-    const maxScore = ROUNDS * (difficulty === "rookie" ? 1 : 3) * POINTS_PER_LETTER;
+    const maxScore = ROUNDS * LETTERS_PER_CALL_SIGN * POINTS_PER_LETTER;
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 text-center" style={{ background: "linear-gradient(#4ac8ff, #cdefff)" }}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
@@ -543,7 +567,7 @@ export function AirFanteAlphabetGame() {
 
   // ── Playing ──────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col items-center px-4 py-6 overflow-hidden" style={{ background: "linear-gradient(#4ac8ff 0%, #a5e2ff 70%, #cdefff 100%)" }}>
+    <div className="flex-1 flex flex-col items-center px-4 py-4 overflow-hidden" style={{ background: "linear-gradient(#4ac8ff 0%, #a5e2ff 70%, #cdefff 100%)" }}>
       {/* HUD */}
       <div className="w-full max-w-2xl flex items-center justify-between mb-2">
         <span className="rounded-xl bg-white/80 px-3 py-1 font-black text-sky-800">Plane {roundIdx + 1} / {rounds.length}</span>
@@ -551,7 +575,7 @@ export function AirFanteAlphabetGame() {
       </div>
 
       {/* Plane with call-sign banner */}
-      <div className="relative w-full max-w-2xl h-56 sm:h-64">
+      <div className="relative w-full max-w-2xl h-36 sm:h-48">
         <AnimatePresence mode="wait">
           <motion.div
             key={roundIdx}
@@ -561,8 +585,8 @@ export function AirFanteAlphabetGame() {
             transition={{ type: "spring", stiffness: 60, damping: 14 }}
             className="absolute inset-0 flex items-center justify-center gap-0"
           >
-            <div className="flex items-center rounded-xl border-4 border-sky-800 bg-yellow-300 px-5 py-3 shadow-lg -mr-2">
-              <span className="font-black text-sky-900 tracking-[0.3em] text-5xl sm:text-6xl">
+            <div className="flex items-center rounded-xl border-4 border-sky-800 bg-yellow-300 px-4 py-2 shadow-lg -mr-2">
+              <span className="font-black text-sky-900 tracking-[0.25em] text-4xl sm:text-5xl">
                 {callSign.map((l) => l.letter).join("")}
               </span>
             </div>
@@ -570,7 +594,7 @@ export function AirFanteAlphabetGame() {
             <motion.img
               src={asset("/characters/air-fante-plane.png")}
               alt="Air Fante plane"
-              className="w-48 sm:w-64 drop-shadow-xl"
+              className="w-40 sm:w-56 drop-shadow-xl"
               animate={{ y: [0, -8, 0] }}
               transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
             />
@@ -578,8 +602,11 @@ export function AirFanteAlphabetGame() {
         </AnimatePresence>
       </div>
 
+      {/* Alphabet chart — Rookie only */}
+      {difficulty === "rookie" && <NatoChart />}
+
       {/* Radio panel */}
-      <div className="w-full max-w-2xl rounded-3xl border-4 border-slate-700 bg-slate-800 px-5 py-5 shadow-xl text-center">
+      <div className="w-full max-w-2xl rounded-3xl border-4 border-slate-700 bg-slate-800 px-5 py-4 shadow-xl text-center">
         <p className="text-lime-300 font-mono font-bold text-sm sm:text-base mb-3 min-h-6">
           {result === null && micState === "idle" && "📡 Tower: “Air Fante, read back your call sign. Over.”"}
           {micState === "listening" && "🔴 TRANSMITTING… say the call sign!"}
@@ -593,24 +620,24 @@ export function AirFanteAlphabetGame() {
 
         {result === null ? (
           speechSupported ? (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <button
                 onPointerDown={startListening}
                 onPointerUp={stopListening}
-                onPointerLeave={stopListening}
                 onPointerCancel={stopListening}
                 onContextMenu={(e) => e.preventDefault()}
-                disabled={micState === "processing"}
-                className={`select-none touch-none rounded-full border-4 w-28 h-28 sm:w-32 sm:h-32 text-5xl shadow-lg transition-transform ${
+                className={`select-none touch-none rounded-full border-4 w-24 h-24 sm:w-28 sm:h-28 text-4xl sm:text-5xl shadow-lg transition-transform ${
                   micState === "listening"
                     ? "bg-red-500 border-red-700 scale-110 animate-pulse"
-                    : "bg-lime-500 border-lime-700 hover:scale-105"
+                    : micState === "processing"
+                      ? "bg-slate-500 border-slate-600"
+                      : "bg-lime-500 border-lime-700 hover:scale-105"
                 }`}
               >
                 🎙️
               </button>
               <p className="text-slate-300 text-sm font-bold">
-                {micState === "listening" ? "Let go when you're done!" : "HOLD the mic and read it back!"}
+                {micState === "listening" ? "Let go when you're done!" : micState === "processing" ? "Stand by…" : "HOLD the mic and read it back!"}
               </p>
               <button onClick={hearCallSign} className="text-sky-300 underline text-sm font-semibold">
                 🎧 Hear the tower say it
@@ -622,7 +649,7 @@ export function AirFanteAlphabetGame() {
               {choices.map((c) => (
                 <button
                   key={c.words}
-                  onClick={() => answerByTap(callSign[0], c.correct)}
+                  onClick={() => answerByTap(c.correct)}
                   className="w-full max-w-sm rounded-xl border-2 border-b-4 border-sky-600 bg-sky-500 py-2.5 font-black text-white hover:-translate-y-0.5 transition-transform"
                 >
                   {c.words}

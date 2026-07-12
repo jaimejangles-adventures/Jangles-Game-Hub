@@ -5,14 +5,7 @@
       "name": "jangles-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5173,
-      "autoPort": true
-    },
-    {
-      "name": "jangles-dev-alt",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5199"],
-      "port": 5199
+      "port": 5173
     }
   ]
 }
