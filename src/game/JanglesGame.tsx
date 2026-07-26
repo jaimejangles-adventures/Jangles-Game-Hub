@@ -382,12 +382,12 @@ export function JanglesGame({ onComplete }: { onComplete?: () => void } = {}) {
     setIsPlaying(false);
   }, [round]);
 
-  // Loop the clip while the passport is showing so music keeps playing
+  // Don't loop the clip — let it play out once and stop
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    a.loop = answered;
-  }, [answered]);
+    a.loop = false;
+  }, []);
 
   useEffect(() => {
     const a = audioRef.current;
