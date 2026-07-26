@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [modalMode, setModalMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [pendingProfileError, setPendingProfileError] = useState<string | null>(null);
   const profileCache = useRef<Record<string, Profile>>({});
 
   useEffect(() => {
@@ -63,7 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u);
       if (u) {
         let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
-        if (!p) p = await tryPendingProfile(u.id);
+        if (!p) {
+          const result = await tryPendingProfile(u.id);
+          p = result.profile;
+          setPendingProfileError(result.error);
+        }
         if (p) profileCache.current[u.id] = p;
         setProfile(p);
         if (!p) setNeedsProfile(true);
@@ -76,13 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u);
       if (u) {
         let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
-        if (!p) p = await tryPendingProfile(u.id);
+        if (!p) {
+          const result = await tryPendingProfile(u.id);
+          p = result.profile;
+          setPendingProfileError(result.error);
+        }
         if (p) profileCache.current[u.id] = p;
         setProfile(p);
         if (!p) setNeedsProfile(true);
       } else {
         setProfile(null);
         setNeedsProfile(false);
+        setPendingProfileError(null);
       }
       if (event === 'SIGNED_IN') setModalOpen(false);
     });
@@ -115,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileCache.current[p.id] = p;
     setProfile(p);
     setNeedsProfile(false);
+    setPendingProfileError(null);
   }, []);
 
   const handleProfileUpdated = useCallback((p: Profile) => {
@@ -139,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <CompleteProfileModal
               userId={user.id}
               authEmail={user.email}
+              initialError={pendingProfileError}
               onProfileCreated={handleProfileCreated}
             />
           )}
@@ -155,10 +167,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-async function tryPendingProfile(userId: string): Promise<Profile | null> {
+type PendingProfileResult = { profile: Profile | null; error: string | null };
+
+async function tryPendingProfile(userId: string): Promise<PendingProfileResult> {
   try {
     const pending = localStorage.getItem('pending_profile');
-    if (!pending) return null;
+    if (!pending) return { profile: null, error: null };
     const { username, country_code, auth_email } = JSON.parse(pending);
     const { error } = await supabase.from('profiles').insert({
       id: userId,
@@ -168,8 +182,18 @@ async function tryPendingProfile(userId: string): Promise<Profile | null> {
     });
     if (!error) {
       localStorage.removeItem('pending_profile');
-      return { id: userId, username, country_code };
+      return { profile: { id: userId, username, country_code }, error: null };
     }
-  } catch { /* silent */ }
-  return null;
+    localStorage.removeItem('pending_profile');
+    const msg = error.message ?? '';
+    const isDuplicate = error.code === '23505' || msg.toLowerCase().includes('unique');
+    return {
+      profile: null,
+      error: isDuplicate
+        ? 'That username was already taken — please choose another.'
+        : "We couldn't finish setting up your account — please choose a username to continue.",
+    };
+  } catch {
+    return { profile: null, error: null };
+  }
 }

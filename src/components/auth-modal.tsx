@@ -92,38 +92,43 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
         }
       } else {
         // Sign up
-        if (username.trim().length < 2) throw new Error('Username must be at least 2 characters.');
-        if (username.trim().length > 20) throw new Error('Username must be 20 characters or less.');
-        if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) throw new Error('Username can only have letters, numbers and underscores.');
+        const trimmedUsername = username.trim();
+        if (trimmedUsername.length < 2) throw new Error('Username must be at least 2 characters.');
+        if (trimmedUsername.length > 20) throw new Error('Username must be 20 characters or less.');
+        if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) throw new Error('Username can only have letters, numbers and underscores.');
+
+        // Check availability up front so we don't create an auth account for a name that's taken
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('username', trimmedUsername)
+          .maybeSingle();
+        if (existing) throw new Error('That username is taken — please choose another.');
 
         // Generate a hidden email if parent email not provided
-        const cleanName = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanName = trimmedUsername.toLowerCase().replace(/[^a-z0-9]/g, '');
         const randomId = Math.random().toString(36).slice(2, 8);
         const authEmail = email.trim() || `${cleanName}_${randomId}@play.jaimejangles.com`;
 
-        const { data, error: err } = await supabase.auth.signUp({ email: authEmail, password });
-        if (err) throw err;
-
-        const userId = data.user?.id;
-        if (!userId) throw new Error('Sign up failed — please try again.');
-
-        // Save pending profile to localStorage (used after email confirmation if needed)
+        // Save pending profile to localStorage *before* signing up — auth-context's
+        // SIGNED_IN listener fires as soon as signUp() resolves and reads this value
+        // to insert the profile, so it must already be there to avoid a race.
         localStorage.setItem('pending_profile', JSON.stringify({
-          username: username.trim(),
+          username: trimmedUsername,
           country_code: countryCode,
           auth_email: authEmail,
         }));
 
-        // Try to insert profile immediately
-        const { error: profileErr } = await supabase.from('profiles').insert({
-          id: userId,
-          username: username.trim(),
-          country_code: countryCode,
-          auth_email: authEmail,
-        });
+        const { data, error: err } = await supabase.auth.signUp({ email: authEmail, password });
+        if (err) {
+          localStorage.removeItem('pending_profile');
+          throw err;
+        }
 
-        if (!profileErr) {
-          onProfileCreated({ id: userId, username: username.trim(), country_code: countryCode });
+        const userId = data.user?.id;
+        if (!userId) {
+          localStorage.removeItem('pending_profile');
+          throw new Error('Sign up failed — please try again.');
         }
       }
     } catch (err: unknown) {
@@ -137,7 +142,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto py-8"
       style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
@@ -435,7 +440,7 @@ export function EditProfileModal({ profile, onClose, onProfileUpdated }: EditPro
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto py-8"
       style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
@@ -529,14 +534,15 @@ export function EditProfileModal({ profile, onClose, onProfileUpdated }: EditPro
 type CompleteProfileProps = {
   userId: string;
   authEmail?: string;
+  initialError?: string | null;
   onProfileCreated: (p: Profile) => void;
 };
 
-export function CompleteProfileModal({ userId, authEmail, onProfileCreated }: CompleteProfileProps) {
+export function CompleteProfileModal({ userId, authEmail, initialError, onProfileCreated }: CompleteProfileProps) {
   const [username, setUsername] = useState('');
   const [countryCode, setCountryCode] = useState('US');
   const [detecting, setDetecting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialError ?? '');
   const [submitting, setSubmitting] = useState(false);
 
   async function detectCountry() {
@@ -566,7 +572,12 @@ export function CompleteProfileModal({ userId, authEmail, onProfileCreated }: Co
       if (err) throw err;
       onProfileCreated({ id: userId, username: username.trim(), country_code: countryCode });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('23505') || msg.toLowerCase().includes('unique')) {
+        setError('That username is taken — please choose another.');
+      } else {
+        setError(msg || 'Something went wrong.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -574,7 +585,7 @@ export function CompleteProfileModal({ userId, authEmail, onProfileCreated }: Co
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto py-8"
       style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
     >
       <div
