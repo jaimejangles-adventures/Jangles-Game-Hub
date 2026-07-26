@@ -248,7 +248,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Addition for ages 4–7",
     description:
       "Casey shows you two groups of objects — count them up and pick the right total! Simple addition made fun with colourful pictures.",
-    accent: "#f97316",
+    accent: "#22C55E",
     emoji: "➕",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
@@ -313,7 +313,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Subtraction for ages 4–7",
     description:
       "Casey shows you two groups of objects — take one away from the other and pick the right answer! Simple subtraction made fun with colourful pictures.",
-    accent: "#f97316",
+    accent: "#3B82F6",
     emoji: "➖",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
@@ -326,7 +326,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Multiplication for ages 5–8",
     description:
       "Casey shows you two groups of objects — count them together and pick the right product! Times tables made fun with colourful pictures.",
-    accent: "#f97316",
+    accent: "#EC4899",
     emoji: "✖️",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
@@ -352,7 +352,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Division for ages 5–8",
     description:
       "Casey shows you a group of objects — split them equally and pick the right answer! Division made fun with colourful pictures.",
-    accent: "#f97316",
+    accent: "#A855F7",
     emoji: "➗",
     image: asset("/characters/casey-pointing.png"),
     status: "live",
