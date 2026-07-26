@@ -72,10 +72,15 @@ export function ArcadeGate({ gameSlug, gameTitle, gameEmoji, children }: Props) 
   async function handlePlay() {
     setSpending(true);
     setError(false);
-    const ok = await spendBuck(gameSlug);
-    if (ok) {
-      setSessionActive(true);
-    } else {
+    try {
+      const ok = await spendBuck(gameSlug);
+      if (ok) {
+        setSessionActive(true);
+      } else {
+        setError(true);
+        setSpending(false);
+      }
+    } catch {
       setError(true);
       setSpending(false);
     }
