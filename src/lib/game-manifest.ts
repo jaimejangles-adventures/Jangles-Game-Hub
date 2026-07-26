@@ -59,8 +59,8 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "beat-maker" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "air-fante-alphabet" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp" | "space-jangles" | "piano-chords";
-  href: "/games/music-match" | "/games/beat-maker" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/air-fante-alphabet" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp" | "/games/space-jangles" | "/games/piano-chords";
+  slug: "music-match" | "beat-maker" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "air-fante-alphabet" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp" | "space-jangles" | "piano-chords" | "melody-memory";
+  href: "/games/music-match" | "/games/beat-maker" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/air-fante-alphabet" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp" | "/games/space-jangles" | "/games/piano-chords" | "/games/melody-memory";
   title: string;
   eyebrow: string;
   description: string;
@@ -550,6 +550,19 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     accent: "#4F8EF7",
     emoji: "🎹",
     image: asset("/art/piano-chords-thumb.png"),
+    status: "live",
+    category: "music-arts",
+  },
+  {
+    slug: "melody-memory",
+    href: "/games/melody-memory",
+    title: "Melody Memory",
+    eyebrow: "Listen and repeat",
+    description:
+      "Casey plays a tune on the xylophone — watch, listen, and tap it back in order. Every round adds one more note!",
+    accent: "#C77DFF",
+    emoji: "🎶",
+    image: asset("/characters/guitar2-jaime-jeff.png"),
     status: "live",
     category: "music-arts",
   },

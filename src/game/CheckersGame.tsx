@@ -254,6 +254,7 @@ export function CheckersGame() {
   const [twoPlayer, setTwoPlayer] = useState(false);
   const [ps, setPs] = useState<PlayState | null>(null);
   const aiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiMoving = useRef(false);
 
   const startGame = useCallback((tp: boolean) => {
     setTwoPlayer(tp);
@@ -269,13 +270,16 @@ export function CheckersGame() {
 
   // AI turn trigger
   useEffect(() => {
-    if (!ps || ps.status !== "playing" || ps.thinking) return;
+    if (!ps || ps.status !== "playing") return;
     if (twoPlayer) return;
     if (ps.turn !== "blue") return;
+    if (aiMoving.current) return;
+    aiMoving.current = true;
 
     setPs(prev => prev ? { ...prev, thinking: true } : prev);
 
     aiTimer.current = setTimeout(() => {
+      aiMoving.current = false;
       setPs(prev => {
         if (!prev) return prev;
         const move = getBestMove(prev.board);
@@ -332,8 +336,9 @@ export function CheckersGame() {
 
     return () => {
       if (aiTimer.current) clearTimeout(aiTimer.current);
+      aiMoving.current = false;
     };
-  }, [ps?.turn, ps?.status, ps?.thinking, twoPlayer]);
+  }, [ps?.turn, ps?.status, twoPlayer]);
 
   const handleSquareClick = useCallback((row: number, col: number) => {
     setPs(prev => {

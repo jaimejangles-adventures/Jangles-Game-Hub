@@ -256,6 +256,7 @@ export function AirFanteAlphabetGame() {
   const recorderDoneRef = useRef(true);
   const gradedRef = useRef(false);
   const listenTimeoutRef = useRef<number>(0);
+  const micButtonRef = useRef<HTMLButtonElement>(null);
 
   const { user } = useAuth();
   const { saveScore } = useScore("air-fante-alphabet");
@@ -320,12 +321,7 @@ export function AirFanteAlphabetGame() {
         setRadioPlaying(true);
         void playThroughRadio(clip)
           .catch(() => {})
-          .finally(() => {
-            setRadioPlaying(false);
-            towerSay(`${words}. Loud and clear! Over.`);
-          });
-      } else {
-        towerSay(`${words}. Loud and clear! Over.`);
+          .finally(() => setRadioPlaying(false));
       }
     } else {
       setResult("wrong");
@@ -355,15 +351,17 @@ export function AirFanteAlphabetGame() {
     }, 3000);
   }, [grade]);
 
-  const startListening = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+  const startListening = useCallback((e?: React.PointerEvent<HTMLButtonElement>) => {
     if (micState !== "idle" || result !== null) return;
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) return;
     // Keep receiving pointer events even if the pointer drifts off the button
     // (e.g. when the button scales up under the finger).
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
+    if (e) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {}
+    }
     window.speechSynthesis?.cancel();
 
     transcriptRef.current = "";
@@ -442,6 +440,33 @@ export function AirFanteAlphabetGame() {
     listenTimeoutRef.current = window.setTimeout(() => stopListening(), MAX_LISTEN_MS);
   }, [micState, result, grade, stopListening]);
 
+  // Hold the spacebar as an alternative to holding down the mic button.
+  // (A held mouse/trackpad press can trigger macOS's own "Look Up" gesture
+  // and pop open Dictionary — the spacebar has no such conflict.)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat || phase !== "playing") return;
+      const active = document.activeElement;
+      const isMicButton = active === micButtonRef.current;
+      const isOtherControl =
+        active instanceof HTMLElement && ["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(active.tagName) && !isMicButton;
+      if (isOtherControl) return;
+      e.preventDefault();
+      startListening();
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      e.preventDefault();
+      stopListening();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [phase, startListening, stopListening]);
+
   const hearCallSign = useCallback(() => {
     const words = callSign.map((l) => l.word).join(", ");
     towerSay(`Your call sign is: ${words}. Over.`);
@@ -479,7 +504,6 @@ export function AirFanteAlphabetGame() {
         setResult("correct");
         setScore((s) => s + letters.length * POINTS_PER_LETTER);
         burstCorrect();
-        towerSay(`${words}. Loud and clear! Over.`);
       } else {
         setResult("wrong");
         towerSay(`Negative. That call sign reads: ${words}. Over.`);
@@ -622,6 +646,7 @@ export function AirFanteAlphabetGame() {
           speechSupported ? (
             <div className="flex flex-col items-center gap-2">
               <button
+                ref={micButtonRef}
                 onPointerDown={startListening}
                 onPointerUp={stopListening}
                 onPointerCancel={stopListening}
@@ -637,7 +662,7 @@ export function AirFanteAlphabetGame() {
                 🎙️
               </button>
               <p className="text-slate-300 text-sm font-bold">
-                {micState === "listening" ? "Let go when you're done!" : micState === "processing" ? "Stand by…" : "HOLD the mic and read it back!"}
+                {micState === "listening" ? "Let go when you're done!" : micState === "processing" ? "Stand by…" : "HOLD the mic (or press SPACE) and read it back!"}
               </p>
               <button onClick={hearCallSign} className="text-sky-300 underline text-sm font-semibold">
                 🎧 Hear the tower say it

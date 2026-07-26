@@ -32,6 +32,41 @@ function noise(ctx: AudioContext, t: number, dest: AudioNode, dur: number, ffreq
 // step is passed to every PlayFn; loop instruments use it, others ignore it
 type PlayFn = (ctx: AudioContext, t: number, dest: AudioNode, sd: number, step: number) => void;
 
+// Piano/Rhodes voicings ported from Chord Explorer (PianoChordGame.tsx) for the Chords section
+function midiToFreq(m: number) { return 440 * Math.pow(2, (m - 69) / 12); }
+function synthPianoNote(ctx: AudioContext, dest: AudioNode, freq: number, t: number) {
+  const dur = 2.2;
+  [1,2,3,4,5,6].forEach((h,i) => {
+    const g = [1,.5,.25,.12,.06,.03][i];
+    const o = ctx.createOscillator(); const gn = ctx.createGain();
+    o.type = "sine"; o.frequency.value = freq * h;
+    gn.gain.setValueAtTime(0,t); gn.gain.linearRampToValueAtTime(.55*g,t+.01);
+    gn.gain.exponentialRampToValueAtTime(.55*g*.4,t+.1); gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(gn); gn.connect(dest); o.start(t); o.stop(t+dur+.05);
+  });
+  const c = ctx.createOscillator(); const cg = ctx.createGain();
+  c.type="square"; c.frequency.value=freq*8;
+  cg.gain.setValueAtTime(.022,t); cg.gain.exponentialRampToValueAtTime(.0001,t+.012);
+  c.connect(cg); cg.connect(dest); c.start(t); c.stop(t+.015);
+}
+function synthRhodesNote(ctx: AudioContext, dest: AudioNode, freq: number, t: number) {
+  const dur = 2.8;
+  const mod = ctx.createOscillator(); const mg = ctx.createGain();
+  const car = ctx.createOscillator(); const cg = ctx.createGain();
+  mod.type="sine"; mod.frequency.value=freq;
+  mg.gain.setValueAtTime(freq*1.2,t); mg.gain.exponentialRampToValueAtTime(freq*.1,t+.6); mg.gain.exponentialRampToValueAtTime(.001,t+dur);
+  mod.connect(mg); mg.connect(car.frequency);
+  car.type="sine"; car.frequency.value=freq;
+  cg.gain.setValueAtTime(0,t); cg.gain.linearRampToValueAtTime(.5,t+.006);
+  cg.gain.exponentialRampToValueAtTime(.28,t+.12); cg.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  car.connect(cg); cg.connect(dest);
+  mod.start(t); mod.stop(t+dur+.05); car.start(t); car.stop(t+dur+.05);
+  const b = ctx.createOscillator(); const bg = ctx.createGain();
+  b.type="sine"; b.frequency.value=freq*2;
+  bg.gain.setValueAtTime(.08,t); bg.gain.exponentialRampToValueAtTime(.0001,t+1.2);
+  b.connect(bg); bg.connect(dest); b.start(t); b.stop(t+1.25);
+}
+
 // ─── Drums ────────────────────────────────────────────────────────────────────
 function mkKick(bodyFreq = 155, click = true): PlayFn {
   return (ctx, t, dest) => {
@@ -172,11 +207,16 @@ function mkGuitarClean(note: string): PlayFn {
   };
 }
 function mkGuitarMuted(note: string): PlayFn {
-  return (ctx, t, dest) => {
-    const f = NF[note] ?? 196.0; const dur = 0.08;
-    noise(ctx, t, dest, 0.015, f * 2, "bandpass", 1.5, 0.35);
-    osc(ctx, t, dest, "triangle", f, dur, 0.5);
-    osc(ctx, t, dest, "triangle", f * 2, dur * 0.5, 0.2);
+  return (ctx, t, dest, sd) => {
+    const f = NF[note] ?? 196.0; const dur = Math.min(sd * 0.55, 0.18);
+    // Palm-muted: damped/lowpassed but still clearly pitched, unlike a percussive thump
+    const o = ctx.createOscillator(); const filt = ctx.createBiquadFilter(); const g = ctx.createGain();
+    o.type = "sawtooth"; filt.type = "lowpass"; filt.frequency.value = f * 3.5; filt.Q.value = 1;
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(filt); filt.connect(g); g.connect(dest); o.start(t); o.stop(t + dur);
+    osc(ctx, t, dest, "triangle", f, dur * 0.85, 0.28);
+    noise(ctx, t, dest, 0.006, f * 4, "bandpass", 1.5, 0.15);
   };
 }
 function mkGuitarPowerChord(note: string): PlayFn {
@@ -402,7 +442,7 @@ const BASS_CATALOG: Instrument[] = [
 
 // Guitar: notes across fretboard + sound types
 const GTR_NOTES = ["E2","F2","G2","Ab2","A2","Bb2","B2","C3","D3","Eb3","E3","F3","G3","A3","B3","C4","D4","E4","G4"];
-const GTR_CHORD_ROOTS = ["E2","A2","D3","G3","C3","F3","G2","C3","Eb3"];
+const GTR_CHORD_ROOTS = ["E2","A2","D3","G3","C3","F3","G2","Bb2","Eb3"];
 const GUITAR_CATALOG: Instrument[] = [
   ...GTR_NOTES.map(n => ({ id:`gclean_${n}`,  label:n, group:"Clean",       play:mkGuitarClean(n) })),
   ...GTR_NOTES.map(n => ({ id:`gmute_${n}`,   label:n, group:"Muted",       play:mkGuitarMuted(n) })),
@@ -448,6 +488,70 @@ const LOOPS_CATALOG: Instrument[] = Object.entries(LOOP_SEQS).map(([id, def]) =>
   id, label: def.label, play: def.mkFn(def.notes),
 }));
 
+// ─── Chords: full diatonic progressions in any key/mode, played with Piano or Rhodes ──
+const KEY_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const TRIAD_INTERVALS: Record<"maj"|"min"|"dim", number[]> = { maj:[0,4,7], min:[0,3,7], dim:[0,3,6] };
+const MAJOR_SCALE   = [0,2,4,5,7,9,11];
+const MAJOR_QUALITY: ("maj"|"min"|"dim")[] = ["maj","min","min","maj","maj","min","dim"];
+const MINOR_SCALE   = [0,2,3,5,7,8,10];
+const MINOR_QUALITY: ("maj"|"min"|"dim")[] = ["min","dim","maj","min","min","maj","maj"];
+
+const MAJOR_PROGRESSIONS = [
+  { id:"1_4_5_6", label:"I–IV–V–vi",  degrees:[0,3,4,5] },
+  { id:"1_5_6_4", label:"I–V–vi–IV",  degrees:[0,4,5,3] },
+  { id:"6_4_1_5", label:"vi–IV–I–V",  degrees:[5,3,0,4] },
+  { id:"1_6_4_5", label:"I–vi–IV–V",  degrees:[0,5,3,4] },
+];
+const MINOR_PROGRESSIONS = [
+  { id:"1_6_3_7", label:"i–VI–III–VII", degrees:[0,5,2,6] },
+  { id:"1_4_5_1", label:"i–iv–v–i",     degrees:[0,3,4,0] },
+  { id:"1_6_4_5", label:"i–VI–iv–v",    degrees:[0,5,3,4] },
+  { id:"1_4_7_3", label:"i–iv–VII–III", degrees:[0,3,6,2] },
+];
+const CHORD_VOICES: { id:"piano"|"rhodes"; label:string; play:(ctx:AudioContext,dest:AudioNode,freq:number,t:number)=>void }[] = [
+  { id:"piano",  label:"Piano",  play:synthPianoNote },
+  { id:"rhodes", label:"Rhodes", play:synthRhodesNote },
+];
+
+// Build a 16-step sequence of chords (as MIDI note arrays), 4 steps per chord
+function buildChordSequence(rootSemitone: number, mode: "major"|"minor", degrees: number[]): number[][] {
+  const scale = mode === "major" ? MAJOR_SCALE : MINOR_SCALE;
+  const quality = mode === "major" ? MAJOR_QUALITY : MINOR_QUALITY;
+  const chords = degrees.map(deg => {
+    const chordRoot = 60 + rootSemitone + scale[deg];
+    return TRIAD_INTERVALS[quality[deg]].map(iv => chordRoot + iv);
+  });
+  const seq: number[][] = [];
+  for (const c of chords) for (let i = 0; i < 4; i++) seq.push(c);
+  return seq;
+}
+function mkChordLoop(seq: number[][], voice: (ctx:AudioContext,dest:AudioNode,freq:number,t:number)=>void): PlayFn {
+  return (ctx, t, dest, sd, step) => {
+    const chord = seq[step % seq.length];
+    if (!chord) return;
+    chord.forEach(m => voice(ctx, dest, midiToFreq(m), t));
+  };
+}
+
+const CHORDS_CATALOG: Instrument[] = [];
+KEY_NAMES.forEach((keyName, semitone) => {
+  (["major","minor"] as const).forEach(mode => {
+    const progressions = mode === "major" ? MAJOR_PROGRESSIONS : MINOR_PROGRESSIONS;
+    const group = `${keyName} ${mode === "major" ? "Major" : "Minor"}`;
+    progressions.forEach(prog => {
+      const seq = buildChordSequence(semitone, mode, prog.degrees);
+      CHORD_VOICES.forEach(voice => {
+        CHORDS_CATALOG.push({
+          id: `chd_${keyName.replace("#","s")}_${mode}_${prog.id}_${voice.id}`,
+          label: `${voice.label} · ${prog.label}`,
+          group,
+          play: mkChordLoop(seq, voice.play),
+        });
+      });
+    });
+  });
+});
+
 const PERC_CATALOG: Instrument[] = [
   { id:"p_rim",  label:"Rimshot",    play:mkRimshot() },
   { id:"p_cow",  label:"Cowbell",    play:mkCowbell() },
@@ -476,6 +580,7 @@ const CATALOGS: Record<string, Instrument[]> = {
   bass:  BASS_CATALOG,
   guitar:GUITAR_CATALOG,
   synth: SYNTH_CATALOG,
+  chords:CHORDS_CATALOG,
   loops: LOOPS_CATALOG,
   perc:  PERC_CATALOG,
   fx:    FX_CATALOG,
@@ -488,6 +593,7 @@ const SECTIONS: Section[] = [
   { id:"bass",   label:"BASS",       emoji:"🎸", color:"#a855f7" },
   { id:"guitar", label:"GUITAR",     emoji:"🎸", color:"#f59e0b" },
   { id:"synth",  label:"SYNTH",      emoji:"🎹", color:"#06b6d4" },
+  { id:"chords", label:"CHORDS",     emoji:"🎼", color:"#eab308" },
   { id:"loops",  label:"LOOPS",      emoji:"🔄", color:"#22d3ee" },
   { id:"perc",   label:"PERCUSSION", emoji:"🪘", color:"#22c55e" },
   { id:"fx",     label:"EFFECTS",    emoji:"✨", color:"#ec4899" },
@@ -548,6 +654,8 @@ const DEFAULT_ROWS: TrackRow[] = [
   mkRow("synth","sq_C4",      B([0,6,14])),
   mkRow("synth","sq_Eb4",     B([4,12])),
   mkRow("synth","sq_G4"),
+  // Chords - C Major, classic I–V–vi–IV pop progression on Piano
+  mkRow("chords","chd_C_major_1_5_6_4_piano", B([0,4,8,12])),
   // Loops - all 16 steps on so you hear the full melody
   mkRow("loops","cm_arp",     Array(16).fill(true)),
   mkRow("loops","bass_walk"),
@@ -564,7 +672,7 @@ const STEPS = 16;
 const LOOKAHEAD = 0.12;
 const SCHED_MS = 25;
 function stepDur(bpm: number) { return (60 / bpm) / 4; }
-interface EngineState { ctx: AudioContext; masterGain: GainNode; nextStepTime: number; currentStep: number; currentBar: number; bpm: number; }
+interface EngineState { ctx: AudioContext; masterGain: GainNode; recDest: MediaStreamAudioDestinationNode; nextStepTime: number; currentStep: number; currentBar: number; bpm: number; }
 
 // ─── Quick patterns ───────────────────────────────────────────────────────────
 const QUICK_PATTERNS: Record<string, {label:string; pattern:number[]}[]> = {
@@ -596,6 +704,11 @@ const QUICK_PATTERNS: Record<string, {label:string; pattern:number[]}[]> = {
     {label:"Syncopated",  pattern:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0]},
     {label:"Offbeat",     pattern:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]},
     {label:"Sparse",      pattern:[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0]},
+  ],
+  chords: [
+    {label:"Chord per bar-quarter", pattern:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]},
+    {label:"First chord only",      pattern:[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+    {label:"Halves",                pattern:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]},
   ],
   loops: [
     {label:"All steps",   pattern:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},
@@ -631,6 +744,7 @@ export function BeatMakerGame() {
   const [songLen, setSongLen] = useState<number>(8);
   const [arrangement, setArrangement] = useState<number[]>(Array(MAX_BARS).fill(0));
   const [currentBar, setCurrentBar] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
 
   const { user, openAuthModal } = useAuth();
   const [saveOpen, setSaveOpen] = useState(false);
@@ -639,6 +753,7 @@ export function BeatMakerGame() {
 
   const engineRef = useRef<EngineState | null>(null);
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const rowsRef   = useRef(rows);
   const volRef    = useRef(volume);
   const bpmRef    = useRef(bpm);
@@ -661,7 +776,9 @@ export function BeatMakerGame() {
     const masterGain = ctx.createGain();
     masterGain.gain.setValueAtTime(volRef.current, ctx.currentTime);
     masterGain.connect(ctx.destination);
-    engineRef.current = { ctx, masterGain, nextStepTime: ctx.currentTime + 0.05, currentStep: 0, currentBar: 0, bpm: bpmRef.current };
+    const recDest = ctx.createMediaStreamDestination();
+    masterGain.connect(recDest);
+    engineRef.current = { ctx, masterGain, recDest, nextStepTime: ctx.currentTime + 0.05, currentStep: 0, currentBar: 0, bpm: bpmRef.current };
   }, []);
 
   useEffect(() => {
@@ -708,10 +825,18 @@ export function BeatMakerGame() {
     setPlayMode(mode);
     setIsRunning(true);
   };
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  };
   const stopPlayback = () => {
     setIsRunning(false);
     setCurrentStep(-1);
     setCurrentBar(0);
+    if (mediaRecorderRef.current) stopRecording();
   };
   const handlePlayStop = () => {
     if (isRunning) stopPlayback();
@@ -720,6 +845,33 @@ export function BeatMakerGame() {
   const handleSongPlayStop = () => {
     if (isRunning && playMode === "song") stopPlayback();
     else startPlayback("song");
+  };
+
+  const startRecording = () => {
+    if (!engineRef.current) startEngine();
+    const eng = engineRef.current!;
+    const mimeType = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/webm")
+      ? "audio/webm" : undefined;
+    const mr = mimeType ? new MediaRecorder(eng.recDest.stream, { mimeType }) : new MediaRecorder(eng.recDest.stream);
+    const chunks: BlobPart[] = [];
+    mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = () => {
+      const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+      const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `beat-maker-${Date.now()}.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    };
+    mr.start();
+    mediaRecorderRef.current = mr;
+    setIsRecording(true);
+  };
+  const handleRecordClick = () => {
+    if (isRecording) { stopRecording(); return; }
+    if (!isRunning) startPlayback("pattern");
+    startRecording();
   };
 
   const editSteps = (steps: boolean[][], fn: (pat: boolean[]) => boolean[]) =>
@@ -743,6 +895,12 @@ export function BeatMakerGame() {
         const tg = eng.ctx.createGain(); tg.gain.value = 0.7; tg.connect(eng.masterGain);
         instr.play(eng.ctx, tNow + s * sd, tg, sd, s);
       }
+    } else if (sectionId === "chords") {
+      // Play through all 4 chords in the progression, spaced out so each rings clearly
+      [0, 4, 8, 12].forEach((s, i) => {
+        const tg = eng.ctx.createGain(); tg.gain.value = 0.7; tg.connect(eng.masterGain);
+        instr.play(eng.ctx, tNow + i * 0.7, tg, 0.5, s);
+      });
     } else {
       // Use a fixed 0.5s sd so sustained notes (bass, synth, guitar) ring out clearly
       const tg = eng.ctx.createGain(); tg.gain.value = 0.7; tg.connect(eng.masterGain);
@@ -862,6 +1020,17 @@ export function BeatMakerGame() {
               </button>
             </>
           )}
+          <button onClick={handleRecordClick} className="px-4 py-2 rounded-xl text-sm font-black"
+            title={isRecording ? "Stop recording & download" : "Record the session as an audio file"}
+            style={{
+              background: isRecording ? "#ef4444" : "rgba(255,255,255,0.07)",
+              color: isRecording ? "#fff" : "rgba(255,255,255,0.6)",
+              minWidth: 96,
+              boxShadow: isRecording ? "0 0 20px #ef444488" : "none",
+              border: `2px solid ${isRecording ? "#ef4444" : "rgba(255,255,255,0.15)"}`,
+            }}>
+            {isRecording ? "⏺ Recording…" : "⏺ Record"}
+          </button>
           <button onClick={handlePlayStop} className="px-5 py-2 rounded-xl text-sm font-black"
             style={{ background:isRunning?"#ef4444":"#a855f7", color:"#fff", minWidth:80, boxShadow:isRunning?"0 0 20px #ef444488":"0 0 20px #a855f788", border:`2px solid ${isRunning?"#ef4444":"#a855f7"}` }}>
             {isRunning ? "⏹ Stop" : "▶ Play"}
@@ -976,6 +1145,11 @@ export function BeatMakerGame() {
                   {section.id === "loops" && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background:`${section.color}33`, color:section.color }}>
                       each step = different note
+                    </span>
+                  )}
+                  {section.id === "chords" && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background:`${section.color}33`, color:section.color }}>
+                      pick a key, mode & progression — chords change every 4 steps
                     </span>
                   )}
                   <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.3)" }}>

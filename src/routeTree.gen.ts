@@ -21,6 +21,7 @@ import { Route as GamesPianoChordsRouteImport } from './routes/games/piano-chord
 import { Route as GamesPacmanRouteImport } from './routes/games/pacman'
 import { Route as GamesNameThatCountryRouteImport } from './routes/games/name-that-country'
 import { Route as GamesMusicMatchRouteImport } from './routes/games/music-match'
+import { Route as GamesMelodyMemoryRouteImport } from './routes/games/melody-memory'
 import { Route as GamesMatchGameRouteImport } from './routes/games/match-game'
 import { Route as GamesMastermindRouteImport } from './routes/games/mastermind'
 import { Route as GamesJanglesPongRouteImport } from './routes/games/jangles-pong'
@@ -107,6 +108,11 @@ const GamesNameThatCountryRoute = GamesNameThatCountryRouteImport.update({
 const GamesMusicMatchRoute = GamesMusicMatchRouteImport.update({
   id: '/games/music-match',
   path: '/games/music-match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesMelodyMemoryRoute = GamesMelodyMemoryRouteImport.update({
+  id: '/games/melody-memory',
+  path: '/games/melody-memory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesMatchGameRoute = GamesMatchGameRouteImport.update({
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/games/jangles-pong': typeof GamesJanglesPongRoute
   '/games/mastermind': typeof GamesMastermindRoute
   '/games/match-game': typeof GamesMatchGameRoute
+  '/games/melody-memory': typeof GamesMelodyMemoryRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/games/jangles-pong': typeof GamesJanglesPongRoute
   '/games/mastermind': typeof GamesMastermindRoute
   '/games/match-game': typeof GamesMatchGameRoute
+  '/games/melody-memory': typeof GamesMelodyMemoryRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/games/jangles-pong': typeof GamesJanglesPongRoute
   '/games/mastermind': typeof GamesMastermindRoute
   '/games/match-game': typeof GamesMatchGameRoute
+  '/games/melody-memory': typeof GamesMelodyMemoryRoute
   '/games/music-match': typeof GamesMusicMatchRoute
   '/games/name-that-country': typeof GamesNameThatCountryRoute
   '/games/pacman': typeof GamesPacmanRoute
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/games/jangles-pong'
     | '/games/mastermind'
     | '/games/match-game'
+    | '/games/melody-memory'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -443,6 +453,7 @@ export interface FileRouteTypes {
     | '/games/jangles-pong'
     | '/games/mastermind'
     | '/games/match-game'
+    | '/games/melody-memory'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -484,6 +495,7 @@ export interface FileRouteTypes {
     | '/games/jangles-pong'
     | '/games/mastermind'
     | '/games/match-game'
+    | '/games/melody-memory'
     | '/games/music-match'
     | '/games/name-that-country'
     | '/games/pacman'
@@ -526,6 +538,7 @@ export interface RootRouteChildren {
   GamesJanglesPongRoute: typeof GamesJanglesPongRoute
   GamesMastermindRoute: typeof GamesMastermindRoute
   GamesMatchGameRoute: typeof GamesMatchGameRoute
+  GamesMelodyMemoryRoute: typeof GamesMelodyMemoryRoute
   GamesMusicMatchRoute: typeof GamesMusicMatchRoute
   GamesNameThatCountryRoute: typeof GamesNameThatCountryRoute
   GamesPacmanRoute: typeof GamesPacmanRoute
@@ -622,6 +635,13 @@ declare module '@tanstack/react-router' {
       path: '/games/music-match'
       fullPath: '/games/music-match'
       preLoaderRoute: typeof GamesMusicMatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/melody-memory': {
+      id: '/games/melody-memory'
+      path: '/games/melody-memory'
+      fullPath: '/games/melody-memory'
+      preLoaderRoute: typeof GamesMelodyMemoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/match-game': {
@@ -846,6 +866,7 @@ const rootRouteChildren: RootRouteChildren = {
   GamesJanglesPongRoute: GamesJanglesPongRoute,
   GamesMastermindRoute: GamesMastermindRoute,
   GamesMatchGameRoute: GamesMatchGameRoute,
+  GamesMelodyMemoryRoute: GamesMelodyMemoryRoute,
   GamesMusicMatchRoute: GamesMusicMatchRoute,
   GamesNameThatCountryRoute: GamesNameThatCountryRoute,
   GamesPacmanRoute: GamesPacmanRoute,
