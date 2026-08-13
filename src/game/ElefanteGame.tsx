@@ -30,6 +30,16 @@ const COUNTRIES = [
 ] as const;
 
 type Country = typeof COUNTRIES[number];
+
+function shuffledCountryOrder(): number[] {
+  const order = COUNTRIES.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
 type Difficulty = "rookie" | "master";
 type Phase = "select" | "playing" | "over";
 
@@ -110,6 +120,7 @@ export function ElefanteGame() {
     let frame          = 0;
     let speed          = cfgInitSpeed;
     let countryIdx     = 0;
+    let countryOrder   = shuffledCountryOrder();
     let lastCountryIdx = -1;
     let countryFlash   = 0;
     let rafId          = 0;
@@ -170,6 +181,7 @@ export function ElefanteGame() {
       frame          = 0;
       speed          = cfgInitSpeed;
       countryIdx     = 0;
+      countryOrder   = shuffledCountryOrder();
       lastCountryIdx = -1;
       countryFlash   = 0;
       gameStartTime  = 0;
@@ -186,7 +198,7 @@ export function ElefanteGame() {
       countdownRef.current = COUNTDOWN_S;
       phaseRef.current = "playing";
       setPhase("playing");
-      loadCountryAudio(COUNTRIES[0]);
+      loadCountryAudio(COUNTRIES[countryOrder[0]]);
 
       const interval = setInterval(() => {
         countdownRef.current -= 1;
@@ -489,10 +501,10 @@ export function ElefanteGame() {
       elapsedMs = performance.now() - gameStartTime;
       speed = cfgInitSpeed + Math.floor(score / cfgScoreStep) * cfgSpeedStep;
 
-      const newIdx = Math.floor(elapsedMs / COUNTRY_DURATION_MS) % COUNTRIES.length;
-      if (newIdx !== lastCountryIdx) {
-        countryIdx     = newIdx;
-        lastCountryIdx = newIdx;
+      const newPos = Math.floor(elapsedMs / COUNTRY_DURATION_MS) % COUNTRIES.length;
+      if (newPos !== lastCountryIdx) {
+        countryIdx     = countryOrder[newPos];
+        lastCountryIdx = newPos;
         countryFlash   = 180;
         loadCountryAudio(COUNTRIES[countryIdx]);
       }

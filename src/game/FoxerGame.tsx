@@ -72,6 +72,7 @@ interface LaneConfig {
 interface LevelDef {
   country: string;
   flag: string;
+  music: string | null;
   bgTop: string;
   bgBottom: string;
   safeColor: string;
@@ -106,6 +107,7 @@ function makeLanes(
 interface CountryDef {
   country: string;
   flag: string;
+  music: string | null;
   bgTop: string;
   bgBottom: string;
   safeColor: string;
@@ -118,22 +120,22 @@ interface CountryDef {
 }
 
 const COUNTRIES: CountryDef[] = [
-  { country:"USA",          flag:"🇺🇸", bgTop:"#0d1b3e", bgBottom:"#1a1a4e", safeColor:"#2c3e6b", laneColor:"#1c1c1c", obstacleColor:"#c0392b", obstacleType:"van",       obstacleWidth:2, laneC1:"#1c1c1c", laneC2:"#2a2a2a" },
-  { country:"Mexico",       flag:"🇲🇽", bgTop:"#87ceeb", bgBottom:"#f5deb3", safeColor:"#c8e6c9", laneColor:"#d2a679", obstacleColor:"#8b4513", obstacleType:"sombrero",  obstacleWidth:1, laneC1:"#d2a679", laneC2:"#c49a6c" },
-  { country:"Jamaica",      flag:"🇯🇲", bgTop:"#1565c0", bgBottom:"#f5deb3", safeColor:"#2e7d32", laneColor:"#1b5e20", obstacleColor:"#ffd600", obstacleType:"drum",      obstacleWidth:1, laneC1:"#1b5e20", laneC2:"#388e3c" },
-  { country:"Barbados",     flag:"🇧🇧", bgTop:"#0288d1", bgBottom:"#c8a850", safeColor:"#4fc3f7", laneColor:"#0277bd", obstacleColor:"#e53935", obstacleType:"flyingfish",obstacleWidth:1, laneC1:"#0277bd", laneC2:"#0288d1" },
-  { country:"Peru",         flag:"🇵🇪", bgTop:"#546e7a", bgBottom:"#6d4c41", safeColor:"#8d6e63", laneColor:"#5d4037", obstacleColor:"#bcaaa4", obstacleType:"llama",     obstacleWidth:2, laneC1:"#5d4037", laneC2:"#4e342e" },
-  { country:"Argentina",    flag:"🇦🇷", bgTop:"#74b9ff", bgBottom:"#dfe6e9", safeColor:"#a8d8f0", laneColor:"#5c94c8", obstacleColor:"#2c3e50", obstacleType:"soccer",    obstacleWidth:1, laneC1:"#5c94c8", laneC2:"#4a83b7" },
-  { country:"Antarctica",   flag:"🐧",  bgTop:"#b3e5fc", bgBottom:"#e3f2fd", safeColor:"#e1f5fe", laneColor:"#81d4fa", obstacleColor:"#263238", obstacleType:"penguin",   obstacleWidth:1, laneC1:"#81d4fa", laneC2:"#4fc3f7" },
-  { country:"England",      flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", bgTop:"#b0bec5", bgBottom:"#78909c", safeColor:"#546e7a", laneColor:"#37474f", obstacleColor:"#c62828", obstacleType:"bus",      obstacleWidth:2, laneC1:"#37474f", laneC2:"#455a64" },
-  { country:"France",       flag:"🇫🇷", bgTop:"#90caf9", bgBottom:"#c8e6c9", safeColor:"#bbdefb", laneColor:"#1565c0", obstacleColor:"#e53935", obstacleType:"balloon",   obstacleWidth:1, laneC1:"#1565c0", laneC2:"#1976d2" },
-  { country:"Italy",        flag:"🇮🇹", bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#ffe082", laneColor:"#7b5e30", obstacleColor:"#c62828", obstacleType:"vespa",     obstacleWidth:2, laneC1:"#8d6e40", laneC2:"#7b5e30" },
-  { country:"Sri Lanka",    flag:"🇱🇰", bgTop:"#ce93d8", bgBottom:"#ab47bc", safeColor:"#e1bee7", laneColor:"#6a1b9a", obstacleColor:"#f57f17", obstacleType:"tuktuk",    obstacleWidth:2, laneC1:"#6a1b9a", laneC2:"#7b1fa2" },
-  { country:"Japan",        flag:"🇯🇵", bgTop:"#e0f7fa", bgBottom:"#b2ebf2", safeColor:"#80deea", laneColor:"#00838f", obstacleColor:"#263238", obstacleType:"sushi",     obstacleWidth:1, laneC1:"#00838f", laneC2:"#006978" },
-  { country:"Switzerland",  flag:"🇨🇭", bgTop:"#e3f2fd", bgBottom:"#fff",    safeColor:"#e8f5e9", laneColor:"#b0bec5", obstacleColor:"#c62828", obstacleType:"sled",      obstacleWidth:2, laneC1:"#b0bec5", laneC2:"#90a4ae" },
-  { country:"Kenya",        flag:"🇰🇪", bgTop:"#87ceeb", bgBottom:"#c8a850", safeColor:"#7cb342", laneColor:"#a0783a", obstacleColor:"#4e342e", obstacleType:"jeep",      obstacleWidth:2, laneC1:"#a0783a", laneC2:"#8d6a30" },
-  { country:"South Africa", flag:"🇿🇦", bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#a5d6a7", laneColor:"#0288d1", obstacleColor:"#e53935", obstacleType:"sailboat",  obstacleWidth:2, laneC1:"#0277bd", laneC2:"#0288d1" },
-  { country:"Ghana",        flag:"🇬🇭", bgTop:"#ff8f00", bgBottom:"#4caf50", safeColor:"#ffcc02", laneColor:"#2e7d32", obstacleColor:"#e53935", obstacleType:"basket",    obstacleWidth:1, laneC1:"#2e7d32", laneC2:"#388e3c" },
+  { country:"USA",          flag:"🇺🇸", music: asset("/music/NEW ORLEANS.wav"),                    bgTop:"#0d1b3e", bgBottom:"#1a1a4e", safeColor:"#2c3e6b", laneColor:"#1c1c1c", obstacleColor:"#c0392b", obstacleType:"van",       obstacleWidth:2, laneC1:"#1c1c1c", laneC2:"#2a2a2a" },
+  { country:"Mexico",       flag:"🇲🇽", music: asset("/music/MEXICO.wav"),                         bgTop:"#87ceeb", bgBottom:"#f5deb3", safeColor:"#c8e6c9", laneColor:"#d2a679", obstacleColor:"#8b4513", obstacleType:"sombrero",  obstacleWidth:1, laneC1:"#d2a679", laneC2:"#c49a6c" },
+  { country:"Jamaica",      flag:"🇯🇲", music: asset("/music/JAMAICA.wav"),                        bgTop:"#1565c0", bgBottom:"#f5deb3", safeColor:"#2e7d32", laneColor:"#1b5e20", obstacleColor:"#ffd600", obstacleType:"drum",      obstacleWidth:1, laneC1:"#1b5e20", laneC2:"#388e3c" },
+  { country:"Barbados",     flag:"🇧🇧", music: asset("/music/BARBADOS_2.wav"),                     bgTop:"#0288d1", bgBottom:"#c8a850", safeColor:"#4fc3f7", laneColor:"#0277bd", obstacleColor:"#e53935", obstacleType:"flyingfish",obstacleWidth:1, laneC1:"#0277bd", laneC2:"#0288d1" },
+  { country:"Peru",         flag:"🇵🇪", music: asset("/music/PERU.wav"),                           bgTop:"#546e7a", bgBottom:"#6d4c41", safeColor:"#8d6e63", laneColor:"#5d4037", obstacleColor:"#bcaaa4", obstacleType:"llama",     obstacleWidth:2, laneC1:"#5d4037", laneC2:"#4e342e" },
+  { country:"Argentina",    flag:"🇦🇷", music: asset("/music/ARGENTINA DRUMS AND HORNS_1.2.wav"), bgTop:"#74b9ff", bgBottom:"#dfe6e9", safeColor:"#a8d8f0", laneColor:"#5c94c8", obstacleColor:"#2c3e50", obstacleType:"soccer",    obstacleWidth:1, laneC1:"#5c94c8", laneC2:"#4a83b7" },
+  { country:"Antarctica",   flag:"🐧",  music: null,                                                bgTop:"#b3e5fc", bgBottom:"#e3f2fd", safeColor:"#e1f5fe", laneColor:"#81d4fa", obstacleColor:"#263238", obstacleType:"penguin",   obstacleWidth:1, laneC1:"#81d4fa", laneC2:"#4fc3f7" },
+  { country:"England",      flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", music: asset("/music/ENGLAND.wav"),                        bgTop:"#b0bec5", bgBottom:"#78909c", safeColor:"#546e7a", laneColor:"#37474f", obstacleColor:"#c62828", obstacleType:"bus",      obstacleWidth:2, laneC1:"#37474f", laneC2:"#455a64" },
+  { country:"France",       flag:"🇫🇷", music: asset("/music/FRANCE.wav"),                         bgTop:"#90caf9", bgBottom:"#c8e6c9", safeColor:"#bbdefb", laneColor:"#1565c0", obstacleColor:"#e53935", obstacleType:"balloon",   obstacleWidth:1, laneC1:"#1565c0", laneC2:"#1976d2" },
+  { country:"Italy",        flag:"🇮🇹", music: asset("/music/ITALY.wav"),                          bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#ffe082", laneColor:"#7b5e30", obstacleColor:"#c62828", obstacleType:"vespa",     obstacleWidth:2, laneC1:"#8d6e40", laneC2:"#7b5e30" },
+  { country:"Sri Lanka",    flag:"🇱🇰", music: asset("/music/SRI LANKA_1.1.wav"),                 bgTop:"#ce93d8", bgBottom:"#ab47bc", safeColor:"#e1bee7", laneColor:"#6a1b9a", obstacleColor:"#f57f17", obstacleType:"tuktuk",    obstacleWidth:2, laneC1:"#6a1b9a", laneC2:"#7b1fa2" },
+  { country:"Japan",        flag:"🇯🇵", music: asset("/music/JAPAN.wav"),                          bgTop:"#e0f7fa", bgBottom:"#b2ebf2", safeColor:"#80deea", laneColor:"#00838f", obstacleColor:"#263238", obstacleType:"sushi",     obstacleWidth:1, laneC1:"#00838f", laneC2:"#006978" },
+  { country:"Switzerland",  flag:"🇨🇭", music: asset("/music/SWITZERLAND.wav"),                    bgTop:"#e3f2fd", bgBottom:"#fff",    safeColor:"#e8f5e9", laneColor:"#b0bec5", obstacleColor:"#c62828", obstacleType:"sled",      obstacleWidth:2, laneC1:"#b0bec5", laneC2:"#90a4ae" },
+  { country:"Kenya",        flag:"🇰🇪", music: asset("/music/KENYA.wav"),                          bgTop:"#87ceeb", bgBottom:"#c8a850", safeColor:"#7cb342", laneColor:"#a0783a", obstacleColor:"#4e342e", obstacleType:"jeep",      obstacleWidth:2, laneC1:"#a0783a", laneC2:"#8d6a30" },
+  { country:"South Africa", flag:"🇿🇦", music: asset("/music/SOUTH AFRICA_1.2.wav"),              bgTop:"#87ceeb", bgBottom:"#e8d5a3", safeColor:"#a5d6a7", laneColor:"#0288d1", obstacleColor:"#e53935", obstacleType:"sailboat",  obstacleWidth:2, laneC1:"#0277bd", laneC2:"#0288d1" },
+  { country:"Ghana",        flag:"🇬🇭", music: asset("/music/GHANA.wav"),                          bgTop:"#ff8f00", bgBottom:"#4caf50", safeColor:"#ffcc02", laneColor:"#2e7d32", obstacleColor:"#e53935", obstacleType:"basket",    obstacleWidth:1, laneC1:"#2e7d32", laneC2:"#388e3c" },
 ];
 
 // ─── Difficulty tiers (position 0 = easiest, 15 = hardest) ───────────────────
@@ -162,6 +164,7 @@ function buildLevel(c: CountryDef, tier: { speedFactor: number; gap: number }): 
   return {
     country: c.country,
     flag: c.flag,
+    music: c.music,
     bgTop: c.bgTop,
     bgBottom: c.bgBottom,
     safeColor: c.safeColor,
@@ -1751,6 +1754,7 @@ function drawGhanaScene(ctx: CanvasRenderingContext2D) {
 export function FoxerGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
   const foxyImgRef = useRef<HTMLImageElement | null>(null);
   const stateRef = useRef<GameState>("start");
   const foxyRef = useRef<FoxyPos>({ col: 6, row: ROWS - 2 });
@@ -1803,6 +1807,27 @@ export function FoxerGame() {
     return audioCtxRef.current;
   }, []);
 
+  const stopMusic = useCallback(() => {
+    if (musicRef.current) {
+      musicRef.current.pause();
+      musicRef.current.currentTime = 0;
+      musicRef.current = null;
+    }
+  }, []);
+
+  const playMusic = useCallback((src: string | null) => {
+    stopMusic();
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.loop = true;
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+    musicRef.current = audio;
+  }, [stopMusic]);
+
+  // Stop music when the game unmounts
+  useEffect(() => stopMusic, [stopMusic]);
+
   const initObstacles = useCallback((levelIdx: number) => {
     const def = shuffledLevelsRef.current[levelIdx];
     const obs: Obstacle[] = [];
@@ -1833,6 +1858,7 @@ export function FoxerGame() {
       rowsCrossedRef.current = new Set();
       invincibleRef.current = 0;
       initObstacles(levelIdx);
+      playMusic(shuffledLevelsRef.current[levelIdx].music);
       // Show banner for 2.5 s using a simple timeout — no frame-timing dependency
       stateRef.current = "banner";
       setGameState("banner");
@@ -1841,7 +1867,7 @@ export function FoxerGame() {
         setGameState("playing");
       }, 2500);
     },
-    [initObstacles]
+    [initObstacles, playMusic]
   );
 
   const startGame = useCallback(() => {
@@ -1868,6 +1894,7 @@ export function FoxerGame() {
         highScoreRef.current = scoreRef.current;
         setDisplayHighScore(highScoreRef.current);
       }
+      stopMusic();
       stateRef.current = "gameOver";
       setGameState("gameOver");
     } else {
@@ -1876,7 +1903,7 @@ export function FoxerGame() {
       rowsCrossedRef.current = new Set();
       invincibleRef.current = 1.5;
     }
-  }, [getAudio]);
+  }, [getAudio, stopMusic]);
 
   // Reusable collision check — tests Foxy at given col/row against current obstacles
   const checkCollisionAt = useCallback((col: number, row: number): boolean => {
@@ -1939,11 +1966,12 @@ export function FoxerGame() {
         setDisplayScore(scoreRef.current);
         const stars = timerRef.current > 30 ? 3 : timerRef.current > 15 ? 2 : 1;
         setLevelStars(stars);
+        stopMusic();
         stateRef.current = "levelComplete";
         setGameState("levelComplete");
       }
     },
-    [getAudio, checkCollisionAt, handleHit]
+    [getAudio, checkCollisionAt, handleHit, stopMusic]
   );
 
   // Keyboard controls

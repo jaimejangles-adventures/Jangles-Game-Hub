@@ -8,22 +8,27 @@ const H = 640;
 const HORIZON_Y = 200;
 const N_ROWS = H - HORIZON_Y;
 const BASE_HW = 210;
-const CAR_STEER = 0.022;
 const CURVE_STR = 90;
-const DRIFT = 0.0012;
 const CAR_MAX_X = 0.85;
+const STEER_ACCEL = 0.0032;       // lateral acceleration while holding a direction
+const STEER_FRICTION = 0.84;      // velocity kept each frame — smooth accel/coast instead of an instant snap
+const CURVE_DRIFT_ACCEL = 0.0022; // how hard a curve pulls the car off-line if you don't counter-steer
 
 const NUM_LAPS = 3;
 const TRACK_LENGTH = 2800;
 const TOTAL_RACE = TRACK_LENGTH * NUM_LAPS;
 
 // How far ahead (in trackPos units) the view shows.
-// AI cars beyond this are near the horizon; below 0 = behind player = NOT rendered.
-const VISIBLE_AHEAD = 350;
+// AI cars beyond this are near the horizon; below 0 = behind player.
+const VISIBLE_AHEAD = 400;
+// Cars the player just overtook stay visible (fading out) for this many
+// trackPos units behind, instead of blinking off-screen the instant they're passed.
+const REAR_FADE = 70;
 
 const PLAYER_MAX_SPEED = 0.021;
 const PLAYER_ACCEL    = 0.000090;
-const AI_ACCEL        = 0.000055;
+const AI_ACCEL         = 0.000075; // standing-start ramp-up rate
+const AI_CATCHUP_ACCEL = 0.0006;   // rate an AI closes the gap when rubber-banding back into view
 
 // Collision: only same-lane AND very close-depth triggers slowdown
 const COLLISION_WIDTH     = 0.27;   // tight – pass cleanly by moving one lane over
@@ -81,14 +86,15 @@ const CIRCUITS: Circuit[] = [
 ];
 
 // ── AI definitions ─────────────────────────────────────────────────────────────
-// Speeds are clearly slower than PLAYER_MAX_SPEED (0.018) so player can always pass.
+// Speeds sit close to PLAYER_MAX_SPEED (0.021) — close enough that the pack stays
+// in view for the whole race instead of the player blowing past everyone on lap 1.
 // Rubber banding keeps the race close without making it unbeatable.
 const AI_DEFS = [
-  { id: 1, name: "TURBO", color: "#ff4444", baseSpeed: 0.0118 },
-  { id: 2, name: "BLITZ", color: "#44ee88", baseSpeed: 0.0105 },
-  { id: 3, name: "ZOOM",  color: "#ffaa00", baseSpeed: 0.0122 },
-  { id: 4, name: "FLASH", color: "#cc44ff", baseSpeed: 0.0098 },
-  { id: 5, name: "SPIKE", color: "#00ccff", baseSpeed: 0.0112 },
+  { id: 1, name: "TURBO", color: "#ff4444", baseSpeed: 0.0178 },
+  { id: 2, name: "BLITZ", color: "#44ee88", baseSpeed: 0.0164 },
+  { id: 3, name: "ZOOM",  color: "#ffaa00", baseSpeed: 0.0192 },
+  { id: 4, name: "FLASH", color: "#cc44ff", baseSpeed: 0.0155 },
+  { id: 5, name: "SPIKE", color: "#00ccff", baseSpeed: 0.0172 },
 ];
 
 // P1=ZOOM, P2=TURBO, P3=SPIKE ahead, player=P4, P5/P6 behind.
@@ -136,6 +142,7 @@ interface StandingEntry {
 interface GPState {
   phase: Phase;
   carX: number;
+  carVX: number;
   playerSpeed: number;
   playerTrackPos: number;
   roadScrollPos: number;
@@ -210,7 +217,7 @@ function makeAICars(): AICar[] {
 
 function makeState(bestRank = 0): GPState {
   return {
-    phase: "title", carX: 0, playerSpeed: 0, playerTrackPos: 0,
+    phase: "title", carX: 0, carVX: 0, playerSpeed: 0, playerTrackPos: 0,
     roadScrollPos: 0, playerLap: 1,
     aiCars: makeAICars(),
     circuitIdx: Math.floor(Math.random() * CIRCUITS.length),
@@ -749,10 +756,15 @@ export function JanglesGPGame() {
     playMusic(circuit.music);
 
     // Player steering
-    if (s.leftDown)  s.carX -= CAR_STEER;
-    if (s.rightDown) s.carX += CAR_STEER;
-    s.carX -= getCurve(s.roadScrollPos) * DRIFT;
-    s.carX = clamp(s.carX, -CAR_MAX_X, CAR_MAX_X);
+    if (s.leftDown)  s.carVX -= STEER_ACCEL;
+    if (s.rightDown) s.carVX += STEER_ACCEL;
+    s.carVX *= STEER_FRICTION;
+    // Curves pull the car off-line as an actual force — has to be countered by steering,
+    // and pulls harder the faster you're going, instead of a flat nudge that's basically invisible.
+    s.carVX -= getCurve(s.roadScrollPos) * CURVE_DRIFT_ACCEL * (s.playerSpeed / PLAYER_MAX_SPEED);
+    s.carX = clamp(s.carX + s.carVX, -CAR_MAX_X, CAR_MAX_X);
+    if (s.carX <= -CAR_MAX_X && s.carVX < 0) s.carVX = 0;
+    if (s.carX >=  CAR_MAX_X && s.carVX > 0) s.carVX = 0;
 
     // Player speed
     if (s.slowdownLeft > 0) {
@@ -811,17 +823,21 @@ export function JanglesGPGame() {
     for (const ai of s.aiCars) {
       if (ai.finished) continue;
 
-      // Accelerate toward base speed
-      ai.speed = Math.min(ai.speed + AI_ACCEL, ai.baseSpeed);
+      // Accelerate toward base speed from a standing start. Guarded to only fire while under
+      // baseSpeed — unconditionally re-running this every frame used to reset any rubber-band
+      // boost straight back down before it could compound, which is why catch-up never worked.
+      if (ai.speed < ai.baseSpeed) ai.speed = Math.min(ai.speed + AI_ACCEL, ai.baseSpeed);
 
-      // Rubber band: if far behind player, speed up a bit; far ahead, slow a bit
+      // Rubber band: if far behind player, speed up to catch back into view; far ahead, slow a bit.
+      // Kicks in sooner and pulls harder than before so a passed car doesn't just vanish for good.
       const gap = ai.trackPos - s.playerTrackPos;
-      if (gap >  400) ai.speed = Math.max(ai.speed * 0.997, ai.baseSpeed * 0.82);
-      if (gap < -200) ai.speed = Math.min(ai.speed * 1.003, ai.baseSpeed * 1.10);
+      if (gap >  400) ai.speed = Math.max(ai.speed - AI_ACCEL, ai.baseSpeed * 0.82);
+      if (gap < -150) ai.speed = Math.min(ai.speed + AI_CATCHUP_ACCEL, ai.baseSpeed * 1.22);
 
       // Small random variation to make racing feel natural
       ai.speed += (Math.random() - 0.5) * 0.0003;
-      ai.speed = clamp(ai.speed, ai.baseSpeed * 0.80, ai.baseSpeed * 1.12);
+      // Ceiling has to clear the gap<-150 catch-up target above, or this clamp silently cancels it out.
+      ai.speed = clamp(ai.speed, ai.baseSpeed * 0.80, ai.baseSpeed * 1.25);
 
       ai.trackPos += ai.speed * 100;
 
@@ -877,9 +893,10 @@ export function JanglesGPGame() {
           s.slowdownLeft = SLOWDOWN_FRAMES;
           s.collisionCooldown = COLLISION_COOLDOWN;
           s.collisionFlash = 18;
-          // Nudge player sideways away from the AI car
+          // Push player sideways away from the AI car as a velocity impulse (resolved smoothly
+          // over the next few frames by friction) instead of an instant position teleport.
           const pushDir = s.carX <= ai.laneX ? -1 : 1;
-          s.carX = clamp(s.carX + pushDir * 0.10, -CAR_MAX_X, CAR_MAX_X);
+          s.carVX += pushDir * 0.045;
           break;
         }
       }
@@ -891,21 +908,32 @@ export function JanglesGPGame() {
 
     const curve = getCurve(s.roadScrollPos);
 
-    // Draw AI cars: only cars AHEAD of the player (relDist > 0), sorted far→near
+    // Draw AI cars: cars ahead (relDist > 0) render normally; cars just overtaken
+    // (relDist slightly negative) stay visible, fading out, instead of blinking off-screen.
     const sortedAI = [...s.aiCars].sort((a, b) => a.trackPos - b.trackPos);
     for (const ai of sortedAI) {
       if (ai.finished) continue;
       const relDist = ai.trackPos - s.playerTrackPos;
-      if (relDist <= 0 || relDist > VISIBLE_AHEAD) continue; // SKIP cars behind player
+      if (relDist > VISIBLE_AHEAD || relDist < -REAR_FADE) continue;
 
-      const depth = clamp(1 - relDist / VISIBLE_AHEAD, 0, 1);
+      let depth: number;
+      let alpha = 1;
+      if (relDist >= 0) {
+        depth = clamp(1 - relDist / VISIBLE_AHEAD, 0, 1);
+      } else {
+        depth = 1;
+        alpha = clamp(1 + relDist / REAR_FADE, 0, 1);
+      }
       if (depth < 0.01) continue;
 
       const t = 1 - depth;
       const curveOffset = curve * CURVE_STR * t;
       const sx = W / 2 + (ai.laneX - s.carX) * BASE_HW * depth + curveOffset;
       const sy = HORIZON_Y + depth * N_ROWS;
+      ctx.save();
+      ctx.globalAlpha = alpha;
       drawAICar(ctx, sx, sy, depth, ai.color, ai.id, ai.name);
+      ctx.restore();
     }
 
     drawPlayerCar(ctx, s.collisionFlash);

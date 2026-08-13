@@ -247,7 +247,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, onProfileCreated 
           type="button"
           onClick={handleGoogleSignIn}
           disabled={submitting}
-          className="mb-4 flex items-center justify-center gap-2 rounded-full border-[2px] border-ink bg-white py-2.5 text-sm font-extrabold text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+          className="mb-4 flex items-center justify-center gap-2 rounded-full border-[2px] border-ink bg-white px-4 py-2.5 text-sm font-extrabold text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-60"
           style={{ borderBottomWidth: 4, borderRightWidth: 3 }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">

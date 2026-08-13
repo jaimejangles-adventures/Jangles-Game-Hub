@@ -13,7 +13,9 @@ const BASE_SPEED = 0.005;
 const MAX_SPEED = 0.016;
 const SPEED_PER_LEVEL = 0.0015;
 const CURVE_STR = 90;
-const DRIFT = 0.0012;
+const STEER_ACCEL = 0.0032;       // lateral acceleration while holding a direction (keyboard)
+const STEER_FRICTION = 0.84;      // velocity kept each frame — smooth accel/coast instead of an instant snap
+const CURVE_DRIFT_ACCEL = 0.0022; // how hard a curve pulls the car off-line if you don't counter-steer
 const CAR_MAX_X = 0.85;
 const SPAWN_MIN = 55;
 const SPAWN_MAX = 110;
@@ -185,6 +187,7 @@ interface Ball     { depth: number; laneX: number; id: number; }
 interface GameState {
   phase: Phase;
   carX: number;
+  carVX: number;
   speed: number;
   trackPos: number;
   score: number;
@@ -229,6 +232,7 @@ function makeInitialState(bestScore = 0): GameState {
   return {
     phase: "title",
     carX: 0,
+    carVX: 0,
     speed: BASE_SPEED,
     trackPos: 0,
     score: 0,
@@ -722,15 +726,22 @@ export function RacerGame() {
       if (s.touchX !== null) {
         const target = ((s.touchX / W) * 2 - 1) * CAR_MAX_X;
         s.carX += Math.sign(target - s.carX) * Math.min(Math.abs(target - s.carX), CAR_STEER * 1.4);
+        s.carVX = 0;
       } else {
         // Start country music when entering playing phase
-      playMusic(getTheme(s).music);
+        playMusic(getTheme(s).music);
 
-      if (s.leftDown)  s.carX -= CAR_STEER;
-        if (s.rightDown) s.carX += CAR_STEER;
+        if (s.leftDown)  s.carVX -= STEER_ACCEL;
+        if (s.rightDown) s.carVX += STEER_ACCEL;
+        s.carVX *= STEER_FRICTION;
+        // Curves pull the car off-line as an actual force — has to be countered by steering,
+        // and pulls harder the faster you're going, instead of a flat nudge that's basically invisible.
+        s.carVX -= getCurve(s.trackPos) * CURVE_DRIFT_ACCEL * (s.speed / BASE_SPEED);
+        s.carX += s.carVX;
       }
-      s.carX -= getCurve(s.trackPos) * DRIFT;
       s.carX = Math.max(-CAR_MAX_X, Math.min(CAR_MAX_X, s.carX));
+      if (s.carX <= -CAR_MAX_X && s.carVX < 0) s.carVX = 0;
+      if (s.carX >=  CAR_MAX_X && s.carVX > 0) s.carVX = 0;
 
       s.trackPos += s.speed * 100;
       s.score += s.speed * 300;

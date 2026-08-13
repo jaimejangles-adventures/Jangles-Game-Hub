@@ -33,6 +33,15 @@ type Country = typeof COUNTRIES[number];
 type Difficulty = "rookie" | "master";
 type Phase = "select" | "playing" | "over";
 
+function shuffledCountryOrder(): number[] {
+  const order = COUNTRIES.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
 const PLANE_W     = 190;
 const PLANE_H     = 118;
 const COUNTDOWN_S = 3;
@@ -113,6 +122,7 @@ export function AirFanteCollectGame() {
     let frame        = 0;
     let speed        = cfgInitSpeed;
     let countryIdx   = 0;
+    let countryOrder = shuffledCountryOrder();
     let countryFlash = 0;
     let advanceFlash = 0;
     let rafId        = 0;
@@ -167,6 +177,7 @@ export function AirFanteCollectGame() {
       frame        = 0;
       speed        = cfgInitSpeed;
       countryIdx   = 0;
+      countryOrder = shuffledCountryOrder();
       countryFlash = 0;
       advanceFlash = 0;
       player.x  = 5;
@@ -177,7 +188,7 @@ export function AirFanteCollectGame() {
       countdownRef.current = COUNTDOWN_S;
       phaseRef.current = "playing";
       setPhase("playing");
-      loadCountryAudio(COUNTRIES[0]);
+      loadCountryAudio(COUNTRIES[countryOrder[0]]);
 
       const interval = setInterval(() => {
         countdownRef.current -= 1;
@@ -531,7 +542,7 @@ export function AirFanteCollectGame() {
 
       const spawnInterval = Math.max(cfgMinSpawn, cfgBaseSpawn - Math.floor(totalScore / cfgSpawnDecayScore) * 3);
       if (frame % spawnInterval === 0) {
-        const cc = COUNTRIES[countryIdx];
+        const cc = COUNTRIES[countryOrder[countryIdx]];
         dots.push({
           x: (W - gx) / gameScale + 40,
           y: topBound + 20 + Math.random() * (botBound - topBound - 40),
@@ -596,7 +607,7 @@ export function AirFanteCollectGame() {
             countryFlash = 180;
             advanceFlash = 120;
             dots.length  = 0;
-            loadCountryAudio(COUNTRIES[countryIdx]);
+            loadCountryAudio(COUNTRIES[countryOrder[countryIdx]]);
           }
         }
       }
@@ -623,7 +634,7 @@ export function AirFanteCollectGame() {
     }
 
     function draw() {
-      const c = COUNTRIES[countryIdx];
+      const c = COUNTRIES[countryOrder[countryIdx]];
 
       const grad = ctx.createLinearGradient(0, 0, 0, H);
       grad.addColorStop(0, c.skyTop);
@@ -694,7 +705,7 @@ export function AirFanteCollectGame() {
       if (phaseRef.current === "playing") {
         if (countdownRef.current <= 0) drawHUD(c);
         drawCountryFlash(c);
-        drawAdvanceBanner(COUNTRIES[(countryIdx + 1) % COUNTRIES.length]);
+        drawAdvanceBanner(COUNTRIES[countryOrder[(countryIdx + 1) % COUNTRIES.length]]);
         drawCountdown();
       }
     }
