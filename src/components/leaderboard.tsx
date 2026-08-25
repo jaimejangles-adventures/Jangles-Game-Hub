@@ -179,6 +179,7 @@ const LEADERBOARD_GAMES = [
   'elefante',
   'air-fante-collect',
   'foxer',
+  'air-fante-alphabet',
   'type-with-casey',
   'music-match',
   'fly-the-flag',

@@ -20,6 +20,7 @@ const BUCK_EARNERS: EarnerEntry[] = [
   { emoji: "🔤", title: "Casey Can Spell!", difficulty: 2 },
   { emoji: "🔍", title: "Spot the Difference!", difficulty: 2 },
   { emoji: "🃏", title: "Match Mania!", difficulty: 2 },
+  { emoji: "🎶", title: "Melody Memory", difficulty: 2 },
   { emoji: "✖️", title: "Casey Can Multiply!", difficulty: 3 },
   { emoji: "➗", title: "Casey Can Divide!", difficulty: 3 },
   { emoji: "🦊", title: "Foxy's Word Scramble!", difficulty: 3 },
@@ -805,6 +806,9 @@ function JanglesBucksModal({ onClose, balance }: { onClose: () => void; balance:
                 { emoji: "👾", title: "Jangles Pac" },
                 { emoji: "🦍", title: "Jangles Kong" },
                 { emoji: "🏓", title: "Jangles Pong" },
+                { emoji: "🏎️", title: "Jangles Racer" },
+                { emoji: "🏆", title: "Jangles GP" },
+                { emoji: "🚀", title: "Space Jangles" },
               ].map((g) => (
                 <span
                   key={g.title}

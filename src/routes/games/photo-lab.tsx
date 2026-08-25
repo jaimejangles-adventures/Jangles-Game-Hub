@@ -4,10 +4,10 @@ import { PhotoLabGame } from '@/game/PhotoLabGame';
 export const Route = createFileRoute('/games/photo-lab')({
   head: () => ({
     meta: [
-      { title: 'Photo Lab | Jaime Jangles' },
+      { title: 'Zany Foto Lab | Jaime Jangles' },
       {
         name: 'description',
-        content: 'Upload a photo or pick a Jangles character, then add filters and simple editing tools to make it your own.',
+        content: 'Upload a photo or pick a Jangles character, then get zany with filters, stickers, doodles, meme text, frames and more.',
       },
     ],
   }),

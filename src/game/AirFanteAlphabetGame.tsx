@@ -5,6 +5,7 @@ import { asset } from "@/lib/asset";
 import { useScore } from "@/hooks/use-score";
 import { useAuth } from "@/lib/auth-context";
 import { burstCorrect, burstFinale } from "@/game/confetti";
+import { Leaderboard } from "@/components/leaderboard";
 
 // ── NATO phonetic alphabet ─────────────────────────────────────────────────────
 type NatoEntry = { letter: string; word: string; accept: string[] };
@@ -258,8 +259,8 @@ export function AirFanteAlphabetGame() {
   const listenTimeoutRef = useRef<number>(0);
   const micButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { user } = useAuth();
-  const { saveScore } = useScore("air-fante-alphabet");
+  const { user, openAuthModal } = useAuth();
+  const { saveScore, saving, saved } = useScore("air-fante-alphabet");
 
   const callSign = rounds[roundIdx] ?? [];
 
@@ -585,6 +586,21 @@ export function AirFanteAlphabetGame() {
             </Link>
           </div>
         </motion.div>
+
+        {/* Leaderboard */}
+        <div className="mt-8 w-full max-w-md rounded-[2rem] border-[3px] border-ink p-4" style={{ background: "#1a1a2e", borderBottomWidth: 6, borderRightWidth: 5 }}>
+          <div className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-1">🏆 Top Scores — Air Fante Alphabet</div>
+          {user ? (
+            <p className="text-xs font-bold mb-2" style={{ color: saving ? "#9ca3af" : saved ? "#4ade80" : "transparent" }}>
+              {saving ? "Saving score…" : "✓ Score saved to leaderboard"}
+            </p>
+          ) : (
+            <button onClick={() => openAuthModal("sign-up")} className="text-xs font-bold text-yellow-400 underline hover:text-yellow-300 mb-2 block">
+              🏆 Sign in to save your score
+            </button>
+          )}
+          <Leaderboard gameSlug="air-fante-alphabet" limit={5} theme="dark" />
+        </div>
       </div>
     );
   }

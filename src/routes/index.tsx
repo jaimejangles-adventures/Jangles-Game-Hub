@@ -303,7 +303,7 @@ function Index() {
               The mastermind
             </div>
             <p className="text-xs text-ink/80 leading-relaxed">
-              Casey Bea sends Jaime and Jeff on every adventure — and always makes sure Fante comes along!
+              Casey Bea sends Jaime and Jeff on every adventure — and always makes sure Foxy comes along!
             </p>
           </div>
         </aside>

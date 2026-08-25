@@ -133,3 +133,43 @@ create policy "Users can update their own progressions"
 
 create policy "Users can delete their own progressions"
   on public.chord_progressions for delete using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Photo Lab gallery: user-saved photo creations (table + storage bucket)
+-- Run this block separately in Supabase SQL Editor after running the above
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table public.photo_lab_gallery (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users on delete cascade not null,
+  image_url  text not null,
+  created_at timestamptz default now() not null
+);
+
+alter table public.photo_lab_gallery enable row level security;
+
+create policy "Photo Lab creations are viewable by everyone"
+  on public.photo_lab_gallery for select using (true);
+
+create policy "Users can insert their own photo lab creations"
+  on public.photo_lab_gallery for insert with check (auth.uid() = user_id);
+
+create policy "Users can delete their own photo lab creations"
+  on public.photo_lab_gallery for delete using (auth.uid() = user_id);
+
+insert into storage.buckets (id, name, public)
+values ('photo-lab-gallery', 'photo-lab-gallery', true)
+on conflict (id) do nothing;
+
+create policy "Photo Lab images are publicly readable"
+  on storage.objects for select using (bucket_id = 'photo-lab-gallery');
+
+create policy "Users can upload their own photo lab images"
+  on storage.objects for insert with check (
+    bucket_id = 'photo-lab-gallery' and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users can delete their own photo lab images"
+  on storage.objects for delete using (
+    bucket_id = 'photo-lab-gallery' and auth.uid()::text = (storage.foldername(name))[1]
+  );

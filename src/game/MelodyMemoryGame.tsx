@@ -27,12 +27,34 @@ const PIANO_KEYS: PianoKey[] = Array.from({ length: PIANO_OCTAVES * 12 + 1 }, (_
   return { midi, isBlack: BLACK_PITCH_CLASSES.has(midi % 12) };
 });
 
-type Difficulty = "rookie" | "master";
+// Drummer: a 7-piece kit laid out like a real drum set.
+type DrumType = "hihat" | "snare" | "kick" | "tomHigh" | "tomMid" | "floorTom" | "crash";
+type DrumPiece = {
+  type: DrumType;
+  label: string;
+  color: string;
+  shadow: string;
+  shape: "circle" | "oval";
+  x: number; y: number; w: number; h: number;
+};
+const DRUM_KIT: DrumPiece[] = [
+  { type: "hihat", label: "Hi-Hat", color: "#FFD93D", shadow: "#C8A800", shape: "oval", x: 4, y: 4, w: 56, h: 18 },
+  { type: "crash", label: "Crash", color: "#48DBFB", shadow: "#009DC4", shape: "oval", x: 196, y: 0, w: 68, h: 20 },
+  { type: "tomHigh", label: "Tom", color: "#FF9F43", shadow: "#C96A00", shape: "circle", x: 86, y: 16, w: 46, h: 46 },
+  { type: "tomMid", label: "Tom Tom", color: "#6BCB77", shadow: "#2E9E43", shape: "circle", x: 142, y: 20, w: 54, h: 54 },
+  { type: "snare", label: "Snare", color: "#e5e7eb", shadow: "#9ca3af", shape: "circle", x: 28, y: 88, w: 58, h: 58 },
+  { type: "floorTom", label: "Floor Tom", color: "#C77DFF", shadow: "#8B3FD9", shape: "circle", x: 184, y: 94, w: 68, h: 68 },
+  { type: "kick", label: "Kick", color: "#FF6B6B", shadow: "#C43B3B", shape: "circle", x: 92, y: 120, w: 88, h: 88 },
+];
+const DRUM_KIT_W = 280, DRUM_KIT_H = 210;
+
+type Difficulty = "rookie" | "master" | "drummer";
 type PatternMode = "classic" | "random";
 
 const DIFFICULTY: Record<Difficulty, { label: string; emoji: string; color: string; desc: string }> = {
   rookie: { label: "Rookie", emoji: "⭐", color: "#22c55e", desc: "Xylophone · 6 notes" },
   master: { label: "Master", emoji: "🔥", color: "#ef4444", desc: "Piano roll · 2 octaves" },
+  drummer: { label: "Drummer", emoji: "🥁", color: "#f59e0b", desc: "Drum kit · 7 pieces" },
 };
 
 const PATTERN_MODE: Record<PatternMode, { label: string; emoji: string; desc: string }> = {
@@ -82,6 +104,82 @@ function synthPiano(ctx: AudioContext, dest: AudioNode, freq: number, t: number)
     osc.connect(gn); gn.connect(dest);
     osc.start(t); osc.stop(t + dur + 0.05);
   });
+}
+
+// White-noise buffer for hats/snare/crash, cached per AudioContext.
+const noiseBufferCache = new WeakMap<AudioContext, AudioBuffer>();
+function getNoiseBuffer(ctx: AudioContext) {
+  let buf = noiseBufferCache.get(ctx);
+  if (!buf) {
+    buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    noiseBufferCache.set(ctx, buf);
+  }
+  return buf;
+}
+
+function synthNoiseHit(
+  ctx: AudioContext, dest: AudioNode, t: number,
+  { duration, highpass, gain }: { duration: number; highpass?: number; gain: number },
+) {
+  const src = ctx.createBufferSource();
+  src.buffer = getNoiseBuffer(ctx);
+  const gn = ctx.createGain();
+  gn.gain.setValueAtTime(gain, t);
+  gn.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+  let node: AudioNode = src;
+  if (highpass) {
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = highpass;
+    node.connect(hp);
+    node = hp;
+  }
+  node.connect(gn); gn.connect(dest);
+  src.start(t); src.stop(t + duration + 0.02);
+}
+
+// Drum/tom body: a pitched sine that quickly drops in frequency (membrane thump).
+function synthMembrane(
+  ctx: AudioContext, dest: AudioNode, t: number,
+  { startFreq, endFreq, duration, gain }: { startFreq: number; endFreq: number; duration: number; gain: number },
+) {
+  const osc = ctx.createOscillator(), gn = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(startFreq, t);
+  osc.frequency.exponentialRampToValueAtTime(endFreq, t + duration * 0.8);
+  gn.gain.setValueAtTime(gain, t);
+  gn.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+  osc.connect(gn); gn.connect(dest);
+  osc.start(t); osc.stop(t + duration + 0.02);
+}
+
+function synthDrum(ctx: AudioContext, dest: AudioNode, type: DrumType, t: number) {
+  switch (type) {
+    case "kick":
+      synthMembrane(ctx, dest, t, { startFreq: 150, endFreq: 45, duration: 0.35, gain: 0.9 });
+      break;
+    case "snare":
+      synthMembrane(ctx, dest, t, { startFreq: 200, endFreq: 150, duration: 0.12, gain: 0.4 });
+      synthNoiseHit(ctx, dest, t, { duration: 0.18, highpass: 800, gain: 0.55 });
+      break;
+    case "hihat":
+      synthNoiseHit(ctx, dest, t, { duration: 0.08, highpass: 7000, gain: 0.35 });
+      break;
+    case "crash":
+      synthNoiseHit(ctx, dest, t, { duration: 1.4, highpass: 4000, gain: 0.4 });
+      break;
+    case "tomHigh":
+      synthMembrane(ctx, dest, t, { startFreq: 260, endFreq: 180, duration: 0.3, gain: 0.7 });
+      break;
+    case "tomMid":
+      synthMembrane(ctx, dest, t, { startFreq: 190, endFreq: 120, duration: 0.32, gain: 0.7 });
+      break;
+    case "floorTom":
+      synthMembrane(ctx, dest, t, { startFreq: 120, endFreq: 70, duration: 0.38, gain: 0.75 });
+      break;
+  }
 }
 
 const NOTE_MS = 550;
@@ -143,7 +241,7 @@ function SelectScreen({
       </div>
 
       <div className="flex flex-col gap-3 w-full max-w-sm">
-        {(["rookie", "master"] as Difficulty[]).map((d) => {
+        {(["rookie", "master", "drummer"] as Difficulty[]).map((d) => {
           const cfg = DIFFICULTY[d];
           return (
             <motion.button
@@ -256,6 +354,58 @@ function PianoRoll({
   );
 }
 
+// ── Drum kit (Drummer mode) ─────────────────────────────────────────────────
+
+function DrumKit({
+  activePad,
+  wrongPad,
+  inputLocked,
+  dim,
+  onPress,
+}: {
+  activePad: number | null;
+  wrongPad: number | null;
+  inputLocked: boolean;
+  dim: boolean;
+  onPress: (idx: number) => void;
+}) {
+  return (
+    <div
+      className="relative mx-auto shrink-0"
+      style={{ width: DRUM_KIT_W, height: DRUM_KIT_H, opacity: dim ? 0.55 : 1 }}
+    >
+      {DRUM_KIT.map((piece, idx) => {
+        const isActive = activePad === idx;
+        const isWrong = wrongPad === idx;
+        return (
+          <button
+            key={piece.type}
+            disabled={inputLocked}
+            onClick={() => onPress(idx)}
+            title={piece.label}
+            className={cn(
+              "absolute border-[3px] border-[#1e1b4b]",
+              piece.shape === "circle" ? "rounded-full" : "rounded-[50%]",
+              inputLocked ? "cursor-not-allowed" : "cursor-pointer",
+            )}
+            style={{
+              left: piece.x,
+              top: piece.y,
+              width: piece.w,
+              height: piece.h,
+              background: isWrong ? "#ef4444" : isActive ? "#fff" : piece.color,
+              boxShadow: isActive
+                ? `0 0 18px 5px ${piece.color}bb, 3px 4px 0 ${piece.shadow}`
+                : `3px 4px 0 ${piece.shadow}`,
+              zIndex: piece.shape === "oval" ? 3 : 1,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Game ─────────────────────────────────────────────────────────────────────
 
 export function MelodyMemoryGame({ onComplete }: { onComplete?: () => void } = {}) {
@@ -277,12 +427,15 @@ export function MelodyMemoryGame({ onComplete }: { onComplete?: () => void } = {
     return ctxRef.current;
   }
 
-  const poolSize = difficulty === "master" ? PIANO_KEYS.length : XYLOPHONE_NOTES.length;
+  const poolSize =
+    difficulty === "master" ? PIANO_KEYS.length : difficulty === "drummer" ? DRUM_KIT.length : XYLOPHONE_NOTES.length;
 
   const playPad = useCallback((idx: number) => {
     const ctx = getCtx();
     if (difficulty === "master") {
       synthPiano(ctx, ctx.destination, midiToFreq(PIANO_KEYS[idx].midi), ctx.currentTime + 0.01);
+    } else if (difficulty === "drummer") {
+      synthDrum(ctx, ctx.destination, DRUM_KIT[idx].type, ctx.currentTime + 0.01);
     } else {
       synthMallet(ctx, ctx.destination, midiToFreq(XYLOPHONE_NOTES[idx].midi), ctx.currentTime + 0.01);
     }
@@ -418,8 +571,9 @@ export function MelodyMemoryGame({ onComplete }: { onComplete?: () => void } = {
         {phase === "ready" && (
           <div className="text-center max-w-xs">
             <p className="text-white/85 text-sm font-semibold">
-              Watch Casey play a tune on the {difficulty === "master" ? "piano roll" : "xylophone"}, then tap{" "}
-              {difficulty === "master" ? "the keys" : "the pads"} back in the same order.{" "}
+              Watch Casey play a {difficulty === "drummer" ? "beat" : "tune"} on the{" "}
+              {difficulty === "master" ? "piano roll" : difficulty === "drummer" ? "drum kit" : "xylophone"}, then tap{" "}
+              {difficulty === "master" ? "the keys" : difficulty === "drummer" ? "the drums" : "the pads"} back in the same order.{" "}
               {patternMode === "random"
                 ? "Every round is a brand new random tune — one note longer each time!"
                 : "Every round adds one more note!"}
@@ -439,6 +593,14 @@ export function MelodyMemoryGame({ onComplete }: { onComplete?: () => void } = {
 
         {difficulty === "master" ? (
           <PianoRoll
+            activePad={activePad}
+            wrongPad={phase === "gameover" ? wrongPad : null}
+            inputLocked={inputLocked}
+            dim={phase === "ready"}
+            onPress={handlePad}
+          />
+        ) : difficulty === "drummer" ? (
+          <DrumKit
             activePad={activePad}
             wrongPad={phase === "gameover" ? wrongPad : null}
             inputLocked={inputLocked}
