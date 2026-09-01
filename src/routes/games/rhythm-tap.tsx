@@ -12,7 +12,9 @@ export const Route = createFileRoute("/games/rhythm-tap")({
           "Pick a country's song from the Jangles world tour and tap the lanes in time with the beat! A rhythm-tapping game across 20 countries.",
       },
     ],
-    links: [{ rel: "icon", type: "image/png", href: "/characters/casey-logo.png" }],
+    links: [
+      { rel: "icon", type: "image/png", href: "/characters/casey-logo.png" },
+    ],
   }),
   component: RhythmTapRoute,
 });

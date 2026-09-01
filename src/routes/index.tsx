@@ -47,6 +47,53 @@ const PUZZLE_THUMB: Record<string, { bg: string }> = {
   chess: { bg: "#B2DFDB" }, // seafoam
 };
 
+// ── Learning thumbnails: solid pastel banners (matches Math/Puzzle rows) ────
+const SOLID_BG: Record<string, string> = {
+  "air-fante-alphabet": "#BAE6FD", // sky blue
+  "jang-lang": "#D9F99D", // lime
+};
+
+// ── "Casey is pointing at…" icons: a small graphic beside her pointing pose ──
+function PaletteIcon() {
+  return (
+    <svg viewBox="0 0 100 80" className="h-12 w-12 shrink-0" aria-hidden="true">
+      <path
+        d="M50 5 C25 5 5 22 5 42 C5 58 18 62 28 58 C34 55 38 58 38 64 C38 72 46 75 55 73 C75 68 95 55 95 38 C95 18 75 5 50 5 Z"
+        fill="#fff"
+        stroke="#1a1a1a"
+        strokeWidth="5"
+        strokeLinejoin="round"
+      />
+      <circle cx="28" cy="30" r="8" fill="#EF4444" stroke="#1a1a1a" strokeWidth="2.5" />
+      <circle cx="50" cy="20" r="8" fill="#3B82F6" stroke="#1a1a1a" strokeWidth="2.5" />
+      <circle cx="72" cy="28" r="8" fill="#FACC15" stroke="#1a1a1a" strokeWidth="2.5" />
+      <circle cx="78" cy="48" r="8" fill="#22C55E" stroke="#1a1a1a" strokeWidth="2.5" />
+      <circle cx="58" cy="52" r="7" fill="#A855F7" stroke="#1a1a1a" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+function KeyboardIcon() {
+  const keyRow = (y: number, count: number, startX = 10) =>
+    Array.from({ length: count }, (_, i) => (
+      <rect key={`${y}-${i}`} x={startX + i * 12} y={y} width="9" height="9" rx="2.5" fill="#1a1a1a" opacity={0.85} />
+    ));
+  return (
+    <svg viewBox="0 0 110 62" className="h-12 w-16 shrink-0" aria-hidden="true">
+      <rect x="4" y="4" width="102" height="54" rx="10" fill="#fff" stroke="#1a1a1a" strokeWidth="5" />
+      {keyRow(14, 8)}
+      {keyRow(28, 8)}
+      {keyRow(42, 6, 16)}
+      <rect x="28" y="42" width="46" height="9" rx="3" fill="#1a1a1a" opacity={0.85} />
+    </svg>
+  );
+}
+
+const POINT_AT: Record<string, { icon: () => JSX.Element; bg: string }> = {
+  "color-mix": { icon: PaletteIcon, bg: "#FFE0B2" }, // peach
+  "type-with-casey": { icon: KeyboardIcon, bg: "#A5F3FC" }, // cyan
+};
+
 // ── Scrollable row with Netflix-style fade + arrow indicators ──────────────
 function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -91,6 +138,8 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
         {games.map((game) => {
           const casey = CASEY_CAN[game.slug];
           const puzzle = PUZZLE_THUMB[game.slug];
+          const pointAt = POINT_AT[game.slug];
+          const solidBg = SOLID_BG[game.slug];
           return (
           <Link
             key={game.slug}
@@ -108,7 +157,7 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
             <div
               className="flex shrink-0 items-center justify-center overflow-hidden rounded-t-[1.5rem]"
               style={{
-                background: casey ? casey.bg : puzzle ? puzzle.bg : game.accent + "33",
+                background: casey ? casey.bg : puzzle ? puzzle.bg : pointAt ? pointAt.bg : solidBg ?? game.accent + "33",
                 height: "6rem",
                 padding: game.slug === "fly-the-flag" || puzzle ? 0 : "0 0.75rem",
               }}
@@ -134,7 +183,18 @@ function ScrollRow({ games }: { games: typeof GAME_MANIFEST }) {
                     src={game.image}
                     alt={game.title}
                     className="h-20 w-auto object-contain"
-                    style={{ maxWidth: "55%", mixBlendMode: "multiply" }}
+                    style={{ maxWidth: "55%" }}
+                  />
+                </div>
+              ) : pointAt ? (
+                <div className="flex h-full w-full items-center justify-center gap-1">
+                  {/* The thing Casey is pointing at */}
+                  <pointAt.icon />
+                  <img
+                    src={game.image}
+                    alt={game.title}
+                    className="h-20 w-auto object-contain"
+                    style={{ maxWidth: "55%" }}
                   />
                 </div>
               ) : (
@@ -232,8 +292,11 @@ function Index() {
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ── Hero + Character asides ── */}
-      <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+      {/* ── Timer button, off to the side ── */}
+      <JanglesTimer />
+
+      {/* ── Hero + Character asides, three across ── */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
         {/* Hero card */}
         <div
@@ -241,7 +304,7 @@ function Index() {
           style={{ background: "#fff", borderBottomWidth: 6, borderRightWidth: 5 }}
         >
           <div
-            className="mb-2 inline-flex w-fit whitespace-nowrap rounded-full border-[3px] border-ink px-3 py-0.5 text-xs font-extrabold uppercase tracking-[0.3em]"
+            className="mb-2 inline-flex w-fit whitespace-nowrap rounded-full border-[3px] border-ink px-2 py-0.5 text-sm font-extrabold uppercase tracking-[0.3em]"
             style={{ background: "#FBBF24", borderBottomWidth: 5, borderRightWidth: 4 }}
           >
             Jangles Game Hub
@@ -255,14 +318,7 @@ function Index() {
           </p>
         </div>
 
-        {/* Timer in top right */}
-        <div className="flex flex-col">
-          <JanglesTimer />
-        </div>
-      </section>
-
-      {/* ── Character asides (centered below hero) ── */}
-      <section className="grid gap-3 sm:grid-cols-2">
+        {/* Meet the crew */}
         <aside
           className="flex items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
           style={{ background: "#FFF0F8", borderBottomWidth: 5, borderRightWidth: 4 }}
@@ -274,7 +330,7 @@ function Index() {
           />
           <div className="flex-1 py-3 pr-4">
             <div
-              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2 py-0.5 text-[0.75rem] font-extrabold uppercase tracking-[0.25em]"
               style={{ background: "#FF4EAB", borderBottomWidth: 3, borderRightWidth: 2, color: "#fff" }}
             >
               Meet the crew
@@ -285,6 +341,7 @@ function Index() {
           </div>
         </aside>
 
+        {/* The mastermind */}
         <aside
           className="flex items-center gap-3 overflow-hidden rounded-[2rem] border-[3px] border-ink"
           style={{ background: "#F0F8FF", borderBottomWidth: 5, borderRightWidth: 4 }}
@@ -297,7 +354,7 @@ function Index() {
           />
           <div className="flex-1 py-3 pr-4">
             <div
-              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.25em]"
+              className="mb-1 inline-flex rounded-full border-[2px] border-ink px-2 py-0.5 text-[0.75rem] font-extrabold uppercase tracking-[0.25em]"
               style={{ background: "#60C8FF", borderBottomWidth: 3, borderRightWidth: 2 }}
             >
               The mastermind

@@ -97,9 +97,10 @@ export function PortalShell({ children }: PortalShellProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [pathname, showEscapePrompt]);
 
-  // Close mobile menu on navigation
+  // Close mobile menu and category dropdown on navigation
   useEffect(() => {
     setMobileMenuOpen(false);
+    setOpenCategory(null);
   }, [pathname]);
 
   function handleCategoryToggle(slug: GameCategory, buttonEl: HTMLButtonElement) {
@@ -194,6 +195,7 @@ export function PortalShell({ children }: PortalShellProps) {
               {/* Game Hub pill */}
               <Link
                 to="/"
+                onClick={() => setOpenCategory(null)}
                 className={cn(
                   "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-[2px] border-ink px-2.5 py-0.5 text-xs font-extrabold transition-opacity hover:opacity-75",
                   pathname === "/" ? "text-white" : "text-ink",
@@ -317,6 +319,7 @@ export function PortalShell({ children }: PortalShellProps) {
           <div className="sm:hidden border-t-4 border-ink bg-paper px-4 pb-4 pt-2">
             <Link
               to="/"
+              onClick={() => setMobileMenuOpen(false)}
               className="flex items-center gap-2 rounded-xl border-[3px] border-ink px-4 py-3 mb-3 font-extrabold text-ink bg-white"
               style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
             >

@@ -358,6 +358,8 @@ export function PhotoLabGame() {
   const doodleStrokesRef = useRef<DoodleStroke[]>([]);
   const lassoPointsRef = useRef<{ x: number; y: number }[]>([]);
   const panDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageWidth, setStageWidth] = useState(0);
 
   const filter = FILTERS.find((f) => f.id === filterId) ?? FILTERS[0];
   const combinedFilterCss = buildFilterCss(filter.css, brightness, contrast, saturation, warmth);
@@ -367,6 +369,38 @@ export function PhotoLabGame() {
   const effW = naturalSize ? (swapped ? naturalSize.h : naturalSize.w) : 1;
   const effH = naturalSize ? (swapped ? naturalSize.w : naturalSize.h) : 1;
   const targetRatio = cropOption.ratio ?? effW / effH;
+
+  // Fit the frame's box within the available stage width and a fixed max height,
+  // always keeping its exact aspect ratio (CSS aspect-ratio + max-height alone can't
+  // reconcile both constraints, which is what caused tall photos to get cropped).
+  const MAX_BOX_H = 460;
+  // Frame decorations add extra width around the photo itself (sprocket columns, matting, etc.) —
+  // reserve room for that so the framed result doesn't overflow the stage.
+  const FRAME_HORIZONTAL_PADDING: Record<FrameId, number> = {
+    none: 0,
+    polaroid: 24,
+    filmstrip: 64,
+    stars: 48,
+    torn: 40,
+  };
+  let boxW: number | undefined;
+  let boxH: number | undefined;
+  if (naturalSize && stageWidth > 0) {
+    boxW = Math.max(50, stageWidth - FRAME_HORIZONTAL_PADDING[frameId]);
+    boxH = boxW / targetRatio;
+    if (boxH > MAX_BOX_H) {
+      boxH = MAX_BOX_H;
+      boxW = boxH * targetRatio;
+    }
+  }
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [imageSrc]);
 
   const panEnabled = activeTab === 'transform' && zoom > 100;
   const interactionActive = (activeTab === 'doodle' || activeTab === 'erase' || panEnabled) && !compareMode;
@@ -882,6 +916,7 @@ export function PhotoLabGame() {
         >
           {imageSrc ? (
             <>
+              <div ref={stageRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <FrameWrap frameId={frameId}>
                 <div
                   ref={frameRef}
@@ -893,10 +928,11 @@ export function PhotoLabGame() {
                   style={{
                     borderBottomWidth: 5,
                     borderRightWidth: 4,
-                    aspectRatio: naturalSize ? targetRatio : undefined,
+                    width: boxW ? `${boxW}px` : '100%',
+                    height: boxH ? `${boxH}px` : undefined,
+                    aspectRatio: boxW ? undefined : naturalSize ? targetRatio : undefined,
                     maxWidth: '100%',
-                    maxHeight: 460,
-                    width: '100%',
+                    maxHeight: boxW ? undefined : MAX_BOX_H,
                     touchAction: 'none',
                   }}
                 >
@@ -1040,6 +1076,7 @@ export function PhotoLabGame() {
                   )}
                 </div>
               </FrameWrap>
+              </div>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <ToolButton onClick={changePhoto} label="🔄 Change Photo" />
@@ -1384,7 +1421,7 @@ function FrameWrap({ frameId, children }: { frameId: FrameId; children: React.Re
 
   if (frameId === 'polaroid') {
     return (
-      <div className="box-border rounded-md bg-[#fffdf7] p-3 pb-8 shadow-lg" style={{ width: '100%' }}>
+      <div className="inline-block rounded-md bg-[#fffdf7] p-3 pb-8 shadow-lg">
         {children}
       </div>
     );
@@ -1392,7 +1429,7 @@ function FrameWrap({ frameId, children }: { frameId: FrameId; children: React.Re
 
   if (frameId === 'filmstrip') {
     return (
-      <div className="rounded-md bg-[#111111]" style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', width: '100%' }}>
+      <div className="rounded-md bg-[#111111]" style={{ display: 'grid', gridTemplateColumns: 'auto auto auto' }}>
         <SprocketColumn />
         <div className="p-1">{children}</div>
         <SprocketColumn />
@@ -1403,8 +1440,8 @@ function FrameWrap({ frameId, children }: { frameId: FrameId; children: React.Re
   if (frameId === 'stars') {
     return (
       <div
-        className="relative box-border rounded-md p-6"
-        style={{ background: '#FFF3B0', width: '100%', border: '3px solid #1a1a1a' }}
+        className="relative inline-block rounded-md p-6"
+        style={{ background: '#FFF3B0', border: '3px solid #1a1a1a' }}
       >
         {[...Array(4)].map((_, i) => (
           <span key={`t${i}`} className="absolute" style={{ left: `${(i + 0.5) * 25}%`, top: 2, transform: 'translateX(-50%)' }}>⭐</span>
@@ -1425,7 +1462,7 @@ function FrameWrap({ frameId, children }: { frameId: FrameId; children: React.Re
 
   if (frameId === 'torn') {
     return (
-      <div className="box-border p-5" style={{ background: '#fffdf7', clipPath: TORN_CLIP_PATH, width: '100%', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.25))' }}>
+      <div className="inline-block p-5" style={{ background: '#fffdf7', clipPath: TORN_CLIP_PATH, filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.25))' }}>
         {children}
       </div>
     );

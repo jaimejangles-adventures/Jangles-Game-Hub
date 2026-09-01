@@ -1,4 +1,10 @@
-export type GameCategory = "geography-quest" | "music-arts" | "arcade-adventures" | "math-games" | "puzzles" | "learning";
+export type GameCategory =
+  | "geography-quest"
+  | "music-arts"
+  | "arcade-adventures"
+  | "math-games"
+  | "puzzles"
+  | "learning";
 import { asset } from "@/lib/asset";
 
 export type CategoryEntry = {
@@ -59,8 +65,88 @@ export const CATEGORY_MANIFEST: CategoryEntry[] = [
 ];
 
 export type GameManifestEntry = {
-  slug: "music-match" | "beat-maker" | "find-foxy" | "world-adventure" | "elefante" | "fly-the-flag" | "name-that-country" | "air-fante-collect" | "air-fante-alphabet" | "draw-with-casey" | "sliding-puzzle" | "casey-can-count" | "foxer" | "jangles-ball" | "count-with-jaime" | "spot-the-difference" | "pacman" | "mastermind" | "casey-can-subtract" | "casey-can-multiply" | "casey-can-divide" | "jangles-kong" | "casey-can-spell" | "foxy-word-scramble" | "match-game" | "type-with-casey" | "color-mix" | "jangles-pong" | "casey-can-roman-numeral" | "casey-can-pay" | "chess" | "checkers" | "racer" | "jang-lang" | "jangles-gp" | "space-jangles" | "piano-chords" | "melody-memory" | "photo-lab" | "rhythm-tap";
-  href: "/games/music-match" | "/games/beat-maker" | "/games/find-foxy" | "/games/world-adventure" | "/games/elefante" | "/games/fly-the-flag" | "/games/name-that-country" | "/games/air-fante-collect" | "/games/air-fante-alphabet" | "/games/draw-with-casey" | "/games/sliding-puzzle" | "/games/casey-can-count" | "/games/foxer" | "/games/jangles-ball" | "/games/count-with-jaime" | "/games/spot-the-difference" | "/games/pacman" | "/games/mastermind" | "/games/casey-can-subtract" | "/games/casey-can-multiply" | "/games/casey-can-divide" | "/games/jangles-kong" | "/games/casey-can-spell" | "/games/foxy-word-scramble" | "/games/match-game" | "/games/type-with-casey" | "/games/color-mix" | "/games/jangles-pong" | "/games/casey-can-roman-numeral" | "/games/casey-can-pay" | "/games/chess" | "/games/checkers" | "/games/racer" | "/games/jang-lang" | "/games/jangles-gp" | "/games/space-jangles" | "/games/piano-chords" | "/games/melody-memory" | "/games/photo-lab" | "/games/rhythm-tap";
+  slug:
+    | "music-match"
+    | "beat-maker"
+    | "find-foxy"
+    | "world-adventure"
+    | "elefante"
+    | "fly-the-flag"
+    | "name-that-country"
+    | "air-fante-collect"
+    | "air-fante-alphabet"
+    | "draw-with-casey"
+    | "sliding-puzzle"
+    | "casey-can-count"
+    | "foxer"
+    | "jangles-ball"
+    | "count-with-jaime"
+    | "spot-the-difference"
+    | "pacman"
+    | "mastermind"
+    | "casey-can-subtract"
+    | "casey-can-multiply"
+    | "casey-can-divide"
+    | "jangles-kong"
+    | "casey-can-spell"
+    | "foxy-word-scramble"
+    | "match-game"
+    | "type-with-casey"
+    | "color-mix"
+    | "jangles-pong"
+    | "casey-can-roman-numeral"
+    | "casey-can-pay"
+    | "chess"
+    | "checkers"
+    | "racer"
+    | "jang-lang"
+    | "jangles-gp"
+    | "space-jangles"
+    | "piano-chords"
+    | "melody-memory"
+    | "photo-lab"
+    | "rhythm-tap";
+  href:
+    | "/games/music-match"
+    | "/games/beat-maker"
+    | "/games/find-foxy"
+    | "/games/world-adventure"
+    | "/games/elefante"
+    | "/games/fly-the-flag"
+    | "/games/name-that-country"
+    | "/games/air-fante-collect"
+    | "/games/air-fante-alphabet"
+    | "/games/draw-with-casey"
+    | "/games/sliding-puzzle"
+    | "/games/casey-can-count"
+    | "/games/foxer"
+    | "/games/jangles-ball"
+    | "/games/count-with-jaime"
+    | "/games/spot-the-difference"
+    | "/games/pacman"
+    | "/games/mastermind"
+    | "/games/casey-can-subtract"
+    | "/games/casey-can-multiply"
+    | "/games/casey-can-divide"
+    | "/games/jangles-kong"
+    | "/games/casey-can-spell"
+    | "/games/foxy-word-scramble"
+    | "/games/match-game"
+    | "/games/type-with-casey"
+    | "/games/color-mix"
+    | "/games/jangles-pong"
+    | "/games/casey-can-roman-numeral"
+    | "/games/casey-can-pay"
+    | "/games/chess"
+    | "/games/checkers"
+    | "/games/racer"
+    | "/games/jang-lang"
+    | "/games/jangles-gp"
+    | "/games/space-jangles"
+    | "/games/piano-chords"
+    | "/games/melody-memory"
+    | "/games/photo-lab"
+    | "/games/rhythm-tap";
   title: string;
   eyebrow: string;
   description: string;
@@ -222,7 +308,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Rearrange the picture",
     description:
       "Swap the pieces around the board to put the Jaime Jangles picture back together. Choose easy 3×3 or hard 4×4!",
-    accent: "#8B5CF6",
+    accent: "#3B82F6",
     emoji: "🧩",
     image: asset("/thumbs/sliding-puzzle.png"),
     status: "live",
@@ -274,7 +360,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Find what's missing",
     description:
       "Two pictures side by side — but one is missing something! Click on every difference you can find.",
-    accent: "#8B5CF6",
+    accent: "#F97316",
     emoji: "🔍",
     image: asset("/thumbs/spot-the-difference.png"),
     status: "live",
@@ -378,7 +464,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Flip & find pairs",
     description:
       "Flip cards to find matching pairs of Jangles objects! Pick Rookie for a quick 5×4 challenge or Master for a monster 10×10 grid.",
-    accent: "#8B5CF6",
+    accent: "#22C55E",
     emoji: "🃏",
     image: asset("/thumbs/match-game.png"),
     status: "live",
@@ -482,7 +568,7 @@ export const GAME_MANIFEST: GameManifestEntry[] = [
     eyebrow: "Lessons + play vs computer",
     description:
       "Learn how every chess piece moves and attacks, then challenge the computer to a real game. Lesson mode walks you through each piece step by step!",
-    accent: "#6366f1",
+    accent: "#0D9488",
     emoji: "♟",
     image: asset("/thumbs/chess.png"),
     status: "live",

@@ -456,6 +456,29 @@ function NewItemsPanel({
   );
 }
 
+// ── Legend (Rookie only) ────────────────────────────────────────────────────────
+
+function Legend({ diffs, found }: { diffs: ResolvedDiff[]; found: Set<string> }) {
+  return (
+    <div className="w-full max-w-2xl bg-white/70 rounded-2xl border-2 border-sky-200 px-4 py-3 flex flex-wrap gap-4 justify-center">
+      <span className="w-full text-center text-xs font-semibold text-sky-700 uppercase tracking-widest">
+        Legend — what to look for
+      </span>
+      {diffs.map((d) => (
+        <div
+          key={d.id}
+          className={cn("flex flex-col items-center gap-1 transition-opacity", found.has(d.id) && "opacity-40")}
+        >
+          <svg viewBox="0 0 60 60" className="w-10 h-10">
+            <DiffShape diff={{ ...d, cx: 30, cy: 30 }} />
+          </svg>
+          <span className="text-xs text-gray-600 capitalize">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Difficulty picker ─────────────────────────────────────────────────────────
 
 function DifficultyPicker({ onPick }: { onPick: (d: Difficulty) => void }) {
@@ -685,6 +708,9 @@ export function SpotTheDifferenceGame({ onComplete }: { onComplete?: () => void 
           {showHints ? "Hide hints" : "Show me where 👀"}
         </button>
       )}
+
+      {/* Legend — Rookie only */}
+      {difficulty === "rookie" && <Legend diffs={diffs} found={found} />}
 
       {/* Level complete */}
       <AnimatePresence>
