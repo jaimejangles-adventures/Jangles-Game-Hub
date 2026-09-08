@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RhythmTapGame } from "@/game/RhythmTapGame";
-import { ArcadeGate } from "@/components/arcade-gate";
 
 export const Route = createFileRoute("/games/rhythm-tap")({
   head: () => ({
@@ -20,9 +19,5 @@ export const Route = createFileRoute("/games/rhythm-tap")({
 });
 
 function RhythmTapRoute() {
-  return (
-    <ArcadeGate gameSlug="rhythm-tap" gameTitle="Rhythm Tap!" gameEmoji="🥁">
-      <RhythmTapGame />
-    </ArcadeGate>
-  );
+  return <RhythmTapGame />;
 }
