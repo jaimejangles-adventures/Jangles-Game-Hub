@@ -1,12 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from '@tanstack/react-router';
 import { burstCorrect, burstFinale } from '@/game/confetti';
 import { playCorrectExclamation, playIncorrectExclamation } from '@/game/exclamations';
+import { playJeffNumber, playJeffOperator, playJeffLevel } from '@/game/jeff-voice';
 import { cn } from '@/lib/utils';
 import { asset } from "@/lib/asset";
-
-const COUNT_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
 function speak(text: string, muted: boolean) {
   if (muted || !window.speechSynthesis) return;
@@ -94,6 +93,11 @@ export function CaseyCanAddGame({ onComplete }: { onComplete?: () => void } = {}
   const [aAllTapped, setAAllTapped] = useState(false);
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    playJeffLevel(roundNum, muted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundNum]);
 
   function stopMusic() {
     if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; musicRef.current = null; }
@@ -223,7 +227,7 @@ export function CaseyCanAddGame({ onComplete }: { onComplete?: () => void } = {}
 
             <motion.button
               whileTap={aAllTapped ? { scale: 0.85 } : {}}
-              onClick={() => aAllTapped && speak('plus', muted)}
+              onClick={() => aAllTapped && playJeffOperator('plus', muted)}
               className="flex items-center justify-center w-10 h-10 rounded-full border-[3px] border-ink bg-white font-extrabold text-2xl shadow"
               style={{ borderBottomWidth: 4, borderRightWidth: 3, opacity: aAllTapped ? 1 : 0.35, cursor: aAllTapped ? 'pointer' : 'default' }}>
               +
@@ -344,11 +348,11 @@ function ObjectGroup({ count, obj, color, muted, onAllTapped }: { count: number;
   function handleClick(idx: number) {
     const item = items[idx];
     if (item.tapped && item.num !== null) {
-      speak(COUNT_WORDS[item.num], muted);
+      playJeffNumber(item.num, muted);
       return;
     }
     const nextNum = tappedSoFar + 1;
-    speak(COUNT_WORDS[nextNum] ?? String(nextNum), muted);
+    playJeffNumber(nextNum, muted);
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, tapped: true, num: nextNum } : it));
     if (nextNum === count) onAllTapped?.();
   }

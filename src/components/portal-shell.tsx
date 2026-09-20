@@ -903,7 +903,7 @@ function UserMenu({
         style={{ borderBottomWidth: 5, borderRightWidth: 4 }}
       >
         {profile && <span>{flag(profile.country_code)}</span>}
-        <span>{profile ? profile.username : "👤 Me"}</span>
+        <span className="inline-block max-w-[90px] truncate align-bottom lg:max-w-[140px]">{profile ? profile.username : "👤 Me"}</span>
         <span style={{ fontSize: "0.55rem", opacity: 0.6 }}>{open ? "▲" : "▼"}</span>
       </button>
       {open && (

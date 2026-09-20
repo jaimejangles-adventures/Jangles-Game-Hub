@@ -8,14 +8,39 @@ import { Leaderboard } from "@/components/leaderboard";
 import songsData from "@/game/data/music-match.json";
 
 // ─── Songs ──────────────────────────────────────────────────────────────────
-type Song = { country: string; flag: string; audio: string; image: string };
+// Same storybook page per country used as the background in Colour Mix and
+// the Casey Can… math games, so every game shares one consistent world tour.
+const COUNTRY_BOOK_PAGE: Record<string, string> = {
+  Argentina: "page-8.png",
+  Australia: "page-24.png",
+  Barbados: "page-6.png",
+  France: "page-12.png",
+  Ghana: "page-20.png",
+  Indonesia: "page-23.png",
+  Italy: "page-13.png",
+  Jamaica: "page-5.png",
+  Japan: "page-16.png",
+  Kenya: "page-18.png",
+  Mexico: "page-4.png",
+  Nepal: "page-22.png",
+  Peru: "page-7.png",
+  "South Africa": "page-19.png",
+  "South Korea": "page-21.png",
+  Spain: "page-11.png",
+  "Sri Lanka": "page-15.png",
+  Switzerland: "page-17.png",
+  "United Kingdom": "page-10.png",
+  "U.S.A.": "page-3.png",
+};
+
+type Song = { country: string; flag: string; audio: string; bg: string };
 const SONGS: Song[] = (
-  songsData as { country: string; flag: string; audio: string; image: string }[]
+  songsData as { country: string; flag: string; audio: string }[]
 ).map((s) => ({
   country: s.country,
   flag: s.flag,
   audio: s.audio,
-  image: s.image,
+  bg: asset(`/count-backgrounds/${COUNTRY_BOOK_PAGE[s.country]}`),
 }));
 
 function slugify(country: string) {
@@ -321,14 +346,14 @@ export function RhythmTapGame() {
   const [flashLane, setFlashLane] = useState<number | null>(null);
   const [hitEffects, setHitEffects] = useState<HitEffect[]>([]);
 
-  // Immersive full-bleed backdrop: the chosen country's illustration once a
+  // Immersive full-bleed backdrop: the chosen country's storybook page once a
   // song is picked, otherwise a random one for the picker screen so the game
   // never opens onto a flat page.
   const idleBackground = useMemo(
-    () => SONGS[Math.floor(Math.random() * SONGS.length)].image,
+    () => SONGS[Math.floor(Math.random() * SONGS.length)].bg,
     [],
   );
-  const backgroundImage = song?.image ?? idleBackground;
+  const backgroundSrc = song?.bg ?? idleBackground;
 
   const { saveScore, saving, saved } = useScore("rhythm-tap");
   const scoreRef = useRef(0);
@@ -968,11 +993,12 @@ export function RhythmTapGame() {
 
   return (
     <div className="relative h-full overflow-hidden">
-      {/* Full-bleed Jangles-world backdrop, mirroring the Colour Mix treatment */}
+      {/* Full-bleed storybook page for the corresponding country, matching
+          Colour Mix and the Casey Can… math games */}
       <AnimatePresence mode="wait">
         <motion.img
-          key={backgroundImage}
-          src={asset(`/${backgroundImage}`)}
+          key={backgroundSrc}
+          src={backgroundSrc}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
           initial={{ opacity: 0 }}
@@ -981,7 +1007,7 @@ export function RhythmTapGame() {
           transition={{ duration: 0.4 }}
         />
       </AnimatePresence>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/25 to-black/50" />
+      <div className="absolute inset-0" style={{ background: "rgba(255,255,255,0.45)" }} />
 
       {/* The screen, floating centred over the backdrop */}
       <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-6">
