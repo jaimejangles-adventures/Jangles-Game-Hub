@@ -59,7 +59,8 @@ create table public.bucks_log (
 );
 
 -- Derived balance view — balance = sum(earns) - sum(spends)
-create or replace view public.bucks_balance as
+create or replace view public.bucks_balance
+with (security_invoker = true) as
 select
   user_id,
   sum(case when action = 'earn' then amount else -amount end) as balance

@@ -76,25 +76,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Callback must not await Supabase calls: supabase-js holds its auth lock while
+    // listeners run, so awaiting a query here deadlocks signUp/signInWithPassword
+    // and leaves the submit button stuck disabled. Defer the async work instead.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) {
-        let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
-        if (!p) {
-          const result = await tryPendingProfile(u.id);
-          p = result.profile;
-          setPendingProfileError(result.error);
-        }
-        if (p) profileCache.current[u.id] = p;
-        setProfile(p);
-        if (!p) setNeedsProfile(true);
-      } else {
-        setProfile(null);
-        setNeedsProfile(false);
-        setPendingProfileError(null);
-      }
       if (event === 'SIGNED_IN') setModalOpen(false);
+      setTimeout(async () => {
+        if (u) {
+          let p: Profile | null = profileCache.current[u.id] ?? (await fetchProfile(u.id));
+          if (!p) {
+            const result = await tryPendingProfile(u.id);
+            p = result.profile;
+            setPendingProfileError(result.error);
+          }
+          if (p) profileCache.current[u.id] = p;
+          setProfile(p);
+          if (!p) setNeedsProfile(true);
+        } else {
+          setProfile(null);
+          setNeedsProfile(false);
+          setPendingProfileError(null);
+        }
+      }, 0);
     });
 
     return () => subscription.unsubscribe();
