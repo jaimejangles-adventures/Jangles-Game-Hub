@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Leaderboard } from "@/components/leaderboard";
 import findFoxyMusic from "../../MUSIC FOR GAMES/FIND_FOXY_1.wav";
 
-import foxyLogo from "../../FOXY/FOX 1.png";
+import foxyLogo from "../../FOXY/FOX 2.png";
 
 import {
   FIND_FOXY_CORRECT_CUES,
